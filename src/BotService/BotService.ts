@@ -4,6 +4,7 @@ import { AuthService } from "./web/AuthService.js";
 import { DialogEngine } from "./dialog/DialogEngine.js";
 import { CommandHandler } from "./dialog/handlers/CommandHandler.js";
 import { ReplyResolver } from "./dialog/ReplyResolver.js";
+import { ButtonHandler } from "./dialog/handlers/ButtonHandler.js";
 
 export class BotService {
   private websiteName: string;
@@ -11,8 +12,6 @@ export class BotService {
   private bot: Bot;
   private dialogEngine: DialogEngine = new DialogEngine();
   private replyResolver: ReplyResolver = new ReplyResolver();
-  private commandHandler: CommandHandler;
-
   private botConfig: object = {};
 
   // private activeCallbacks: Map<string, number>;
@@ -24,13 +23,7 @@ export class BotService {
     this.bot = new Bot(TOKEN, this.botConfig);
 
     this.setUpMiddleware();
-
-    this.commandHandler = new CommandHandler(
-      this.bot,
-      this.dialogEngine,
-      this.replyResolver,
-      this.websiteName,
-    );
+    this.setUpHandlers();
   }
 
   setUpProxy(proxyUrl: string) {
@@ -46,10 +39,27 @@ export class BotService {
     }
   }
 
+  setUpHandlers() {
+    new CommandHandler(
+      this.bot,
+      this.dialogEngine,
+      this.replyResolver,
+      this.websiteName,
+    );
+    new ButtonHandler(
+      this.bot,
+      this.dialogEngine,
+      this.replyResolver,
+      this.websiteName,
+    );
+  }
+
   private setUpMiddleware() {
     this.bot.use((ctx, next) => {
       if (!ctx.chatId || !AuthService.adminLogIn(ctx.chatId)) {
-        ctx.reply(this.dialogEngine.mText().notAdmin);
+        ctx.reply(this.dialogEngine.notAdmin());
+        ctx.reply(this.dialogEngine.yourId(ctx.chatId));
+        console.log(ctx.chatId + " tried to log in. Failed");
         return;
       }
       return next();
