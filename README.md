@@ -36,13 +36,14 @@ sh ./start.sh
 
 ## Конфигурация
 
-| Что менять             | Где                                                |
-| ---------------------- | -------------------------------------------------- |
-| Тексты и переводы      | `src/BotService/dialog/messages/translates.ts`     |
-| Список администраторов | `config/admins.txt` (по одному ID на строку)       |
-| Токен бота и прокси    | `.env`                                             |
-| Команды бота           | `src/BotService/dialog/handlers/CommandHandler.ts` |
-| Inline-кнопки          | `src/BotService/dialog/handlers/ButtonHandler.ts`  |
+| Что менять             | Где                                                      |
+| ---------------------- | -------------------------------------------------------- |
+| Тексты и переводы      | `src/BotService/dialog/messages/translates.ts`           |
+| Список администраторов | `config/admins.txt` (по одному ID на строку)             |
+| Название вашего сайта  | `config/website_name.txt` (используется первое название) |
+| Токен бота и прокси    | `.env`                                                   |
+| Команды бота           | `src/BotService/dialog/handlers/CommandHandler.ts`       |
+| Inline-кнопки          | `src/BotService/dialog/handlers/ButtonHandler.ts`        |
 
 ---
 

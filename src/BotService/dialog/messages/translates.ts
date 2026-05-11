@@ -5,7 +5,9 @@ export const translates = {
     unknownCommand: "Неизвестная команда.",
     anonName: "Анонимный пользователь",
     langChanged: "Язык успешно изменен!",
-    greetUser: (name: string) => `Привет, ${name}!`,
+    help: "Здесь будет /help текст.",
+    greetUser: (name: string, websiteName: string) =>
+      `Привет, ${name}!\nДобро пожаловать в панель администратора сайта ${websiteName}`,
     yourId: (id: number) => `Ваш ID: ${id}`,
   },
   en: {
@@ -14,6 +16,7 @@ export const translates = {
     unknownCommand: "Unknown command.",
     anonName: "Anonymous user",
     langChanged: "Language changed successfully!",
+    help: "Here will be /help text.",
     greetUser: (name: string) => `Hello, ${name}!`,
     yourId: (id: number) => `Your ID: ${id}`,
   },

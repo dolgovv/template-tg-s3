@@ -5,6 +5,7 @@ export class CommandHandler {
   constructor(
     private bot: Bot,
     private dialog: DialogEngine,
+    private websiteName: string,
   ) {
     this.bot.command("start", (ctx) => {
       this.onStart(ctx);
@@ -13,12 +14,10 @@ export class CommandHandler {
     this.bot.command("lang", (ctx) => {
       this.onLang(ctx);
     });
-  }
-  onLang(ctx: Context) {
-    this.dialog.setLanguage(this.dialog.getLanguage() === "ru" ? "en" : "ru");
-    if (ctx.chat) {
-      ctx.reply(this.dialog.mText().langChanged);
-    }
+
+    this.bot.command("help", (ctx) => {
+      this.onHelp(ctx);
+    });
   }
 
   onStart(ctx: Context) {
@@ -26,8 +25,24 @@ export class CommandHandler {
       ctx.reply(
         this.dialog
           .mText()
-          .greetUser(ctx.chat.first_name || this.dialog.mText().anonName),
+          .greetUser(
+            ctx.chat.first_name || this.dialog.mText().anonName,
+            this.websiteName,
+          ),
       );
+    }
+  }
+
+  onLang(ctx: Context) {
+    this.dialog.setLanguage(this.dialog.getLanguage() === "ru" ? "en" : "ru");
+    if (ctx.chat) {
+      ctx.reply(this.dialog.mText().langChanged);
+    }
+  }
+
+  onHelp(ctx: Context) {
+    if (ctx.chat) {
+      ctx.reply(this.dialog.mText().help);
     }
   }
 }

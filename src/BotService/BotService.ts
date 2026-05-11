@@ -1,10 +1,12 @@
-import { Bot, GrammyError, HttpError } from "grammy";
+import { Bot } from "grammy";
 import { HttpsProxyAgent } from "https-proxy-agent";
-import { adminAuth } from "./web/AuthService.js";
+import { AuthService } from "./web/AuthService.js";
 import { DialogEngine } from "./dialog/DialogEngine.js";
 import { CommandHandler } from "./dialog/handlers/CommandHandler.js";
 
 export class BotService {
+  private websiteName: string;
+
   private bot: Bot;
   private dialogEngine: DialogEngine = new DialogEngine();
   private commandHandler: CommandHandler;
@@ -15,14 +17,18 @@ export class BotService {
   // private activeCallbacks: Map<string, number>;
 
   constructor(TOKEN: string, proxy?: string) {
-    if (proxy) {
-      this.setUpProxy(proxy);
-    }
+    if (proxy) this.setUpProxy(proxy);
+    this.websiteName = AuthService.getWebsiteName();
 
     this.bot = new Bot(TOKEN, this.botConfig);
+
     this.setUpMiddleware();
 
-    this.commandHandler = new CommandHandler(this.bot, this.dialogEngine);
+    this.commandHandler = new CommandHandler(
+      this.bot,
+      this.dialogEngine,
+      this.websiteName,
+    );
   }
 
   setUpProxy(proxyUrl: string) {
@@ -40,7 +46,7 @@ export class BotService {
 
   private setUpMiddleware() {
     this.bot.use((ctx, next) => {
-      if (!ctx.chatId || !adminAuth(ctx.chatId)) {
+      if (!ctx.chatId || !AuthService.adminLogIn(ctx.chatId)) {
         ctx.reply(this.dialogEngine.mText().notAdmin);
         return;
       }
