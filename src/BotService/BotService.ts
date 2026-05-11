@@ -7,6 +7,7 @@ import { CommandHandler } from "./dialog/handlers/CommandHandler.js";
 export class BotService {
   private bot: Bot;
   private dialogEngine: DialogEngine = new DialogEngine();
+  private commandHandler: CommandHandler;
 
   private botConfig: object = {};
   private language: string = "ru";
@@ -19,8 +20,9 @@ export class BotService {
     }
 
     this.bot = new Bot(TOKEN, this.botConfig);
-    new CommandHandler(this.bot, this.dialogEngine);
     this.setUpMiddleware();
+
+    this.commandHandler = new CommandHandler(this.bot, this.dialogEngine);
   }
 
   setUpProxy(proxyUrl: string) {
