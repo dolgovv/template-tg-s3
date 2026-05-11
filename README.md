@@ -36,14 +36,14 @@ sh ./start.sh
 
 ## Конфигурация
 
-| Что менять             | Где                                                      |
-| ---------------------- | -------------------------------------------------------- |
-| Тексты и переводы      | `src/BotService/dialog/messages/translates.ts`           |
-| Список администраторов | `config/admins.txt` (по одному ID на строку)             |
-| Название вашего сайта  | `config/website_name.txt` (используется первое название) |
-| Токен бота и прокси    | `.env`                                                   |
-| Команды бота           | `src/BotService/dialog/handlers/CommandHandler.ts`       |
-| Inline-кнопки          | `src/BotService/dialog/handlers/ButtonHandler.ts`        |
+| Что менять                 | Где                                                      | Гайд                                                   |
+| -------------------------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| Тексты, переводы и команды | `src/BotService/dialog/messages/translates.ts`           | [Как добавить новую команду](docs/adding-commands.md)  |
+| Список администраторов     | `config/admins.txt` (по одному ID на строку)             | [Управление администраторами](docs/managing-admins.md) |
+| Название вашего сайта      | `config/website_name.txt` (используется первое название) | —                                                      |
+| Токен бота и прокси        | `.env`                                                   | [Настройка .env](docs/env-configuration.md)            |
+| Inline-кнопки              | `src/BotService/dialog/messages/translates.ts`           | [Добавление кнопок](docs/adding-inline-buttons.md)     |
+| Языки бота                 | `src/BotService/dialog/messages/translates.ts`           | [Добавление языка](docs/adding-languages.md)           |
 
 ---
 
