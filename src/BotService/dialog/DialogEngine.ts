@@ -8,6 +8,10 @@ export class DialogEngine {
     this.lang = newLanguage;
   }
 
+  getLanguage(): botLanguage {
+    return this.lang;
+  }
+
   mText(): typeof translates.ru {
     return translates[this.lang];
   }

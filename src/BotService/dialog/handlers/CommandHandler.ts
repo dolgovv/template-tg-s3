@@ -9,7 +9,18 @@ export class CommandHandler {
     this.bot.command("start", (ctx) => {
       this.onStart(ctx);
     });
+
+    this.bot.command("lang", (ctx) => {
+      this.onLang(ctx);
+    });
   }
+  onLang(ctx: Context) {
+    this.dialog.setLanguage(this.dialog.getLanguage() === "ru" ? "en" : "ru");
+    if (ctx.chat) {
+      ctx.reply(this.dialog.mText().langChanged);
+    }
+  }
+
   onStart(ctx: Context) {
     if (ctx.chat) {
       ctx.reply(
