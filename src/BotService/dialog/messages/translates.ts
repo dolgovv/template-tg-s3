@@ -1,4 +1,4 @@
-export const translates = {
+export const textTranslates = {
   ru: {
     welcome: "Добро пожаловать! Бот запущен.",
     notAdmin: "У вас нет доступа.",
@@ -21,4 +21,36 @@ export const translates = {
     yourId: (id: number) => `Your ID: ${id}`,
   },
   // here you can add more languages
+};
+
+export const menusTranslates = {
+  ru: {
+    welcome: [
+      { text: "тест", call: "test_1" },
+      { text: "тест2", call: "test_2" },
+    ] as { text: string; call: string }[],
+    notAdmin: [],
+    unknownCommand: [],
+    anonName: [],
+    langChanged: [
+      { text: "Русский", call: "lang=ru" },
+      { text: "English", call: "lang=en" },
+    ] as { text: string; call: string }[],
+    help: [],
+  },
+  en: {
+    welcome: [
+      { text: "test", call: "test_1" },
+      { text: "test2", call: "test_2" },
+    ] as { text: string; call: string }[],
+    notAdmin: [],
+    unknownCommand: [],
+    anonName: [],
+    langChanged: [
+      { text: "English", call: "lang=en" },
+      { text: "Русский", call: "lang=ru" },
+    ] as { text: string; call: string }[],
+    help: [],
+  },
+  // here you can add more menus
 };

@@ -1,4 +1,13 @@
-import type { translates } from "../dialog/messages/translates.js";
+import type {
+  textTranslates,
+  menusTranslates,
+} from "../dialog/messages/translates.js";
 
 export type botLanguage = "ru" | "en";
-// export type Messages = typeof translates.ru;
+export type mText = typeof textTranslates.ru;
+export type mMenus = typeof menusTranslates.ru;
+
+export type MenuButton = {
+  text: string;
+  call: string;
+};

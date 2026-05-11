@@ -1,49 +1,45 @@
-// import { InlineKeyboard } from "grammy";
-// import type { Messages } from "../../utils/types.js";
+import { InlineKeyboard } from "grammy";
+import type { MenuButton } from "../../utils/types.js";
 
-// export type TextMessage = {
-//   type: "text";
-//   text: string;
-//   keyboard?: InlineKeyboard;
-// };
+export type TextMessage = {
+  type: "text";
+  text: string;
+  keyboard?: InlineKeyboard;
+};
 
-// export type PhotoMessage = {
-//   type: "photo";
-//   photo: string; // url или file_id
-//   caption?: string;
-//   keyboard?: InlineKeyboard;
-// };
+export type PhotoMessage = {
+  type: "photo";
+  photo: string; // url или file_id
+  caption?: string;
+  keyboard?: InlineKeyboard;
+};
 
-// export type BotMessage = TextMessage | PhotoMessage;
+export type BotMessage = TextMessage | PhotoMessage;
 
-// export class MessageFactory {
-//   constructor(private texts: Messages) {}
+export class MessageFactory {
+  text(text: string, buttons: MenuButton[] = []): TextMessage {
+    const keyboard = this.buildKeyboard(buttons);
+    const msg: TextMessage = { type: "text", text };
+    if (keyboard) msg.keyboard = keyboard;
+    return msg;
+  }
 
-//   text(text: string): TextMessage {
-//     return { type: "text", text };
-//   }
+  // photo(
+  //   url: string,
+  //   caption?: string,
+  //   buttons: MenuButton[] = [],
+  // ): PhotoMessage {
+  //   const keyboard = buildKeyboard(buttons);
+  //   const msg: PhotoMessage = { type: "photo", photo: url };
+  //   if (caption) msg.caption = caption;
+  //   if (keyboard) msg.keyboard = keyboard;
+  //   return msg;
+  // }
 
-//   textWithButtons(text: string, keyboard: InlineKeyboard): TextMessage {
-//     return { type: "text", text, keyboard };
-//   }
-
-//   photo(
-//     url: string,
-//     caption?: string,
-//     keyboard?: InlineKeyboard,
-//   ): PhotoMessage {
-//     return { type: "photo", photo: url, caption, keyboard };
-//   }
-
-//   // Готовые сообщения для конкретных сценариев
-//   welcome(): TextMessage {
-//     const kb = new InlineKeyboard()
-//       .text("🐕 Собаки", "list_dogs")
-//       .text("📅 События", "list_events");
-//     return this.textWithButtons(this.texts.welcome, kb);
-//   }
-
-//   notAdmin(): TextMessage {
-//     return this.text(this.texts.notAdmin);
-//   }
-// }
+  private buildKeyboard(buttons: MenuButton[]): InlineKeyboard | undefined {
+    if (!buttons || buttons.length === 0) return undefined;
+    const keyboard = new InlineKeyboard();
+    buttons.forEach((btn) => keyboard.text(btn.text, btn.call));
+    return keyboard;
+  }
+}
