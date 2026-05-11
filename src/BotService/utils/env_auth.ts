@@ -5,7 +5,7 @@ export function getEnv(key: string, required?: false): string | undefined;
 export function getEnv(key: string, required?: boolean): string | undefined {
   const value = process.env[key];
   if (required && !value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+    throw new Error(`Your .env is wrong. ${key} is missing`);
   }
   return value;
 }
