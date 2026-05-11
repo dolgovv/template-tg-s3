@@ -1,28 +1,23 @@
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import "dotenv/config";
+import { getEnv } from "../utils/env_auth.js";
 
 export class AuthService {
   static adminLogIn(currentId: number): boolean {
-    const adminIDs: number[] = AuthService.getAdmins();
-    return adminIDs.includes(currentId);
+    return AuthService.getAdmins().includes(currentId);
   }
 
   static getWebsiteName(): string {
-    const filePath = resolve(process.cwd(), "config", "website_name.txt");
-    const raw = readFileSync(filePath, "utf-8");
-
-    return raw.split("\n")[0] || "unknown";
+    return getEnv("WEBSITE_NAME", true);
   }
 
   private static getAdmins(): number[] {
-    const filePath = resolve(process.cwd(), "config", "admins.txt");
-    const raw = readFileSync(filePath, "utf-8");
+    const raw = getEnv("ADMIN_IDS", true);
 
     return raw
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line) => parseInt(line, 10))
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .map((s) => parseInt(s, 10))
       .filter((id) => !isNaN(id));
   }
 }
