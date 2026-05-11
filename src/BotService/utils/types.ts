@@ -1,7 +1,7 @@
 import type {
   textTranslates,
   menusTranslates,
-} from "../dialog/messages/translates.js";
+} from "../dialog/messages/strings.js";
 
 export type botLanguage = "ru" | "en";
 export type mText = typeof textTranslates.ru;

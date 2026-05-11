@@ -1,6 +1,6 @@
 import type { botLanguage, mText } from "../utils/types.js";
 import { MessageFactory, type BotMessage } from "./messages/MessageFactory.js";
-import { textTranslates, menusTranslates } from "./messages/translates.js";
+import { textTranslates, menusTranslates } from "./messages/strings.js";
 
 export class DialogEngine {
   private lang: botLanguage = "ru";
@@ -32,7 +32,15 @@ export class DialogEngine {
     return this.factory.text(t.help, m.help);
   }
 
-  mText(): mText {
-    return textTranslates[this.lang];
+  anonName(): string {
+    return textTranslates[this.lang].anonName;
+  }
+
+  notAdmin(): string {
+    return textTranslates[this.lang].notAdmin;
+  }
+
+  yourId(chatId?: number): string {
+    return textTranslates[this.lang].yourId(chatId || 0);
   }
 }
