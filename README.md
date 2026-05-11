@@ -1,16 +1,55 @@
-<h2>Telegram-bot template project </h2>
+# Telegram Bot Template
 
-✅ Fast build and deploy: Typescript + pnpm
-✅ Reliable authorization for admins
-✅ Optimized media storage: S3 local storage with easy upgrade to cloud S3
-✅ Proxy integrated: just add you profile in config and go
+Готовый шаблон для быстрого старта Telegram-бота на TypeScript. Берёшь, настраиваешь под себя и запускаешь — без лишнего шума.
 
-_pnpm_
-_S3-integration (Garage/MinIO)_
-_proxies agent_
+---
 
-<h3>Configs </h3>
+## Что внутри
 
-- _Here you can **add**, **edit** or **remove** text content and it`s translates_: ./src/BotService/dialog/messages/translates.ts
+**⚡ TypeScript + pnpm**
+Строгая типизация с первого файла, быстрая установка зависимостей. Сборка одной командой: `pnpm start`.
 
-- _Here you can **add**, **edit** or **remove** admins using Telegram IDs_: ./config/admins.txt
+**🔐 Авторизация администраторов**
+Доступ к боту ограничен списком Telegram ID. Middleware проверяет каждый входящий запрос до того, как он дойдёт до обработчиков. Список редактируется в обычном текстовом файле — не нужно лезть в код.
+
+**🌍 Мультиязычность**
+Все тексты вынесены в единый файл переводов (`translates.ts`). Поддерживаются `ru` и `en` из коробки, добавить новый язык — одна запись в объекте. `DialogEngine` переключает язык в рантайме.
+
+**🌐 Прокси из коробки**
+Поддержка HTTP/HTTPS и SOCKS прокси через переменную окружения `PROXY_URL`. Достаточно вписать URL — бот подхватит его при старте.
+
+**📦 S3-хранилище**
+Архитектура готова к подключению S3-совместимого хранилища (Garage, MinIO, AWS S3). Локальное хранилище легко заменяется облачным без изменения бизнес-логики.
+
+**🔧 Безопасная работа с env**
+Утилита `getEnv` с перегрузками: обязательные переменные бросают исключение при старте, опциональные возвращают `undefined`. Никаких молчаливых `undefined` в продакшне.
+
+---
+
+## Быстрый старт
+
+```bash
+sh ./start.sh
+```
+
+---
+
+## Конфигурация
+
+| Что менять             | Где                                                |
+| ---------------------- | -------------------------------------------------- |
+| Тексты и переводы      | `src/BotService/dialog/messages/translates.ts`     |
+| Список администраторов | `config/admins.txt` (по одному ID на строку)       |
+| Токен бота и прокси    | `.env`                                             |
+| Команды бота           | `src/BotService/dialog/handlers/CommandHandler.ts` |
+| Inline-кнопки          | `src/BotService/dialog/handlers/ButtonHandler.ts`  |
+
+---
+
+## Стек
+
+- [grammY](https://grammy.dev/) — фреймворк для Telegram Bot API
+- TypeScript 5 + ESM
+- pnpm
+- dotenv
+- https-proxy-agent / socks-proxy-agent
