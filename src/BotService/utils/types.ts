@@ -11,3 +11,10 @@ export type MenuButton = {
   text: string;
   call: string;
 };
+
+export type MenuSection = Record<string, MenuButton[]>;
+
+// Данные сессии — хранятся отдельно для каждого пользователя
+export type SessionData = {
+  lang: botLanguage;
+};

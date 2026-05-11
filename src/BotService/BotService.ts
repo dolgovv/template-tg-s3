@@ -1,27 +1,30 @@
-import { Bot } from "grammy";
+import { Bot, Context, session } from "grammy";
+import type { SessionFlavor } from "grammy";
+import { FileAdapter } from "@grammyjs/storage-file";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { AuthService } from "./web/AuthService.js";
 import { DialogEngine } from "./dialog/DialogEngine.js";
 import { CommandHandler } from "./dialog/handlers/CommandHandler.js";
 import { ReplyResolver } from "./dialog/ReplyResolver.js";
 import { ButtonHandler } from "./dialog/handlers/ButtonHandler.js";
+import type { SessionData } from "./utils/types.js";
+
+export type BotContext = Context & SessionFlavor<SessionData>;
 
 export class BotService {
   private websiteName: string;
-
-  private bot: Bot;
+  private bot: Bot<BotContext>;
   private dialogEngine: DialogEngine = new DialogEngine();
   private replyResolver: ReplyResolver = new ReplyResolver();
   private botConfig: object = {};
-
-  // private activeCallbacks: Map<string, number>;
 
   constructor(TOKEN: string, proxy?: string) {
     if (proxy) this.setUpProxy(proxy);
     this.websiteName = AuthService.getWebsiteName();
 
-    this.bot = new Bot(TOKEN, this.botConfig);
+    this.bot = new Bot<BotContext>(TOKEN, this.botConfig);
 
+    this.setUpSession();
     this.setUpMiddleware();
     this.setUpHandlers();
   }
@@ -39,6 +42,28 @@ export class BotService {
     }
   }
 
+  private setUpSession() {
+    this.bot.use(
+      session({
+        initial: (): SessionData => ({ lang: "ru" }),
+        storage: new FileAdapter({ dirName: "sessions" }),
+      }),
+    );
+  }
+
+  private setUpMiddleware() {
+    this.bot.use((ctx, next) => {
+      if (!ctx.chatId || !AuthService.adminLogIn(ctx.chatId)) {
+        const lang = ctx.session.lang;
+        ctx.reply(this.dialogEngine.notAdmin(lang));
+        ctx.reply(this.dialogEngine.yourId(lang, ctx.chatId));
+        console.log(ctx.chatId + " tried to log in. Failed");
+        return;
+      }
+      return next();
+    });
+  }
+
   setUpHandlers() {
     new CommandHandler(
       this.bot,
@@ -46,24 +71,7 @@ export class BotService {
       this.replyResolver,
       this.websiteName,
     );
-    new ButtonHandler(
-      this.bot,
-      this.dialogEngine,
-      this.replyResolver,
-      this.websiteName,
-    );
-  }
-
-  private setUpMiddleware() {
-    this.bot.use((ctx, next) => {
-      if (!ctx.chatId || !AuthService.adminLogIn(ctx.chatId)) {
-        ctx.reply(this.dialogEngine.notAdmin());
-        ctx.reply(this.dialogEngine.yourId(ctx.chatId));
-        console.log(ctx.chatId + " tried to log in. Failed");
-        return;
-      }
-      return next();
-    });
+    new ButtonHandler(this.bot, this.dialogEngine, this.replyResolver);
   }
 
   start() {

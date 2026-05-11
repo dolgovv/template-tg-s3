@@ -1,49 +1,44 @@
-import type { Bot, Context } from "grammy";
 import type { DialogEngine } from "../DialogEngine.js";
 import { ReplyResolver } from "../ReplyResolver.js";
+import type { BotContext } from "../../BotService.js";
+import type { Bot } from "grammy";
 
 export class CommandHandler {
   constructor(
-    private bot: Bot,
+    private bot: Bot<BotContext>,
     private dialog: DialogEngine,
     private resolver: ReplyResolver,
     private websiteName: string,
   ) {
-    this.bot.command("start", (ctx) => {
-      this.onStart(ctx);
-    });
-
-    this.bot.command("lang", (ctx) => {
-      this.onLang(ctx);
-    });
-
-    this.bot.command("help", (ctx) => {
-      this.onHelp(ctx);
-    });
+    this.bot.command("start", (ctx) => this.onStart(ctx));
+    this.bot.command("lang", (ctx) => this.onLang(ctx));
+    this.bot.command("help", (ctx) => this.onHelp(ctx));
   }
 
-  onStart(ctx: Context) {
+  async onStart(ctx: BotContext) {
     if (ctx.chat) {
+      const lang = ctx.session.lang;
       const reply = this.dialog.buildWelcome(
-        ctx.chat.first_name || this.dialog.anonName(),
+        lang,
+        ctx.chat.first_name || this.dialog.anonName(lang),
         this.websiteName,
       );
-      this.resolver.reply(ctx, reply);
+      await this.resolver.reply(ctx, reply);
     }
   }
 
-  onLang(ctx: Context) {
-    this.dialog.setLanguage(this.dialog.getLanguage() === "ru" ? "en" : "ru");
+  async onLang(ctx: BotContext) {
+    ctx.session.lang = ctx.session.lang === "ru" ? "en" : "ru";
     if (ctx.chat) {
-      const reply = this.dialog.buildLanguageChanged();
-      this.resolver.reply(ctx, reply);
+      const reply = this.dialog.buildLanguageChanged(ctx.session.lang);
+      await this.resolver.reply(ctx, reply);
     }
   }
 
-  onHelp(ctx: Context) {
+  async onHelp(ctx: BotContext) {
     if (ctx.chat) {
-      const reply = this.dialog.buildHelp();
-      this.resolver.reply(ctx, reply);
+      const reply = this.dialog.buildHelp(ctx.session.lang);
+      await this.resolver.reply(ctx, reply);
     }
   }
 }
