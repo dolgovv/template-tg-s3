@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@grammyjs/storage-file':
+        specifier: ^2.5.1
+        version: 2.5.1
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -38,6 +41,9 @@ importers:
         version: 6.0.3
 
 packages:
+
+  '@grammyjs/storage-file@2.5.1':
+    resolution: {integrity: sha512-16jrn2IzgJgIZUtcFiA/PI4WBNfHt1dAoimrRzwPyHvM1otNuKwWAAxA6l3m7ys6YrOLlONu4q4swEkPMOT9YA==}
 
   '@grammyjs/types@3.26.0':
     resolution: {integrity: sha512-jlnyfxfev/2o68HlvAGRocAXgdPPX5QabG7jZlbqC2r9DZyWBfzTlg+nu3O3Fy4EhgLWu28hZ/8wr7DsNamP9A==}
@@ -222,6 +228,8 @@ packages:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
 snapshots:
+
+  '@grammyjs/storage-file@2.5.1': {}
 
   '@grammyjs/types@3.26.0': {}
 
