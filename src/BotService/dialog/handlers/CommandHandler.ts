@@ -25,7 +25,7 @@ export class CommandHandler {
   onStart(ctx: Context) {
     if (ctx.chat) {
       const reply = this.dialog.buildWelcome(
-        ctx.chat.first_name || this.dialog.mText().anonName,
+        ctx.chat.first_name || this.dialog.anonName(),
         this.websiteName,
       );
       this.resolver.reply(ctx, reply);
