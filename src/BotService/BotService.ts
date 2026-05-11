@@ -3,16 +3,17 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import { AuthService } from "./web/AuthService.js";
 import { DialogEngine } from "./dialog/DialogEngine.js";
 import { CommandHandler } from "./dialog/handlers/CommandHandler.js";
+import { ReplyResolver } from "./dialog/ReplyResolver.js";
 
 export class BotService {
   private websiteName: string;
 
   private bot: Bot;
   private dialogEngine: DialogEngine = new DialogEngine();
+  private replyResolver: ReplyResolver = new ReplyResolver();
   private commandHandler: CommandHandler;
 
   private botConfig: object = {};
-  private language: string = "ru";
 
   // private activeCallbacks: Map<string, number>;
 
@@ -27,6 +28,7 @@ export class BotService {
     this.commandHandler = new CommandHandler(
       this.bot,
       this.dialogEngine,
+      this.replyResolver,
       this.websiteName,
     );
   }
