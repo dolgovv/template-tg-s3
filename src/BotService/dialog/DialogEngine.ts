@@ -27,6 +27,19 @@ export class DialogEngine {
     return this.factory.text(t.help, m.help);
   }
 
+  buildDirList(lang: botLanguage, dirs: string[]): BotMessage {
+    const t = textTranslates[lang];
+    if (dirs.length === 0) {
+      return this.factory.text(t.dirListEmpty);
+    }
+    const list = dirs.map((d) => `• ${d}`).join("\n");
+    return this.factory.text(`${t.dirListHeader}\n\n${list}`);
+  }
+
+  buildDirListError(lang: botLanguage): BotMessage {
+    return this.factory.text(textTranslates[lang].dirListError);
+  }
+
   anonName(lang: botLanguage): string {
     return textTranslates[lang].anonName;
   }

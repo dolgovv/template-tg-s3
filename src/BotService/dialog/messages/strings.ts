@@ -9,6 +9,9 @@ export const textTranslates = {
     greetUser: (name: string, websiteName: string) =>
       `Привет, ${name}!\nДобро пожаловать в панель администратора сайта ${websiteName}`,
     yourId: (id: number) => `Ваш ID: ${id}`,
+    dirListHeader: "📁 Директории в хранилище:",
+    dirListEmpty: "Хранилище пустое — директорий не найдено.",
+    dirListError: "Не удалось получить список директорий. Попробуйте позже.",
   },
   en: {
     welcome: "Welcome! Bot is running.",
@@ -19,6 +22,9 @@ export const textTranslates = {
     help: "Here will be /help text.",
     greetUser: (name: string) => `Hello, ${name}!`,
     yourId: (id: number) => `Your ID: ${id}`,
+    dirListHeader: "📁 Directories in storage:",
+    dirListEmpty: "Storage is empty — no directories found.",
+    dirListError: "Failed to fetch directory list. Please try again later.",
   },
   // here you can add more languages
 };

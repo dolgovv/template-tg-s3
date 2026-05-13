@@ -2,6 +2,7 @@ import type { DialogEngine } from "../DialogEngine.js";
 import { ReplyResolver } from "../ReplyResolver.js";
 import type { BotContext } from "../../BotService.js";
 import type { Bot } from "grammy";
+import { listDirectories } from "../../datasource/S3Repository.js";
 
 export class CommandHandler {
   constructor(
@@ -13,6 +14,7 @@ export class CommandHandler {
     this.bot.command("start", (ctx) => this.onStart(ctx));
     this.bot.command("lang", (ctx) => this.onLang(ctx));
     this.bot.command("help", (ctx) => this.onHelp(ctx));
+    this.bot.command("get_dirs", (ctx) => this.onGetDirs(ctx));
   }
 
   async onStart(ctx: BotContext) {
@@ -38,6 +40,20 @@ export class CommandHandler {
   async onHelp(ctx: BotContext) {
     if (ctx.chat) {
       const reply = this.dialog.buildHelp(ctx.session.lang);
+      await this.resolver.reply(ctx, reply);
+    }
+  }
+
+  async onGetDirs(ctx: BotContext) {
+    if (!ctx.chat) return;
+    const lang = ctx.session.lang;
+    try {
+      const dirs = await listDirectories();
+      const reply = this.dialog.buildDirList(lang, dirs);
+      await this.resolver.reply(ctx, reply);
+    } catch (err) {
+      console.error("get-dirs error:", err);
+      const reply = this.dialog.buildDirListError(lang);
       await this.resolver.reply(ctx, reply);
     }
   }
