@@ -11,11 +11,20 @@ export class ReplyResolver {
         );
         break;
 
-        // case "photo":
-        //   await ctx.replyWithPhoto(reply.photo, {
-        //     caption: reply.caption,
-        //     reply_markup: reply.keyboard,
-        //   });
+      case "photo":
+        await ctx.replyWithPhoto(reply.photo, {
+          ...(reply.caption && { caption: reply.caption }),
+          ...(reply.keyboard && { reply_markup: reply.keyboard }),
+        });
+        break;
+
+      case "mediaGroup":
+        const media = reply.photos.map((photo, index) => ({
+          type: "photo" as const,
+          media: photo,
+          ...(index === 0 && reply.caption && { caption: reply.caption }),
+        }));
+        await ctx.replyWithMediaGroup(media);
         break;
     }
   }
