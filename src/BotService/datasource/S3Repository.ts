@@ -1,7 +1,4 @@
 import {
-  DeleteObjectCommand,
-  GetObjectAclCommand,
-  DeleteObjectsCommand,
   ListObjectsV2Command,
   type ListObjectsV2CommandInput,
   PutObjectCommand,
@@ -13,125 +10,217 @@ import { getEnv } from "../utils/env_auth.js";
 import type { Post } from "../utils/types.js";
 import type { Readable } from "node:stream";
 
-const bucket = getEnv("S3_BUCKET", true);
-
-const img_workdir = getEnv("S3_IMG_WORKDIR", true);
-
-export async function listImagesInDir(prefix: string): Promise<string[]> {
-  const command = new ListObjectsV2Command({
-    Bucket: bucket,
-    Prefix: prefix,
-    Delimiter: "/",
-  });
-
-  const response = await s3Client.send(command);
-
-  if (!response.Contents) {
-    return [];
+export class BotRepository {
+  private bucket = getEnv("S3_BUCKET", true);
+  private currentDir: string;
+  constructor(newCurrentDir?: string) {
+    this.currentDir = newCurrentDir ?? "/";
   }
 
-  const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
-  const images = response.Contents.map((obj) => obj.Key!).filter((key) => {
-    // const lower = key.toLowerCase();
-    return imageExtensions.some((ext) => key.endsWith(ext));
-  });
+  // FUNCTIONS TO WORK WITH FILES
+  async getImage(path: string): Promise<Buffer> {
+    const response = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: path,
+      }),
+    );
 
-  return images;
-}
+    return this.streamToBuffer(response.Body as Readable);
+  }
 
-export async function listDirectories(prefix = ""): Promise<string[]> {
-  const dirs: string[] = [];
-  let continuationToken: string | undefined;
+  async getImagesInDir(path: string): Promise<Buffer[]> {
+    const imagesList = await this.listImagesInDir(path);
+    const bufferPromises = imagesList.map((imagePath) =>
+      this.getImage(imagePath),
+    );
+    return Promise.all(bufferPromises);
+  }
 
-  do {
-    const input: ListObjectsV2CommandInput = {
-      Bucket: bucket,
+  async getText(path: string): Promise<string> {
+    const response = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: path,
+      }),
+    );
+
+    return this.streamToString(response.Body as Readable);
+  }
+
+  // FUNCTIONS TO WORK WITH DIRECTORIES
+  async listDirectories(prefix = ""): Promise<string[]> {
+    const dirs: string[] = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const input: ListObjectsV2CommandInput = {
+        Bucket: this.bucket,
+        Delimiter: "/",
+        Prefix: prefix || undefined,
+        ContinuationToken: continuationToken,
+      };
+
+      const response = await s3Client.send(new ListObjectsV2Command(input));
+
+      for (const cp of response.CommonPrefixes ?? []) {
+        if (cp.Prefix) dirs.push(cp.Prefix);
+      }
+
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return dirs;
+  }
+
+  async createDirectory(prefix: string, name: string): Promise<void> {
+    const key = `${prefix}${name}/`;
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: "",
+      }),
+    );
+  }
+
+  // UTILS FUNCTIONS
+  async streamToBuffer(stream: Readable): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
+  async streamToString(stream: Readable): Promise<string> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks).toString("utf-8");
+  }
+
+  async listImagesInDir(prefix: string): Promise<string[]> {
+    const command = new ListObjectsV2Command({
+      Bucket: this.bucket,
+      Prefix: prefix,
       Delimiter: "/",
-      Prefix: prefix || undefined,
-      ContinuationToken: continuationToken,
-    };
+    });
 
-    const response = await s3Client.send(new ListObjectsV2Command(input));
+    const response = await s3Client.send(command);
 
-    for (const cp of response.CommonPrefixes ?? []) {
-      if (cp.Prefix) dirs.push(cp.Prefix);
+    if (!response.Contents) {
+      return [];
     }
 
-    continuationToken = response.NextContinuationToken;
-  } while (continuationToken);
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
+    const images = response.Contents.map((obj) => obj.Key!).filter((key) => {
+      return imageExtensions.some((ext) => key.endsWith(ext));
+    });
 
-  return dirs;
-}
-
-export async function createDirectory(
-  prefix: string,
-  name: string,
-): Promise<void> {
-  const key = `${prefix}${name}/`;
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: "",
-    }),
-  );
-}
-
-async function streamToBuffer(stream: Readable): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) {
-    chunks.push(Buffer.from(chunk));
+    return images;
   }
-  return Buffer.concat(chunks);
 }
 
-async function streamToString(stream: Readable): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) {
-    chunks.push(Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks).toString("utf-8");
-}
+// FILES
+// export async function listImagesInDir(prefix: string): Promise<string[]> {
+//   const command = new ListObjectsV2Command({
+//     Bucket: bucketthis.: prefix,
+//     Delimiter: "/",
+//   });
 
-export async function getImage(path: string): Promise<Buffer> {
-  const response = await s3Client.send(
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: path,
-    }),
-  );
+//   const response = await s3Client.send(command);
 
-  return streamToBuffer(response.Body as Readable);
-}
+//   if (!response.Contents) {
+//     return [];
+//   }
 
-export async function getImagesInDir(path: string): Promise<Buffer[]> {
-  const imagesList = await listImagesInDir(path);
-  const bufferPromises = imagesList.map((imagePath) => getImage(imagePath));
-  return Promise.all(bufferPromises);
-}
+//   const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
+//   const images = response.Contents.map((obj) => obj.Key!).filter((key) => {
+//     // const lower = key.toLowerCase();
+//     return imageExtensions.some((ext) => key.endsWith(ext));
+//   });
 
-export async function getText(postId: string): Promise<string> {
-  const key = `posts/${postId}/text.txt`;
+//   return images;
+// }
 
-  const response = await s3Client.send(
-    new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    }),
-  );
+// async function streamToBuffer(stream: Readable): Promise<Buffer> {
+//   const chunks: Buffer[] = [];
+//   for await (const chunk of stream) {
+//     chunks.push(Buffer.from(chunk));
+//   }
+//   return Buffer.concat(chunks);
+// }
 
-  return streamToString(response.Body as Readable);
-}
+// async function streamToString(stream: Readable): Promise<string> {
+//   const chunks: Buffer[] = [];
+//   for await (const chunk of stream) {
+//     chunks.push(Buffer.from(chunk));
+//   }
+//   return Buffer.concat(chunks).toString("utf-8");
+// }
 
-export async function getPost(postId: string): Promise<Post> {
-  // const [image, text] = await Promise.all([getImage(postId), getText(postId)]);
-  const image = await getImage(postId);
-  const text = await getText(postId);
+// export async function getImage(path: string): Promise<Buffer> {
+//   const response = await s3Client.send(
+//     new GetObjectCommand({
+//       Bucket: bucketthis.: path,
+//     }),
+//   );
 
-  const result: Post = {
-    image: image,
-    text: text,
-  };
+//   return streamToBuffer(response.Body as Readable);
+// }
 
-  return result;
-}
+// export async function getImagesInDir(path: string): Promise<Buffer[]> {
+//   const imagesList = await listImagesInDir(path);
+//   const bufferPromises = imagesList.map((imagePath) => getImage(imagePath));
+//   return Promise.all(bufferPromises);
+// }
+
+// export async function getText(path: string): Promise<string> {
+//   const response = await s3Client.send(
+//     new GetObjectCommand({
+//       Bucket: bucketthis.: path,
+//     }),
+//   );
+
+//   return streamToString(response.Body as Readable);
+// }
+
+// DIRECTORIES
+
+// export async function listDirectories(prefix = ""): Promise<string[]> {
+//   const dirs: string[] = [];
+//   let continuationToken: string | undefined;
+
+//   do {
+//     const input: ListObjectsV2CommandInput = {
+//       Bucket: bucketthis.: "/",
+//       Prefix: prefix || undefined,
+//       ContinuationToken: continuationToken,
+//     };
+
+//     const response = await s3Client.send(new ListObjectsV2Command(input));
+
+//     for (const cp of response.CommonPrefixes ?? []) {
+//       if (cp.Prefix) dirs.push(cp.Prefix);
+//     }
+
+//     continuationToken = response.NextContinuationToken;
+//   } while (continuationToken);
+
+//   return dirs;
+// }
+
+// export async function createDirectory(
+//   prefix: string,
+//   name: string,
+// ): Promise<void> {
+//   const key = `${prefix}${name}/`;
+//   await s3Client.send(
+//     new PutObjectCommand({
+//       Bucket: bucketthis.: key,
+//       Body: "",
+//     }),
+//   );
+// }

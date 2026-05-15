@@ -4,12 +4,7 @@ import type { DialogEngine } from "../DialogEngine.js";
 import { ReplyResolver } from "../ReplyResolver.js";
 import type { BotContext } from "../../BotService.js";
 import { DialogState } from "../../utils/types.js";
-import {
-  listDirectories,
-  getText,
-  getImage,
-  getImagesInDir,
-} from "../../datasource/S3Repository.js";
+import { BotRepository } from "../../datasource/S3Repository.js";
 
 const TEMPORARY_POST_UUID = "d420f6dd-99a4-442f-a9fa-ea54b68f2373";
 
@@ -18,6 +13,7 @@ export class CommandHandler {
     private bot: Bot<BotContext>,
     private dialog: DialogEngine,
     private resolver: ReplyResolver,
+    private repo: BotRepository,
     private websiteName: string,
   ) {
     this.bot.command("start", (ctx) => this.onStart(ctx));
@@ -39,13 +35,13 @@ export class CommandHandler {
       const path = `${prefix}/${uuid}/${fileName}`;
 
       try {
-        const imageBuffer = await getImage(path);
+        const imageBuffer = await this.repo.getImage(path);
 
         const reply = this.dialog.buildImg(imageBuffer);
         await this.resolver.reply(ctx, reply);
       } catch (err) {
         const lang = ctx.session.lang;
-        const reply = this.dialog.buildError(lang, "get file (image)");
+        const reply = this.dialog.buildError(lang, "get file (image) " + err);
         await this.resolver.reply(ctx, reply);
       }
     }
@@ -58,13 +54,17 @@ export class CommandHandler {
       const path = `${prefix}/${uuid}/`;
 
       try {
-        const imageBuffers = await getImagesInDir(path);
+        const imageBuffers = await this.repo.getImagesInDir(path);
 
         const reply = this.dialog.buildImgs(imageBuffers);
         await this.resolver.reply(ctx, reply);
       } catch (err) {
         const lang = ctx.session.lang;
-        const reply = this.dialog.buildError(lang, "get files (images)");
+        const reply = this.dialog.buildError(
+          lang,
+          "get files (images): " + err,
+        );
+
         await this.resolver.reply(ctx, reply);
       }
     }
@@ -77,29 +77,36 @@ export class CommandHandler {
       const path = `${prefix}/${uuid}/`;
 
       try {
-        const imageBuffers = await getImagesInDir(path);
-        const textfileContent = await getText(TEMPORARY_POST_UUID);
+        const imageBuffers = await this.repo.getImagesInDir(path);
+        const textfileContent = await this.repo.getText(`${path}text.txt`);
 
         const reply = this.dialog.buildImgs(imageBuffers, textfileContent);
         await this.resolver.reply(ctx, reply);
       } catch (err) {
         const lang = ctx.session.lang;
-        const reply = this.dialog.buildError(lang, "get file (image + text)");
+        const reply = this.dialog.buildError(
+          lang,
+          "get file (image + text) " + err,
+        );
         await this.resolver.reply(ctx, reply);
       }
     }
   }
 
   async onTest_text(ctx: BotContext) {
+    const prefix = "posts";
+    const uuid = TEMPORARY_POST_UUID;
+    const fileName = "text.txt";
+    const path = `${prefix}/${uuid}/${fileName}`;
     if (ctx.chat) {
       try {
-        const textfileContent = await getText(TEMPORARY_POST_UUID);
+        const textfileContent = await this.repo.getText(path);
         const reply = this.dialog.buildTextFile(textfileContent);
         await this.resolver.reply(ctx, reply);
       } catch (err) {
         const lang = ctx.session.lang;
         console.error("get-file error:", err);
-        const reply = this.dialog.buildError(lang, "get file (text)");
+        const reply = this.dialog.buildError(lang, "get file (text) " + err);
         await this.resolver.reply(ctx, reply);
       }
     }
@@ -109,12 +116,12 @@ export class CommandHandler {
     if (!ctx.chat) return;
     const lang = ctx.session.lang;
     try {
-      const dirs = await listDirectories();
+      const dirs = await this.repo.listDirectories();
       const reply = this.dialog.buildDirList(lang, dirs);
       await this.resolver.reply(ctx, reply);
     } catch (err) {
       console.error("get-dirs error:", err);
-      const reply = this.dialog.buildError(lang, "get directories");
+      const reply = this.dialog.buildError(lang, "get directories " + err);
       await this.resolver.reply(ctx, reply);
     }
   }
