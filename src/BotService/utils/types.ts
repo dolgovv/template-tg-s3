@@ -19,8 +19,13 @@ export enum DialogState {
   AwaitingButtonEcho = "awaiting_button_echo",
 }
 
-// Данные сессии — хранятся отдельно для каждого пользователя
 export type SessionData = {
   lang: botLanguage;
   dialogState: DialogState;
+  currentDir: string;
+};
+
+export type Post = {
+  image?: Buffer<ArrayBufferLike>;
+  text?: string;
 };

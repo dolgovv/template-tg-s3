@@ -15,6 +15,18 @@ export class DialogEngine {
     return this.factory.text(t.greetUser(name, websiteName), m.welcome);
   }
 
+  buildTextFile(text: string): BotMessage {
+    return this.factory.text(text);
+  }
+
+  buildImg(image: Buffer, caption?: string): BotMessage {
+    return this.factory.photo(image, caption);
+  }
+
+  buildImgs(images: Buffer[], caption?: string): BotMessage {
+    return this.factory.mediaGroup(images, caption);
+  }
+
   buildLanguageChanged(lang: botLanguage): BotMessage {
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
@@ -33,11 +45,11 @@ export class DialogEngine {
       return this.factory.text(t.dirListEmpty);
     }
     const list = dirs.map((d) => `• ${d}`).join("\n");
-    return this.factory.text(`${t.dirListHeader}\n\n${list}`);
+    return this.factory.text(list);
   }
 
-  buildDirListError(lang: botLanguage): BotMessage {
-    return this.factory.text(textTranslates[lang].dirListError);
+  buildError(lang: botLanguage, description: string): BotMessage {
+    return this.factory.text(`${textTranslates[lang].error} ${description}`);
   }
 
   buildButtonEchoReply(lang: botLanguage, text: string): BotMessage {

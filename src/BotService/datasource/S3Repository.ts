@@ -1,14 +1,43 @@
 import {
   DeleteObjectCommand,
+  GetObjectAclCommand,
   DeleteObjectsCommand,
   ListObjectsV2Command,
   type ListObjectsV2CommandInput,
   PutObjectCommand,
+  type _Object as Object_S3,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { s3Client } from "./S3Client.js";
 import { getEnv } from "../utils/env_auth.js";
+import type { Post } from "../utils/types.js";
+import type { Readable } from "node:stream";
 
 const bucket = getEnv("S3_BUCKET", true);
+
+const img_workdir = getEnv("S3_IMG_WORKDIR", true);
+
+export async function listImagesInDir(prefix: string): Promise<string[]> {
+  const command = new ListObjectsV2Command({
+    Bucket: bucket,
+    Prefix: prefix,
+    Delimiter: "/",
+  });
+
+  const response = await s3Client.send(command);
+
+  if (!response.Contents) {
+    return [];
+  }
+
+  const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
+  const images = response.Contents.map((obj) => obj.Key!).filter((key) => {
+    // const lower = key.toLowerCase();
+    return imageExtensions.some((ext) => key.endsWith(ext));
+  });
+
+  return images;
+}
 
 export async function listDirectories(prefix = ""): Promise<string[]> {
   const dirs: string[] = [];
@@ -34,11 +63,6 @@ export async function listDirectories(prefix = ""): Promise<string[]> {
   return dirs;
 }
 
-/**
- * Creates a directory in S3 by uploading an empty object with a trailing slash.
- * @param prefix - Parent prefix (e.g. "folder/"). Pass "" for root.
- * @param name   - Directory name without slashes (e.g. "new-dir").
- */
 export async function createDirectory(
   prefix: string,
   name: string,
@@ -53,35 +77,61 @@ export async function createDirectory(
   );
 }
 
-/**
- * Deletes a directory and all objects inside it.
- * @param prefix - Full directory prefix including trailing slash (e.g. "folder/sub/").
- */
-export async function deleteDirectory(prefix: string): Promise<void> {
-  let continuationToken: string | undefined;
+async function streamToBuffer(stream: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
 
-  do {
-    const input: ListObjectsV2CommandInput = {
+async function streamToString(stream: Readable): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf-8");
+}
+
+export async function getImage(path: string): Promise<Buffer> {
+  const response = await s3Client.send(
+    new GetObjectCommand({
       Bucket: bucket,
-      Prefix: prefix,
-      ContinuationToken: continuationToken,
-    };
+      Key: path,
+    }),
+  );
 
-    const response = await s3Client.send(new ListObjectsV2Command(input));
-    const objects = response.Contents ?? [];
+  return streamToBuffer(response.Body as Readable);
+}
 
-    if (objects.length > 0) {
-      await s3Client.send(
-        new DeleteObjectsCommand({
-          Bucket: bucket,
-          Delete: {
-            Objects: objects.map((o) => ({ Key: o.Key! })),
-            Quiet: true,
-          },
-        }),
-      );
-    }
+export async function getImagesInDir(path: string): Promise<Buffer[]> {
+  const imagesList = await listImagesInDir(path);
+  const bufferPromises = imagesList.map((imagePath) => getImage(imagePath));
+  return Promise.all(bufferPromises);
+}
 
-    continuationToken = response.NextContinuationToken;
-  } while (continuationToken);
+export async function getText(postId: string): Promise<string> {
+  const key = `posts/${postId}/text.txt`;
+
+  const response = await s3Client.send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    }),
+  );
+
+  return streamToString(response.Body as Readable);
+}
+
+export async function getPost(postId: string): Promise<Post> {
+  // const [image, text] = await Promise.all([getImage(postId), getText(postId)]);
+  const image = await getImage(postId);
+  const text = await getText(postId);
+
+  const result: Post = {
+    image: image,
+    text: text,
+  };
+
+  return result;
 }

@@ -49,6 +49,7 @@ export class BotService {
         initial: (): SessionData => ({
           lang: "ru",
           dialogState: DialogState.Idle,
+          currentDir: "/catalog",
         }),
         storage: new FileAdapter({ dirName: "sessions" }),
       }),
