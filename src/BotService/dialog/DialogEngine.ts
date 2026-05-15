@@ -40,6 +40,13 @@ export class DialogEngine {
     return this.factory.text(textTranslates[lang].dirListError);
   }
 
+  buildButtonEchoReply(lang: botLanguage, text: string): BotMessage {
+    const t = textTranslates[lang];
+    return this.factory.text(t.buttonEchoReply, [
+      { text: text, call: `echo:${text}` },
+    ]);
+  }
+
   anonName(lang: botLanguage): string {
     return textTranslates[lang].anonName;
   }

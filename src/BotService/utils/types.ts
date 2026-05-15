@@ -14,7 +14,13 @@ export type MenuButton = {
 
 export type MenuSection = Record<string, MenuButton[]>;
 
+export enum DialogState {
+  Idle = "idle",
+  AwaitingButtonEcho = "awaiting_button_echo",
+}
+
 // Данные сессии — хранятся отдельно для каждого пользователя
 export type SessionData = {
   lang: botLanguage;
+  dialogState: DialogState;
 };

@@ -5,9 +5,10 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import { AuthService } from "./web/AuthService.js";
 import { DialogEngine } from "./dialog/DialogEngine.js";
 import { CommandHandler } from "./dialog/handlers/CommandHandler.js";
+import { TextHandler } from "./dialog/handlers/TextHandler.js";
 import { ReplyResolver } from "./dialog/ReplyResolver.js";
 import { ButtonHandler } from "./dialog/handlers/ButtonHandler.js";
-import type { SessionData } from "./utils/types.js";
+import { DialogState, type SessionData } from "./utils/types.js";
 
 export type BotContext = Context & SessionFlavor<SessionData>;
 
@@ -45,7 +46,10 @@ export class BotService {
   private setUpSession() {
     this.bot.use(
       session({
-        initial: (): SessionData => ({ lang: "ru" }),
+        initial: (): SessionData => ({
+          lang: "ru",
+          dialogState: DialogState.Idle,
+        }),
         storage: new FileAdapter({ dirName: "sessions" }),
       }),
     );
@@ -71,6 +75,7 @@ export class BotService {
       this.replyResolver,
       this.websiteName,
     );
+    new TextHandler(this.bot, this.dialogEngine, this.replyResolver);
     new ButtonHandler(this.bot, this.dialogEngine, this.replyResolver);
   }
 
