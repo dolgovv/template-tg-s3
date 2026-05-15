@@ -12,6 +12,7 @@ export const textTranslates = {
     dirListHeader: "📁 Директории в хранилище:",
     dirListEmpty: "Хранилище пустое — директорий не найдено.",
     dirListError: "Не удалось получить список директорий. Попробуйте позже.",
+    buttonEchoReply: "Вот твоя кнопка:",
   },
   en: {
     welcome: "Welcome! Bot is running.",
@@ -25,6 +26,7 @@ export const textTranslates = {
     dirListHeader: "📁 Directories in storage:",
     dirListEmpty: "Storage is empty — no directories found.",
     dirListError: "Failed to fetch directory list. Please try again later.",
+    buttonEchoReply: "Here's your button:",
   },
   // here you can add more languages
 };

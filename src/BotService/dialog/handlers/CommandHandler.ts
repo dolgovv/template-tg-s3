@@ -2,6 +2,7 @@ import type { DialogEngine } from "../DialogEngine.js";
 import { ReplyResolver } from "../ReplyResolver.js";
 import type { BotContext } from "../../BotService.js";
 import type { Bot } from "grammy";
+import { DialogState } from "../../utils/types.js";
 import { listDirectories } from "../../datasource/S3Repository.js";
 
 export class CommandHandler {
@@ -15,6 +16,7 @@ export class CommandHandler {
     this.bot.command("lang", (ctx) => this.onLang(ctx));
     this.bot.command("help", (ctx) => this.onHelp(ctx));
     this.bot.command("get_dirs", (ctx) => this.onGetDirs(ctx));
+    this.bot.command("button_echo", (ctx) => this.onButtonEcho(ctx));
   }
 
   async onStart(ctx: BotContext) {
@@ -56,5 +58,11 @@ export class CommandHandler {
       const reply = this.dialog.buildDirListError(lang);
       await this.resolver.reply(ctx, reply);
     }
+  }
+
+  async onButtonEcho(ctx: BotContext) {
+    if (!ctx.chat) return;
+    ctx.session.dialogState = DialogState.AwaitingButtonEcho;
+    await ctx.reply("Отправь любое слово, и я пришлю его в виде кнопки.");
   }
 }
