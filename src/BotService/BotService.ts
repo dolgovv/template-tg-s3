@@ -9,6 +9,7 @@ import { TextHandler } from "./dialog/handlers/TextHandler.js";
 import { ReplyResolver } from "./dialog/ReplyResolver.js";
 import { ButtonHandler } from "./dialog/handlers/ButtonHandler.js";
 import { DialogState, type SessionData } from "./utils/types.js";
+import { BotRepository } from "./datasource/S3Repository.js";
 
 export type BotContext = Context & SessionFlavor<SessionData>;
 
@@ -17,6 +18,7 @@ export class BotService {
   private bot: Bot<BotContext>;
   private dialogEngine: DialogEngine = new DialogEngine();
   private replyResolver: ReplyResolver = new ReplyResolver();
+  private repo: BotRepository = new BotRepository();
   private botConfig: object = {};
 
   constructor(TOKEN: string, proxy?: string) {
@@ -74,6 +76,7 @@ export class BotService {
       this.bot,
       this.dialogEngine,
       this.replyResolver,
+      this.repo,
       this.websiteName,
     );
     new TextHandler(this.bot, this.dialogEngine, this.replyResolver);

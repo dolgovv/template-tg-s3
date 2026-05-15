@@ -26,6 +26,6 @@ export type SessionData = {
 };
 
 export type Post = {
-  image?: Buffer<ArrayBufferLike>;
+  image?: Buffer[];
   text?: string;
 };
