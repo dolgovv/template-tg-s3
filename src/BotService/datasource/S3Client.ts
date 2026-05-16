@@ -1,24 +1,21 @@
 import { S3Client, type S3ClientConfig } from "@aws-sdk/client-s3";
-import { getEnv } from "../utils/env_auth.js";
+import type { BotConfigEnv } from "../utils/env_auth.js";
 
-function createS3Client(): S3Client {
-  const endpoint = getEnv("S3_ENDPOINT", true);
-  const region = getEnv("S3_REGION") ?? "us-east-1";
-  const accessKeyId = getEnv("S3_BOT_NAME", true);
-  const secretAccessKey = getEnv("S3_BOT_PASS", true);
-
-  const config: S3ClientConfig = {
-    endpoint,
-    region,
+export function createS3Client(
+  config: Pick<
+    BotConfigEnv,
+    "s3Endpoint" | "s3Region" | "s3AccessKeyId" | "s3SecretAccessKey"
+  >,
+): S3Client {
+  const s3Config: S3ClientConfig = {
+    endpoint: config.s3Endpoint,
+    region: config.s3Region,
     credentials: {
-      accessKeyId,
-      secretAccessKey,
+      accessKeyId: config.s3AccessKeyId,
+      secretAccessKey: config.s3SecretAccessKey,
     },
     forcePathStyle: true,
   };
 
-  return new S3Client(config);
+  return new S3Client(s3Config);
 }
-
-export const s3Client = createS3Client();
-export { S3Client };
