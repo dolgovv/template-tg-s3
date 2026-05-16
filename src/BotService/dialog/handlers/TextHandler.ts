@@ -2,7 +2,7 @@ import type { Bot } from "grammy";
 import type { BotContext } from "../../BotService.js";
 import type { DialogEngine } from "../DialogEngine.js";
 import type { ReplyResolver } from "../ReplyResolver.js";
-import { DialogState } from "../../utils/types.js";
+import { DialogStep } from "../../utils/types.js";
 
 export class TextHandler {
   constructor(
@@ -17,19 +17,19 @@ export class TextHandler {
     const text = ctx.message?.text;
     if (!text) return;
 
-    switch (ctx.session.dialogState) {
-      case DialogState.AwaitingButtonEcho:
+    switch (ctx.session.dialogStep) {
+      case DialogStep.AwaitingButtonEcho:
         await this.handleButtonEcho(ctx, text);
         break;
 
-      case DialogState.Idle:
+      case DialogStep.Idle:
       default:
         break;
     }
   }
 
   private async handleButtonEcho(ctx: BotContext, text: string) {
-    ctx.session.dialogState = DialogState.Idle;
+    ctx.session.dialogStep = DialogStep.Idle;
     const reply = this.dialog.buildButtonEchoReply(ctx.session.lang, text);
     await this.resolver.reply(ctx, reply);
   }

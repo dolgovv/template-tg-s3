@@ -8,7 +8,7 @@ import { CommandHandler } from "./dialog/handlers/CommandHandler.js";
 import { TextHandler } from "./dialog/handlers/TextHandler.js";
 import { ReplyResolver } from "./dialog/ReplyResolver.js";
 import { ButtonHandler } from "./dialog/handlers/ButtonHandler.js";
-import { DialogState, type SessionData } from "./utils/types.js";
+import { DialogStep, type SessionData } from "./utils/types.js";
 import { BotRepository } from "./datasource/S3Repository.js";
 
 export type BotContext = Context & SessionFlavor<SessionData>;
@@ -50,7 +50,7 @@ export class BotService {
       session({
         initial: (): SessionData => ({
           lang: "ru",
-          dialogState: DialogState.Idle,
+          dialogStep: DialogStep.Idle,
           currentDir: "/catalog",
         }),
         storage: new FileAdapter({ dirName: "sessions" }),
