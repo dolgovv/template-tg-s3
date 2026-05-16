@@ -1,11 +1,9 @@
 import { BotService } from "./BotService/BotService.js";
-import { getEnv } from "./BotService/utils/env_auth.js";
+import { loadConfig } from "./BotService/utils/env_auth.js";
 
 function main() {
-  const token = getEnv("BOT_TOKEN", true);
-  const proxyUrl = getEnv("PROXY_URL");
-
-  const bot = new BotService(token, proxyUrl);
+  const config = loadConfig();
+  const bot = new BotService(config);
   bot.start();
 }
 

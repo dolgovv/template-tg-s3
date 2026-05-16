@@ -9,3 +9,46 @@ export function getEnv(key: string, required?: boolean): string | undefined {
   }
   return value;
 }
+
+export interface BotConfigEnv {
+  // Bot
+  botToken: string;
+  proxyUrl?: string;
+  websiteName: string;
+  adminIds: number[];
+  currentDir: string;
+
+  // S3
+  s3Endpoint: string;
+  s3Region: string;
+  s3AccessKeyId: string;
+  s3SecretAccessKey: string;
+  s3Bucket: string;
+}
+
+export function loadConfig(): BotConfigEnv {
+  const proxyUrl = getEnv("PROXY_URL");
+  return {
+    // Bot
+    botToken: getEnv("BOT_TOKEN", true),
+    ...(proxyUrl && { proxyUrl }),
+    websiteName: getEnv("WEBSITE_NAME", true),
+    adminIds: parseAdminIds(getEnv("ADMIN_IDS", true)),
+    currentDir: getEnv("S3_ROOT_FOLDER", true),
+    // S3
+    s3Endpoint: getEnv("S3_ENDPOINT", true),
+    s3Region: getEnv("S3_REGION") ?? "us-east-1",
+    s3AccessKeyId: getEnv("S3_BOT_NAME", true),
+    s3SecretAccessKey: getEnv("S3_BOT_PASS", true),
+    s3Bucket: getEnv("S3_BUCKET", true),
+  };
+}
+
+function parseAdminIds(raw: string): number[] {
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map((s) => parseInt(s, 10))
+    .filter((id) => !isNaN(id));
+}
