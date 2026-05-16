@@ -3,7 +3,7 @@ import type { Bot } from "grammy";
 import type { DialogEngine } from "../DialogEngine.js";
 import { ReplyResolver } from "../ReplyResolver.js";
 import type { BotContext } from "../../BotService.js";
-import { DialogState } from "../../utils/types.js";
+import { DialogStep } from "../../utils/types.js";
 import { BotRepository } from "../../datasource/S3Repository.js";
 
 const TEMPORARY_POST_UUID = "d420f6dd-99a4-442f-a9fa-ea54b68f2373";
@@ -155,7 +155,7 @@ export class CommandHandler {
 
   async onButtonEcho(ctx: BotContext) {
     if (!ctx.chat) return;
-    ctx.session.dialogState = DialogState.AwaitingButtonEcho;
+    ctx.session.dialogStep = DialogStep.AwaitingButtonEcho;
     await ctx.reply("Отправь любое слово, и я пришлю его в виде кнопки.");
   }
 }

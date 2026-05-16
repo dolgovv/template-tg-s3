@@ -14,14 +14,14 @@ export type MenuButton = {
 
 export type MenuSection = Record<string, MenuButton[]>;
 
-export enum DialogState {
+export enum DialogStep {
   Idle = "idle",
   AwaitingButtonEcho = "awaiting_button_echo",
 }
 
 export type SessionData = {
   lang: botLanguage;
-  dialogState: DialogState;
+  dialogStep: DialogStep;
   currentDir: string;
 };
 
