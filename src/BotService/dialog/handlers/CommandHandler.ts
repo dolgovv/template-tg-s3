@@ -1,9 +1,9 @@
-import type { Bot } from "grammy";
+import type { Bot, CommandContext } from "grammy";
 
 import type { DialogEngine } from "../DialogEngine.js";
 import { ReplyResolver } from "../ReplyResolver.js";
 import type { BotContext } from "../../BotService.js";
-import { DialogStep } from "../../utils/types.js";
+import { DialogStep, type MenuButton } from "../../utils/types.js";
 import { BotRepository } from "../../datasource/S3Repository.js";
 
 const TEMPORARY_POST_UUID = "d420f6dd-99a4-442f-a9fa-ea54b68f2373";
@@ -20,11 +20,53 @@ export class CommandHandler {
     this.bot.command("lang", (ctx) => this.onLang(ctx));
     this.bot.command("help", (ctx) => this.onHelp(ctx));
     this.bot.command("get_dirs", (ctx) => this.onGetDirs(ctx));
+    this.bot.command("nav", (ctx) => this.onNav(ctx));
+    //                new_post
+    //                delete_post
+    //                add_image
+    //                add_file
+    //                remove_file
+    // tests
     this.bot.command("button_echo", (ctx) => this.onButtonEcho(ctx));
     this.bot.command("test_text", (ctx) => this.onTest_text(ctx));
     this.bot.command("test_img", (ctx) => this.onTest_img(ctx));
     this.bot.command("test_imgs", (ctx) => this.onTest_imgs(ctx));
     this.bot.command("test_post", (ctx) => this.onTest_post(ctx));
+  }
+
+  async onNav(ctx: CommandContext<BotContext>): Promise<void> {
+    if (!ctx.chat) return;
+    const lang = ctx.session.lang;
+    try {
+      console.log("currentDir from command nav: ", ctx.session.currentDir);
+      console.log("session from command nav: ", ctx.session);
+      const dirs = await this.repo.listDirectories(ctx.session.currentDir);
+      let buttons: MenuButton[] = dirs.map((dir) => {
+        return { text: `navDir:${dir}`, call: `navDir:${dir}` };
+      });
+      buttons.unshift({ text: "<-", call: "navDir:.." });
+
+      const reply = this.dialog.buildNavigationMenu(lang, dirs, buttons);
+      await this.resolver.reply(ctx, reply);
+    } catch (err) {
+      console.error("get-dirs error:", err);
+      const reply = this.dialog.buildError(lang, "get directories " + err);
+      await this.resolver.reply(ctx, reply);
+    }
+  }
+
+  async onGetDirs(ctx: BotContext): Promise<void> {
+    if (!ctx.chat) return;
+    const lang = ctx.session.lang;
+    try {
+      const dirs = await this.repo.listDirectories();
+      const reply = this.dialog.buildDirList(lang, dirs);
+      await this.resolver.reply(ctx, reply);
+    } catch (err) {
+      console.error("get-dirs error:", err);
+      const reply = this.dialog.buildError(lang, "get directories " + err);
+      await this.resolver.reply(ctx, reply);
+    }
   }
 
   async onTest_img(ctx: BotContext) {
@@ -109,20 +151,6 @@ export class CommandHandler {
         const reply = this.dialog.buildError(lang, "get file (text) " + err);
         await this.resolver.reply(ctx, reply);
       }
-    }
-  }
-
-  async onGetDirs(ctx: BotContext) {
-    if (!ctx.chat) return;
-    const lang = ctx.session.lang;
-    try {
-      const dirs = await this.repo.listDirectories();
-      const reply = this.dialog.buildDirList(lang, dirs);
-      await this.resolver.reply(ctx, reply);
-    } catch (err) {
-      console.error("get-dirs error:", err);
-      const reply = this.dialog.buildError(lang, "get directories " + err);
-      await this.resolver.reply(ctx, reply);
     }
   }
 

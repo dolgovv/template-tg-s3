@@ -48,7 +48,7 @@ export class BotRepository {
   }
 
   // FUNCTIONS TO WORK WITH DIRECTORIES
-  async listDirectories(prefix = ""): Promise<string[]> {
+  async listDirectories(prefix: string = ""): Promise<string[]> {
     const dirs: string[] = [];
     let continuationToken: string | undefined;
 

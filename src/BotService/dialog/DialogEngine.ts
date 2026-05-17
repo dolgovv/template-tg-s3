@@ -1,3 +1,4 @@
+import type { MenuButton } from "../utils/types.js";
 import type { botLanguage } from "../utils/types.js";
 import { MessageFactory, type BotMessage } from "./messages/MessageFactory.js";
 import { textTranslates, menusTranslates } from "./messages/strings.js";
@@ -33,6 +34,11 @@ export class DialogEngine {
     return this.factory.text(t.langChanged, m.langChanged);
   }
 
+  buildDirChanged(lang: botLanguage, newDir: string): BotMessage {
+    const t = textTranslates[lang];
+    return this.factory.text(t.dirChanged + newDir);
+  }
+
   buildHelp(lang: botLanguage): BotMessage {
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
@@ -46,6 +52,19 @@ export class DialogEngine {
     }
     const list = dirs.map((d) => `• ${d}`).join("\n");
     return this.factory.text(list);
+  }
+
+  buildNavigationMenu(
+    lang: botLanguage,
+    ls: string[],
+    buttons: MenuButton[],
+  ): BotMessage {
+    const t = textTranslates[lang];
+    if (ls.length === 0) {
+      return this.factory.text(t.dirListEmpty);
+    }
+    const list = ls.map((d) => `• ${d}`).join("\n");
+    return this.factory.text(list, buttons);
   }
 
   buildError(lang: botLanguage, description: string): BotMessage {
