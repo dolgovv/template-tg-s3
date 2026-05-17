@@ -16,7 +16,8 @@ export interface BotConfigEnv {
   proxyUrl?: string;
   websiteName: string;
   adminIds: number[];
-  currentDir: string;
+  currentDir: string | undefined;
+  postsDir: string;
 
   // S3
   s3Endpoint: string;
@@ -34,8 +35,9 @@ export function loadConfig(): BotConfigEnv {
     ...(proxyUrl && { proxyUrl }),
     websiteName: getEnv("WEBSITE_NAME", true),
     adminIds: parseAdminIds(getEnv("ADMIN_IDS", true)),
-    currentDir: getEnv("S3_ROOT_FOLDER", true),
     // S3
+    currentDir: getEnv("S3_ROOT_FOLDER", false),
+    postsDir: getEnv("S3_POST_FOLDER", true),
     s3Endpoint: getEnv("S3_ENDPOINT", true),
     s3Region: getEnv("S3_REGION") ?? "us-east-1",
     s3AccessKeyId: getEnv("S3_BOT_NAME", true),

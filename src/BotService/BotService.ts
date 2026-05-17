@@ -28,11 +28,13 @@ export class BotService {
 
   setUp() {
     this.setUpBot();
-    this.setUpDialog();
-    this.setUpS3();
-    this.setUpSession();
     this.setUpMiddleware();
+
+    this.setUpDialog();
     this.setUpHandlers();
+
+    this.setUpSession();
+    this.setUpS3();
   }
 
   private buildBotProxyConfig(): object {
@@ -73,13 +75,14 @@ export class BotService {
     this.bot.use(
       session({
         initial: (): SessionData => ({
-          lang: "ru",
+          lang: "en",
           dialogStep: DialogStep.Idle,
-          currentDir: "/catalog",
+          currentDir: this.config.currentDir ?? "",
         }),
         storage: new FileAdapter({ dirName: "sessions" }),
       }),
     );
+    // console.log("currentDir from setUpSession: ", ctx.session.currentDir);
   }
 
   private setUpMiddleware() {
