@@ -22,6 +22,7 @@ export enum DialogStep {
 export type SessionData = {
   lang: botLanguage;
   dialogStep: DialogStep;
+  websiteName: string;
   currentDir: string;
 };
 

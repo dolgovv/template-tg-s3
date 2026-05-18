@@ -11,6 +11,7 @@ import { DialogStep, type SessionData } from "./utils/types.js";
 import { BotRepository } from "./datasource/S3Repository.js";
 import { createS3Client } from "./datasource/S3Client.js";
 import type { BotConfigEnv } from "./utils/env_auth.js";
+import { BotModel } from "./domain/BotModel.js";
 
 export type BotContext = Context & SessionFlavor<SessionData>;
 
@@ -18,8 +19,8 @@ export class BotService {
   private config: BotConfigEnv;
   private bot!: Bot<BotContext>;
   private dialogEngine!: DialogEngine;
-  private replyResolver!: ReplyResolver;
   private repo!: BotRepository;
+  private model!: BotModel;
 
   constructor(config: BotConfigEnv) {
     this.config = config;
@@ -33,8 +34,12 @@ export class BotService {
     this.setUpS3();
 
     this.setUpDialog();
-    this.setUpHandlers();
 
+    // this.setUpHandlers();
+
+    this.model = new BotModel(this.repo, this.dialogEngine);
+    new CommandHandler(this.bot, this.model);
+    new ButtonHandler(this.bot, this.model);
     this.setUpMiddleware();
   }
 
@@ -77,6 +82,7 @@ export class BotService {
         initial: (): SessionData => ({
           lang: "en",
           dialogStep: DialogStep.Idle,
+          websiteName: this.config.websiteName ?? "Not specified",
           currentDir: this.config.currentDir ?? "",
         }),
         storage: new FileAdapter({ dirName: "sessions" }),
@@ -97,16 +103,16 @@ export class BotService {
     });
   }
 
-  setUpHandlers() {
-    new CommandHandler(
-      this.bot,
-      this.dialogEngine,
-      this.repo,
-      this.config.websiteName,
-    );
-    new TextHandler(this.bot, this.dialogEngine);
-    new ButtonHandler(this.bot, this.dialogEngine);
-  }
+  // setUpHandlers() {
+  //   new CommandHandler(
+  //     this.bot,
+  //     this.dialogEngine,
+  //     this.repo,
+  //     this.config.websiteName,
+  //   );
+  //   new TextHandler(this.bot, this.dialogEngine);
+  //   new ButtonHandler(this.bot, this.dialogEngine);
+  // }
 
   start() {
     this.bot.start();
