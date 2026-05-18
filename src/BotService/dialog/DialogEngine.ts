@@ -2,6 +2,7 @@ import type { MenuButton } from "../utils/types.js";
 import type { botLanguage } from "../utils/types.js";
 import { MessageFactory, type BotMessage } from "./messages/MessageFactory.js";
 import { textTranslates, menusTranslates } from "./messages/strings.js";
+import type { ReplyResolver } from "./ReplyResolver.js";
 
 export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
@@ -56,14 +57,14 @@ export class DialogEngine {
 
   buildNavigationMenu(
     lang: botLanguage,
-    ls: string[],
+    dirs: string[],
     buttons: MenuButton[],
   ): BotMessage {
     const t = textTranslates[lang];
-    if (ls.length === 0) {
-      return this.factory.text(t.dirListEmpty);
+    if (dirs.length === 0) {
+      return this.factory.text(t.dirListEmpty, buttons);
     }
-    const list = ls.map((d) => `• ${d}`).join("\n");
+    const list = dirs.map((d) => `• ${d}`).join("\n");
     return this.factory.text(list, buttons);
   }
 

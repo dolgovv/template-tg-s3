@@ -28,13 +28,14 @@ export class BotService {
 
   setUp() {
     this.setUpBot();
-    this.setUpMiddleware();
+    this.setUpSession();
+
+    this.setUpS3();
 
     this.setUpDialog();
     this.setUpHandlers();
 
-    this.setUpSession();
-    this.setUpS3();
+    this.setUpMiddleware();
   }
 
   private buildBotProxyConfig(): object {
