@@ -12,14 +12,12 @@ export class CommandHandler {
   constructor(
     private bot: Bot<BotContext>,
     private dialog: DialogEngine,
-    private resolver: ReplyResolver,
     private repo: BotRepository,
     private websiteName: string,
   ) {
     this.bot.command("start", async (ctx) => await this.onStart(ctx));
     this.bot.command("lang", async (ctx) => await this.onLang(ctx));
     this.bot.command("help", async (ctx) => await this.onHelp(ctx));
-    this.bot.command("get_dirs", async (ctx) => await this.onGetDirs(ctx));
     this.bot.command("nav", async (ctx) => await this.onNav(ctx));
     //                new_post
     //                delete_post
@@ -31,7 +29,7 @@ export class CommandHandler {
       "button_echo",
       async (ctx) => await this.onButtonEcho(ctx),
     );
-    this.bot.command("test_text", async (ctx) => await this.onTest_text(ctx));
+    // this.bot.command("test_text", async (ctx) => await this.onTest_text(ctx));
     this.bot.command("test_img", async (ctx) => await this.onTest_img(ctx));
     this.bot.command("test_imgs", async (ctx) => await this.onTest_imgs(ctx));
     this.bot.command("test_post", async (ctx) => await this.onTest_post(ctx));
@@ -43,12 +41,11 @@ export class CommandHandler {
     try {
       const dirs = await this.repo.listDirectories(ctx.session.currentDir);
       const buttons = this.dirListToButtons(dirs);
-      const reply = this.dialog.buildNavigationMenu(lang, dirs, buttons);
-      await this.resolver.reply(ctx, reply);
+
+      this.dialog.sendNavigationMenu(lang, dirs, buttons, ctx);
     } catch (err) {
       console.error("get-dirs error:", err);
-      const reply = this.dialog.buildError(lang, "get directories " + err);
-      await this.resolver.reply(ctx, reply);
+      this.dialog.sendError(lang, "get directories " + err, ctx);
     }
   }
 
@@ -60,19 +57,19 @@ export class CommandHandler {
     return result;
   }
 
-  async onGetDirs(ctx: BotContext): Promise<void> {
-    if (!ctx.chat) return;
-    const lang = ctx.session.lang;
-    try {
-      const dirs = await this.repo.listDirectories();
-      const reply = this.dialog.buildDirList(lang, dirs);
-      await this.resolver.reply(ctx, reply);
-    } catch (err) {
-      console.error("get-dirs error:", err);
-      const reply = this.dialog.buildError(lang, "get directories " + err);
-      await this.resolver.reply(ctx, reply);
-    }
-  }
+  // async onGetDirs(ctx: BotContext): Promise<void> {
+  //   if (!ctx.chat) return;
+  //   const lang = ctx.session.lang;
+  //   try {
+  //     const dirs = await this.repo.listDirectories();
+  //     this.dialog.sendDirList(lang, dirs);
+  //
+  //   } catch (err) {
+  //     console.error("get-dirs error:", err);
+  //     this.dialog.sendError(lang, "get directories " + err);
+  //
+  //   }
+  // }
 
   async onTest_img(ctx: BotContext) {
     if (ctx.chat) {
@@ -84,12 +81,10 @@ export class CommandHandler {
       try {
         const imageBuffer = await this.repo.getImage(path);
 
-        const reply = this.dialog.buildImg(imageBuffer);
-        await this.resolver.reply(ctx, reply);
+        this.dialog.sendImg(imageBuffer, ctx);
       } catch (err) {
         const lang = ctx.session.lang;
-        const reply = this.dialog.buildError(lang, "get file (image) " + err);
-        await this.resolver.reply(ctx, reply);
+        this.dialog.sendError(lang, "get file (image) " + err, ctx);
       }
     }
   }
@@ -103,16 +98,10 @@ export class CommandHandler {
       try {
         const imageBuffers = await this.repo.getImagesInDir(path);
 
-        const reply = this.dialog.buildImgs(imageBuffers);
-        await this.resolver.reply(ctx, reply);
+        this.dialog.sendImgs(imageBuffers, ctx);
       } catch (err) {
         const lang = ctx.session.lang;
-        const reply = this.dialog.buildError(
-          lang,
-          "get files (images): " + err,
-        );
-
-        await this.resolver.reply(ctx, reply);
+        this.dialog.sendError(lang, "get files (images): " + err, ctx);
       }
     }
   }
@@ -127,47 +116,37 @@ export class CommandHandler {
         const imageBuffers = await this.repo.getImagesInDir(path);
         const textfileContent = await this.repo.getText(`${path}text.txt`);
 
-        const reply = this.dialog.buildImgs(imageBuffers, textfileContent);
-        await this.resolver.reply(ctx, reply);
+        this.dialog.sendImgs(imageBuffers, ctx, textfileContent);
       } catch (err) {
         const lang = ctx.session.lang;
-        const reply = this.dialog.buildError(
-          lang,
-          "get file (image + text) " + err,
-        );
-        await this.resolver.reply(ctx, reply);
+        this.dialog.sendError(lang, "get file (image + text) " + err, ctx);
       }
     }
   }
 
-  async onTest_text(ctx: BotContext) {
-    const prefix = "posts";
-    const uuid = TEMPORARY_POST_UUID;
-    const fileName = "text.txt";
-    const path = `${prefix}/${uuid}/${fileName}`;
-    if (ctx.chat) {
-      try {
-        const textfileContent = await this.repo.getText(path);
-        const reply = this.dialog.buildTextFile(textfileContent);
-        await this.resolver.reply(ctx, reply);
-      } catch (err) {
-        const lang = ctx.session.lang;
-        console.error("get-file error:", err);
-        const reply = this.dialog.buildError(lang, "get file (text) " + err);
-        await this.resolver.reply(ctx, reply);
-      }
-    }
-  }
+  // async onTest_text(ctx: BotContext) {
+  //   const prefix = "posts";
+  //   const uuid = TEMPORARY_POST_UUID;
+  //   const fileName = "text.txt";
+  //   const path = `${prefix}/${uuid}/${fileName}`;
+  //   if (ctx.chat) {
+  //     try {
+  //       const textfileContent = await this.repo.getText(path);
+  //       this.dialog.sendTextFile(textfileContent);
+  //
+  //     } catch (err) {
+  //       const lang = ctx.session.lang;
+  //       console.error("get-file error:", err);
+  //       this.dialog.sendError(lang, "get file (text) " + err);
+  //
+  //     }
+  //   }
+  // }
 
   async onStart(ctx: BotContext) {
     if (ctx.chat && ctx.session) {
       const lang = ctx.session.lang;
-      const reply = this.dialog.buildWelcome(
-        lang,
-        ctx.chat.first_name || this.dialog.anonName(lang),
-        this.websiteName,
-      );
-      await this.resolver.reply(ctx, reply);
+      this.dialog.sendWelcome(lang, ctx.chat.first_name, this.websiteName, ctx);
     } else {
       console.log("no session bitches: ", ctx.session);
     }
@@ -176,15 +155,13 @@ export class CommandHandler {
   async onLang(ctx: BotContext) {
     ctx.session.lang = ctx.session.lang === "ru" ? "en" : "ru";
     if (ctx.chat) {
-      const reply = this.dialog.buildLanguageChanged(ctx.session.lang);
-      await this.resolver.reply(ctx, reply);
+      this.dialog.sendLanguageChanged(ctx.session.lang, ctx);
     }
   }
 
   async onHelp(ctx: BotContext) {
     if (ctx.chat) {
-      const reply = this.dialog.buildHelp(ctx.session.lang);
-      await this.resolver.reply(ctx, reply);
+      this.dialog.sendHelp(ctx.session.lang, ctx);
     }
   }
 

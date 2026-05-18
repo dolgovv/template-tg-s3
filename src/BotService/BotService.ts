@@ -69,7 +69,6 @@ export class BotService {
 
   private setUpDialog() {
     this.dialogEngine = new DialogEngine();
-    this.replyResolver = new ReplyResolver();
   }
 
   private setUpSession() {
@@ -86,12 +85,11 @@ export class BotService {
     // console.log("currentDir from setUpSession: ", ctx.session.currentDir);
   }
 
-  private setUpMiddleware() {
-    this.bot.use((ctx, next) => {
+  private async setUpMiddleware() {
+    this.bot.use(async (ctx, next) => {
       if (!ctx.chatId || !this.isAdmin(ctx.chatId)) {
         const lang = ctx.session.lang;
-        ctx.reply(this.dialogEngine.notAdmin(lang));
-        ctx.reply(this.dialogEngine.yourId(lang, ctx.chatId));
+        this.dialogEngine.sendAuthError(lang, ctx);
         console.log(ctx.chatId + " tried to log in. Failed");
         return;
       }
@@ -103,12 +101,11 @@ export class BotService {
     new CommandHandler(
       this.bot,
       this.dialogEngine,
-      this.replyResolver,
       this.repo,
       this.config.websiteName,
     );
-    new TextHandler(this.bot, this.dialogEngine, this.replyResolver);
-    new ButtonHandler(this.bot, this.dialogEngine, this.replyResolver);
+    new TextHandler(this.bot, this.dialogEngine);
+    new ButtonHandler(this.bot, this.dialogEngine);
   }
 
   start() {

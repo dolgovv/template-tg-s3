@@ -1,6 +1,5 @@
 import type { Bot, CallbackQueryContext } from "grammy";
 import type { DialogEngine } from "../DialogEngine.js";
-import type { ReplyResolver } from "../ReplyResolver.js";
 import type { botLanguage } from "../../utils/types.js";
 import type { BotContext } from "../../BotService.js";
 
@@ -8,7 +7,6 @@ export class ButtonHandler {
   constructor(
     private bot: Bot<BotContext>,
     private dialog: DialogEngine,
-    private resolver: ReplyResolver,
   ) {
     // Change language
     this.bot.callbackQuery("lang=ru", (ctx) => this.onSetLang(ctx, "ru"));
@@ -43,15 +41,10 @@ export class ButtonHandler {
       } else {
         ctx.session.currentDir = ctx.session.currentDir.concat(dir);
       }
-      const reply = this.dialog.buildDirChanged(lang, ctx.session.currentDir);
-      await this.resolver.reply(ctx, reply);
+      this.dialog.sendDirChanged(lang, ctx.session.currentDir, ctx);
     } else {
       console.error("callback nav error: no such location");
-      const reply = this.dialog.buildError(
-        lang,
-        "callback nav error: no such location",
-      );
-      await this.resolver.reply(ctx, reply);
+      this.dialog.sendError(lang, "callback nav error: no such location", ctx);
     }
   }
 
@@ -59,8 +52,7 @@ export class ButtonHandler {
     await ctx.answerCallbackQuery();
     if (newLang !== ctx.session.lang) {
       ctx.session.lang = newLang;
-      const reply = this.dialog.buildLanguageChanged(newLang);
-      await this.resolver.reply(ctx, reply);
+      this.dialog.sendLanguageChanged(newLang, ctx);
     }
   }
 }
