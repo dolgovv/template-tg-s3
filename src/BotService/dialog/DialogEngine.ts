@@ -1,93 +1,94 @@
+import type { BotContext } from "../BotService.js";
 import type { MenuButton } from "../utils/types.js";
 import type { botLanguage } from "../utils/types.js";
 import { MessageFactory, type BotMessage } from "./messages/MessageFactory.js";
 import { textTranslates, menusTranslates } from "./messages/strings.js";
-import type { ReplyResolver } from "./ReplyResolver.js";
+import { ReplyResolver } from "./ReplyResolver.js";
 
 export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
+  private resolver: ReplyResolver = new ReplyResolver();
 
-  buildWelcome(
+  async sendWelcome(
     lang: botLanguage,
-    name: string,
+    name: string | undefined,
     websiteName: string,
-  ): BotMessage {
+    ctx: BotContext,
+  ) {
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
-    return this.factory.text(t.greetUser(name, websiteName), m.welcome);
+    const reply = this.factory.text(
+      t.greetUser(name ?? t.anonName, websiteName),
+      m.welcome,
+    );
+    await this.resolver.reply(ctx, reply);
   }
 
-  buildTextFile(text: string): BotMessage {
-    return this.factory.text(text);
+  async sendImg(image: Buffer, ctx: BotContext, caption?: string) {
+    const reply = this.factory.photo(image, caption);
+    await this.resolver.reply(ctx, reply);
   }
 
-  buildImg(image: Buffer, caption?: string): BotMessage {
-    return this.factory.photo(image, caption);
+  async sendImgs(images: Buffer[], ctx: BotContext, caption?: string) {
+    const reply = this.factory.mediaGroup(images, caption);
+    await this.resolver.reply(ctx, reply);
   }
 
-  buildImgs(images: Buffer[], caption?: string): BotMessage {
-    return this.factory.mediaGroup(images, caption);
-  }
-
-  buildLanguageChanged(lang: botLanguage): BotMessage {
+  async sendLanguageChanged(lang: botLanguage, ctx: BotContext) {
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
-    return this.factory.text(t.langChanged, m.langChanged);
+    const reply = this.factory.text(t.langChanged, m.langChanged);
+    await this.resolver.reply(ctx, reply);
   }
 
-  buildDirChanged(lang: botLanguage, newDir: string): BotMessage {
+  async sendDirChanged(lang: botLanguage, newDir: string, ctx: BotContext) {
     const t = textTranslates[lang];
-    return this.factory.text(t.dirChanged + newDir);
+    const reply = this.factory.text(t.dirChanged + newDir);
+    await this.resolver.reply(ctx, reply);
   }
 
-  buildHelp(lang: botLanguage): BotMessage {
+  async sendHelp(lang: botLanguage, ctx: BotContext) {
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
-    return this.factory.text(t.help, m.help);
+    const reply = this.factory.text(t.help, m.help);
+    await this.resolver.reply(ctx, reply);
   }
 
-  buildDirList(lang: botLanguage, dirs: string[]): BotMessage {
-    const t = textTranslates[lang];
-    if (dirs.length === 0) {
-      return this.factory.text(t.dirListEmpty);
-    }
-    const list = dirs.map((d) => `• ${d}`).join("\n");
-    return this.factory.text(list);
-  }
-
-  buildNavigationMenu(
+  async sendNavigationMenu(
     lang: botLanguage,
     dirs: string[],
     buttons: MenuButton[],
-  ): BotMessage {
+    ctx: BotContext,
+  ) {
     const t = textTranslates[lang];
+
     if (dirs.length === 0) {
-      return this.factory.text(t.dirListEmpty, buttons);
+      const reply = this.factory.text(t.dirListEmpty, buttons);
+      await this.resolver.reply(ctx, reply);
+    } else {
+      const list = dirs.map((d) => `• ${d}`).join("\n");
+      const reply = this.factory.text(list, buttons);
+      await this.resolver.reply(ctx, reply);
     }
-    const list = dirs.map((d) => `• ${d}`).join("\n");
-    return this.factory.text(list, buttons);
   }
 
-  buildError(lang: botLanguage, description: string): BotMessage {
-    return this.factory.text(`${textTranslates[lang].error} ${description}`);
+  async sendError(lang: botLanguage, description: string, ctx: BotContext) {
+    const reply = this.factory.text(
+      `${textTranslates[lang].error} ${description}`,
+    );
+    await this.resolver.reply(ctx, reply);
   }
 
-  buildButtonEchoReply(lang: botLanguage, text: string): BotMessage {
+  async sendButtonEchoReply(lang: botLanguage, text: string, ctx: BotContext) {
     const t = textTranslates[lang];
-    return this.factory.text(t.buttonEchoReply, [
+    const reply = this.factory.text(t.buttonEchoReply, [
       { text: text, call: `echo:${text}` },
     ]);
+    await this.resolver.reply(ctx, reply);
   }
 
-  anonName(lang: botLanguage): string {
-    return textTranslates[lang].anonName;
-  }
-
-  notAdmin(lang: botLanguage): string {
-    return textTranslates[lang].notAdmin;
-  }
-
-  yourId(lang: botLanguage, chatId?: number): string {
-    return textTranslates[lang].yourId(chatId ?? 0);
+  async sendAuthError(lang: botLanguage, ctx: BotContext) {
+    const reply = this.factory.text(textTranslates[lang].notAdmin);
+    await this.resolver.reply(ctx, reply);
   }
 }

@@ -8,29 +8,29 @@ export class TextHandler {
   constructor(
     private bot: Bot<BotContext>,
     private dialog: DialogEngine,
-    private resolver: ReplyResolver,
+    // private resolver: ReplyResolver,
   ) {
-    this.bot.on("message:text", (ctx) => this.onText(ctx));
+    // this.bot.on("message:text", (ctx) => this.onText(ctx));
   }
 
-  async onText(ctx: BotContext) {
-    const text = ctx.message?.text;
-    if (!text) return;
+  // async onText(ctx: BotContext) {
+  //   const text = ctx.message?.text;
+  //   if (!text) return;
 
-    switch (ctx.session.dialogStep) {
-      case DialogStep.AwaitingButtonEcho:
-        await this.handleButtonEcho(ctx, text);
-        break;
+  //   switch (ctx.session.dialogStep) {
+  //     case DialogStep.AwaitingButtonEcho:
+  //       await this.handleButtonEcho(ctx, text);
+  //       break;
 
-      case DialogStep.Idle:
-      default:
-        break;
-    }
-  }
+  //     case DialogStep.Idle:
+  //     default:
+  //       break;
+  //   }
+  // }
 
-  private async handleButtonEcho(ctx: BotContext, text: string) {
-    ctx.session.dialogStep = DialogStep.Idle;
-    const reply = this.dialog.buildButtonEchoReply(ctx.session.lang, text);
-    await this.resolver.reply(ctx, reply);
-  }
+  // private async handleButtonEcho(ctx: BotContext, text: string) {
+  //   ctx.session.dialogStep = DialogStep.Idle;
+  //   const reply = this.dialog.buildButtonEchoReply(ctx.session.lang, text);
+  //   await this.resolver.reply(ctx, reply);
+  // }
 }
