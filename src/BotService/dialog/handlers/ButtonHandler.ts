@@ -22,21 +22,24 @@ export class ButtonHandler {
     });
   }
 
+  private navigateBack(ctx: CallbackQueryContext<BotContext>) {
+    let i = 0;
+    do {
+      i++;
+    } while (
+      ctx.session.currentDir[i] !== "/" &&
+      ctx.session.currentDir.length > 0
+    );
+    ctx.session.currentDir = ctx.session.currentDir.substring(0, -i);
+
+    console.log("new dir = ", ctx.session.currentDir);
+  }
   async onNav(ctx: CallbackQueryContext<BotContext>, dir: string) {
     const lang = ctx.session.lang;
     await ctx.answerCallbackQuery();
     if (dir) {
       if (dir === "..") {
-        let slashes: number = 0;
-        let newDir = ctx.session.currentDir.substring(0);
-        let i = newDir.length;
-        for (; i > 0 && slashes < 2; i--) {
-          if (newDir[i] === "/") {
-            slashes++;
-          }
-        }
-        newDir = newDir.substring(0, -i);
-        ctx.session.currentDir = newDir;
+        this.navigateBack(ctx);
       } else {
         ctx.session.currentDir = ctx.session.currentDir.concat(dir);
       }

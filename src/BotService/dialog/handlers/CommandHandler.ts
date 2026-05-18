@@ -16,36 +16,33 @@ export class CommandHandler {
     private repo: BotRepository,
     private websiteName: string,
   ) {
-    this.bot.command("start", (ctx) => this.onStart(ctx));
-    this.bot.command("lang", (ctx) => this.onLang(ctx));
-    this.bot.command("help", (ctx) => this.onHelp(ctx));
-    this.bot.command("get_dirs", (ctx) => this.onGetDirs(ctx));
-    this.bot.command("nav", (ctx) => this.onNav(ctx));
+    this.bot.command("start", async (ctx) => await this.onStart(ctx));
+    this.bot.command("lang", async (ctx) => await this.onLang(ctx));
+    this.bot.command("help", async (ctx) => await this.onHelp(ctx));
+    this.bot.command("get_dirs", async (ctx) => await this.onGetDirs(ctx));
+    this.bot.command("nav", async (ctx) => await this.onNav(ctx));
     //                new_post
     //                delete_post
     //                add_image
     //                add_file
     //                remove_file
     // tests
-    this.bot.command("button_echo", (ctx) => this.onButtonEcho(ctx));
-    this.bot.command("test_text", (ctx) => this.onTest_text(ctx));
-    this.bot.command("test_img", (ctx) => this.onTest_img(ctx));
-    this.bot.command("test_imgs", (ctx) => this.onTest_imgs(ctx));
-    this.bot.command("test_post", (ctx) => this.onTest_post(ctx));
+    this.bot.command(
+      "button_echo",
+      async (ctx) => await this.onButtonEcho(ctx),
+    );
+    this.bot.command("test_text", async (ctx) => await this.onTest_text(ctx));
+    this.bot.command("test_img", async (ctx) => await this.onTest_img(ctx));
+    this.bot.command("test_imgs", async (ctx) => await this.onTest_imgs(ctx));
+    this.bot.command("test_post", async (ctx) => await this.onTest_post(ctx));
   }
 
   async onNav(ctx: CommandContext<BotContext>): Promise<void> {
     if (!ctx.chat) return;
     const lang = ctx.session.lang;
     try {
-      console.log("currentDir from command nav: ", ctx.session.currentDir);
-      console.log("session from command nav: ", ctx.session);
       const dirs = await this.repo.listDirectories(ctx.session.currentDir);
-      let buttons: MenuButton[] = dirs.map((dir) => {
-        return { text: `navDir:${dir}`, call: `navDir:${dir}` };
-      });
-      buttons.unshift({ text: "<-", call: "navDir:.." });
-
+      const buttons = this.dirListToButtons(dirs);
       const reply = this.dialog.buildNavigationMenu(lang, dirs, buttons);
       await this.resolver.reply(ctx, reply);
     } catch (err) {
@@ -53,6 +50,14 @@ export class CommandHandler {
       const reply = this.dialog.buildError(lang, "get directories " + err);
       await this.resolver.reply(ctx, reply);
     }
+  }
+
+  private dirListToButtons(dirList: string[]): MenuButton[] {
+    let result: MenuButton[] = [{ text: "<-", call: "navDir:.." }];
+    dirList.map((dir) => {
+      result.push({ text: `navDir:${dir}`, call: `navDir:${dir}` });
+    });
+    return result;
   }
 
   async onGetDirs(ctx: BotContext): Promise<void> {
@@ -155,7 +160,7 @@ export class CommandHandler {
   }
 
   async onStart(ctx: BotContext) {
-    if (ctx.chat) {
+    if (ctx.chat && ctx.session) {
       const lang = ctx.session.lang;
       const reply = this.dialog.buildWelcome(
         lang,
@@ -163,6 +168,8 @@ export class CommandHandler {
         this.websiteName,
       );
       await this.resolver.reply(ctx, reply);
+    } else {
+      console.log("no session bitches: ", ctx.session);
     }
   }
 
