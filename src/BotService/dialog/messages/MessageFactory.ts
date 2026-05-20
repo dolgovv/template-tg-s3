@@ -25,7 +25,7 @@ export type BotMessage = TextMessage | PhotoMessage | MediaGroupMessage;
 export class MessageFactory {
   text(text: string, buttons: MenuButton[] = []): TextMessage {
     const keyboard = this.buildKeyboard(buttons);
-    const msg: TextMessage = { type: "text", text };
+    const msg: TextMessage = { type: "text", text: text };
     if (keyboard) msg.keyboard = keyboard;
     return msg;
   }
@@ -54,7 +54,13 @@ export class MessageFactory {
   private buildKeyboard(buttons: MenuButton[]): InlineKeyboard | undefined {
     if (!buttons || buttons.length === 0) return undefined;
     const keyboard = new InlineKeyboard();
-    buttons.forEach((btn) => keyboard.text(btn.text, btn.call));
+    buttons.forEach((btn, i) => {
+      const fixedText = btn.text.length > 10 ? `${i}` : btn.text;
+      keyboard.text(fixedText, btn.call);
+      if (i % 3 === 0) {
+        keyboard.row();
+      }
+    });
     return keyboard;
   }
 }

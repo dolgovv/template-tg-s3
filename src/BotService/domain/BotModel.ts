@@ -10,14 +10,15 @@ export class BotModel {
   ) {}
 
   private navigateBack(ctx: BotContext) {
-    let i = 0;
-    do {
-      i++;
-    } while (
-      ctx.session.currentDir[i] !== "/" &&
-      ctx.session.currentDir.length > 0
-    );
-    ctx.session.currentDir = ctx.session.currentDir.substring(0, -i);
+    let i = ctx.session.currentDir.length;
+    let slashes = 0;
+    for (; i > 0 && slashes < 2; ) {
+      if (ctx.session.currentDir[--i] === "/") {
+        slashes++;
+      }
+    }
+
+    ctx.session.currentDir = ctx.session.currentDir.slice(0, i + 1);
   }
 
   async changeLang(ctx: BotContext, newLang: botLanguage) {
@@ -52,10 +53,23 @@ export class BotModel {
     if (!ctx.chat) return;
     const lang = ctx.session.lang;
     try {
-      const dirs = await this.repo.listDirectories(ctx.session.currentDir);
-      const buttons = this.dirListToButtons(dirs);
+      const dirsPaths = await this.repo.listDirectories(ctx.session.currentDir);
+      // console.log(dirs);
 
-      this.dialog.sendNavigationMenu(lang, dirs, buttons, ctx);
+      const dirsText = dirsPaths
+        .map((dir) => {
+          return this.dialog.getLastFolder(dir);
+        })
+        .map((lastDir) => {
+          return this.dialog.reducePath(lastDir);
+        });
+
+      const buttons = this.dirListToButtons(dirsText, dirsPaths);
+
+      console.log("buttons = ", buttons);
+      console.log("dirText = ", dirsText);
+
+      await this.dialog.sendNavigationMenu(lang, dirsText, buttons, ctx);
     } catch (err) {
       console.error("get-dirs error:", err);
       this.dialog.sendError(lang, "get directories " + err, ctx);
@@ -69,9 +83,9 @@ export class BotModel {
       if (dir === "..") {
         this.navigateBack(ctx);
       } else {
-        ctx.session.currentDir = ctx.session.currentDir.concat(dir);
+        // ctx.session.currentDir = ctx.session.currentDir.concat(dir);
+        ctx.session.currentDir = dir;
       }
-      await this.dialog.sendDirChanged(lang, ctx.session.currentDir, ctx);
     } else {
       console.error("callback nav error: no such location");
       this.dialog.sendError(lang, "callback nav error: no such location", ctx);
@@ -98,10 +112,13 @@ export class BotModel {
     return images;
   }
 
-  private dirListToButtons(dirList: string[]): MenuButton[] {
+  private dirListToButtons(dirText: string[], dirPath: string[]): MenuButton[] {
     let result: MenuButton[] = [{ text: "<-", call: "navDir:.." }];
-    dirList.map((dir) => {
-      result.push({ text: `navDir:${dir}`, call: `navDir:${dir}` });
+    dirText.map((text, i) => {
+      result.push({
+        text: text,
+        call: `navtext:${dirPath[i] ? dirPath[i] : "WRONG_PATH_FROM_BUTTON"}`,
+      });
     });
     return result;
   }

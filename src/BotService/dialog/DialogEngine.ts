@@ -1,7 +1,7 @@
 import type { BotContext } from "../BotService.js";
 import type { MenuButton } from "../utils/types.js";
 import type { botLanguage } from "../utils/types.js";
-import { MessageFactory, type BotMessage } from "./messages/MessageFactory.js";
+import { MessageFactory } from "./messages/MessageFactory.js";
 import { textTranslates, menusTranslates } from "./messages/strings.js";
 import { ReplyResolver } from "./ReplyResolver.js";
 
@@ -40,7 +40,19 @@ export class DialogEngine {
     const reply = this.factory.text(t.langChanged, m.langChanged);
     await this.resolver.reply(ctx, reply);
   }
+  getLastFolder(path: string): string {
+    let i = path.length;
+    let slashes = 0;
+    for (; i > 0 && slashes < 2; ) {
+      if (path[--i] === "/") {
+        slashes++;
+      }
+    }
 
+    // path = path.slice(i);
+
+    return path.slice(i);
+  }
   async sendDirChanged(lang: botLanguage, newDir: string, ctx: BotContext) {
     const t = textTranslates[lang];
     const reply = this.factory.text(t.dirChanged + newDir);
@@ -62,11 +74,16 @@ export class DialogEngine {
   ) {
     const t = textTranslates[lang];
 
-    if (dirs.length === 0) {
+    if (!dirs.length) {
       const reply = this.factory.text(t.dirListEmpty, buttons);
       await this.resolver.reply(ctx, reply);
     } else {
-      const list = dirs.map((d) => `• ${d}`).join("\n");
+      const list = dirs
+        .map((d, i) => {
+          const symbol = d[d.length - 1] === "/" ? "📁" : "📄";
+          return `${symbol} ${i + 1}) ${d}`;
+        })
+        .join("\n");
       const reply = this.factory.text(list, buttons);
       await this.resolver.reply(ctx, reply);
     }
@@ -90,5 +107,27 @@ export class DialogEngine {
   async sendAuthError(lang: botLanguage, ctx: BotContext) {
     const reply = this.factory.text(textTranslates[lang].notAdmin);
     await this.resolver.reply(ctx, reply);
+  }
+
+  reducePath(path: string): string {
+    let i = path.length;
+    let slashes = 0;
+    for (; i > 0 && slashes < 2; ) {
+      if (path[--i] === "/") {
+        slashes++;
+      }
+    }
+    let result = path.substring(i);
+    // console.log("reduced from ", path, "to ", result, "with ", i);
+
+    if (result.length > 20) {
+      result = result.substring(0, 17).concat(".../");
+    }
+
+    if (result[0] === "/") {
+      result = result.slice(1, result.length);
+    }
+
+    return result;
   }
 }

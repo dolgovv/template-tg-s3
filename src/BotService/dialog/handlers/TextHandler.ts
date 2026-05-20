@@ -1,13 +1,11 @@
 import type { Bot } from "grammy";
 import type { BotContext } from "../../BotService.js";
 import type { DialogEngine } from "../DialogEngine.js";
-import type { ReplyResolver } from "../ReplyResolver.js";
-import { DialogStep } from "../../utils/types.js";
 
 export class TextHandler {
   constructor(
     private bot: Bot<BotContext>,
-    private dialog: DialogEngine,
+    // model: BotModel,
     // private resolver: ReplyResolver,
   ) {
     // this.bot.on("message:text", (ctx) => this.onText(ctx));

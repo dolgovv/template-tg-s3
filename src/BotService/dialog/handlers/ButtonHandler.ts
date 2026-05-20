@@ -1,4 +1,4 @@
-import type { Bot, CallbackQueryContext } from "grammy";
+import type { Bot } from "grammy";
 import type { BotContext } from "../../BotService.js";
 import type { BotModel } from "../../domain/BotModel.js";
 
@@ -16,10 +16,10 @@ export class ButtonHandler {
       "lang=en",
       async (ctx) => await model.changeLang(ctx, "en"),
     );
-    // // Navigate to :dir
+    // Navigate to :dir
     this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
       const dir = ctx.match[1]!;
-      console.log(`dir='${dir}'`);
+      console.log(`dir from navTo (btn)= '${dir}'`);
       await model.navTo(ctx, dir);
       await model.navMenu(ctx);
     });
