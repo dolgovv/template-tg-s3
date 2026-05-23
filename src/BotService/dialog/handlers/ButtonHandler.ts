@@ -18,11 +18,12 @@ export class ButtonHandler {
 
     this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
       const dir = ctx.match[1]!;
+      console.log("match = '" + dir + "'");
 
       if (ctx.session.currentDir === "" && dir === "..") {
         await ctx.answerCallbackQuery();
       } else {
-        await model.navTo(ctx, dir);
+        await model.navTo(ctx, dir === "root" ? ".." : dir);
         await model.navMenu(ctx);
       }
     });
