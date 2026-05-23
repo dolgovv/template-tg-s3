@@ -20,8 +20,6 @@ export class BotModel {
     } else {
       ctx.session.currentDir = normalizedPath.slice(0, lastSlashIndex + 1);
     }
-    // ctx.session.currentDir = normalizedPath.slice(0, lastSlashIndex + 1);
-    console.log("session after nav back = ", ctx.session.currentDir);
   }
 
   async changeLang(ctx: BotContext, newLang: botLanguage) {

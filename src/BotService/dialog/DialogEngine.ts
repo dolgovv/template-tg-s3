@@ -108,7 +108,6 @@ export class DialogEngine {
         })
         .join("\n");
       const reply = this.factory.menu(list, buttons);
-      console.log("reply type forom nav = ", reply.type);
 
       await this.resolver.reply(ctx, reply);
     }
@@ -136,7 +135,6 @@ export class DialogEngine {
 
   shrinkPath(path: string): string {
     const reducedPath = this.getLastFolder(path);
-    // console.log("rdpath = ", path);
 
     let i = reducedPath.length;
     let slashes = 0;

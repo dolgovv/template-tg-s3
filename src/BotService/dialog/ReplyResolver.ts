@@ -27,10 +27,9 @@ export class ReplyResolver {
             );
           } catch (error) {
             console.log("error with editing message:", error);
-
-            await ctx.reply("HUY! EDITED, but seems to be wrong msg_id");
             ctx.session.lastMenuMessageId = 0;
           }
+          // }
         } else {
           const menuSent = await ctx.reply(reply.text, {
             parse_mode: "HTML",
