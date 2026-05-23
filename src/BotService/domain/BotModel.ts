@@ -62,21 +62,20 @@ export class BotModel {
     const curDir = ctx.session.currentDir;
     try {
       const dirsPaths: string[] = await this.repo.listDirectories(curDir);
+      const dirsButtonText: string[] = dirsPaths.map((dir) => {
+        return this.dialog.shrinkPath(dir);
+      });
+
+      const dirsText = dirsButtonText.map((dir) => {
+        return "<b>" + dir + "</b>";
+      });
+
       const filesPaths: string[] = await this.repo.listAllFilesHere(curDir);
-
-      const dirsText: string[] = dirsPaths
-        .map((dir) => {
-          return this.dialog.shrinkPath(dir);
-        })
-        .map((dir) => {
-          return "<b>" + dir + "</b>";
-        });
-
       const filesText: string[] = filesPaths.map((file) => {
         return this.dialog.leafInPath(file);
       });
 
-      const buttons = this.dirListToButtons(dirsText, dirsPaths);
+      const buttons = this.dirListToButtons(dirsButtonText, dirsPaths);
 
       await this.dialog.sendNavigationMenu(
         lang,
@@ -123,6 +122,10 @@ export class BotModel {
 
   private dirListToButtons(dirText: string[], dirPath: string[]): MenuButton[] {
     let result: MenuButton[] = [{ text: "<-", call: "navDir:.." }];
+    if (dirText.length !== dirPath.length) {
+      return result;
+    }
+
     dirText.map((text, i) => {
       result.push({
         text: text,
