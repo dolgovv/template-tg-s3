@@ -53,28 +53,6 @@ export class DialogEngine {
     }
   }
 
-  getLastFolder(path: string): string {
-    let i = path.length;
-    let slashes = 0;
-    for (; i > 0 && slashes < 2; ) {
-      if (path[--i] === "/") {
-        slashes++;
-      }
-    }
-    return path.slice(i);
-  }
-
-  pathToFileName(path: string): string {
-    let i = path.length;
-    let slashes = 0;
-    for (; i > 0 && slashes < 1; ) {
-      if (path[--i] === "/") {
-        slashes++;
-      }
-    }
-    return path.slice(i);
-  }
-
   async sendDirChanged(lang: botLanguage, newDir: string, ctx: BotContext) {
     const t = textTranslates[lang];
     const reply = this.factory.text(t.dirChanged + newDir);
@@ -134,17 +112,17 @@ export class DialogEngine {
   }
 
   shrinkPath(path: string): string {
-    const reducedPath = this.getLastFolder(path);
+    let result = this.leafInPath(path);
+    console.log("leaf: ", result);
 
-    let i = reducedPath.length;
-    let slashes = 0;
-    for (; i > 0 && slashes < 2; ) {
-      if (reducedPath[--i] === "/") {
-        slashes++;
-      }
-    }
-    let result = reducedPath.substring(i);
-    // console.log("reduced from ", path, "to ", result, "with ", i);
+    // let i = reducedPath.length;
+    // let slashes = 0;
+    // for (; i > 0 && slashes < 2; ) {
+    //   if (reducedPath[--i] === "/") {
+    //     slashes++;
+    //   }
+    // }
+    // let result = reducedPath.substring(i);
 
     if (result.length > 20) {
       result = result.substring(0, 17).concat(".../");
