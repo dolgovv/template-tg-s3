@@ -24,6 +24,7 @@ export type SessionData = {
   dialogStep: DialogStep;
   websiteName: string;
   currentDir: string;
+  lastMenuMessageId: number;
 };
 
 export type Post = {

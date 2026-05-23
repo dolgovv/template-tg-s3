@@ -11,6 +11,35 @@ export class ReplyResolver {
         });
         break;
 
+      case "menu":
+        if (ctx.session.lastMenuMessageId > 0) {
+          try {
+            await ctx.api.editMessageText(
+              ctx.chatId!,
+              ctx.session.lastMenuMessageId,
+              reply.text,
+              {
+                parse_mode: "HTML",
+                ...(reply.keyboard
+                  ? { reply_markup: reply.keyboard }
+                  : undefined),
+              },
+            );
+          } catch (error) {
+            console.log("error with editing message:", error);
+
+            await ctx.reply("HUY! EDITED, but seems to be wrong msg_id");
+            ctx.session.lastMenuMessageId = 0;
+          }
+        } else {
+          const menuSent = await ctx.reply(reply.text, {
+            parse_mode: "HTML",
+            ...(reply.keyboard && { reply_markup: reply.keyboard }),
+          });
+          ctx.session.lastMenuMessageId = menuSent.message_id;
+        }
+        break;
+
       case "photo":
         await ctx.replyWithPhoto(reply.photo, {
           parse_mode: "HTML",

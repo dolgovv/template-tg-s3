@@ -97,7 +97,8 @@ export class DialogEngine {
     const t = textTranslates[lang];
 
     if (!dirs.length) {
-      const reply = this.factory.text(t.dirListEmpty, buttons);
+      const reply = this.factory.menu(t.dirListEmpty, buttons);
+
       await this.resolver.reply(ctx, reply);
     } else {
       const list = dirs
@@ -106,7 +107,9 @@ export class DialogEngine {
           return `${symbol} ${i + 1}) ${d}`;
         })
         .join("\n");
-      const reply = this.factory.text(list, buttons);
+      const reply = this.factory.menu(list, buttons);
+      console.log("reply type forom nav = ", reply.type);
+
       await this.resolver.reply(ctx, reply);
     }
   }

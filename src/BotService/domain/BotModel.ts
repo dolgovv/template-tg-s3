@@ -41,9 +41,15 @@ export class BotModel {
         ctx.session.websiteName,
         ctx,
       );
+      this.resetSession(ctx);
     } else {
       console.log("no session bitches: ", ctx.session);
     }
+  }
+
+  resetSession(ctx: BotContext) {
+    ctx.session.currentDir = "";
+    ctx.session.lastMenuMessageId = 0;
   }
 
   async onHelp(ctx: BotContext) {
