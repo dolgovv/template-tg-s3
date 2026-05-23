@@ -10,15 +10,18 @@ export class BotModel {
   ) {}
 
   private navigateBack(ctx: BotContext) {
-    let i = ctx.session.currentDir.length;
-    let slashes = 0;
-    for (; i > 0 && slashes < 2; ) {
-      if (ctx.session.currentDir[--i] === "/") {
-        slashes++;
-      }
-    }
+    const path = ctx.session.currentDir;
+    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
 
-    ctx.session.currentDir = ctx.session.currentDir.slice(0, i + 1);
+    const lastSlashIndex = normalizedPath.lastIndexOf("/");
+
+    if (lastSlashIndex === -1) {
+      ctx.session.currentDir = "";
+    } else {
+      ctx.session.currentDir = normalizedPath.slice(0, lastSlashIndex + 1);
+    }
+    // ctx.session.currentDir = normalizedPath.slice(0, lastSlashIndex + 1);
+    console.log("session after nav back = ", ctx.session.currentDir);
   }
 
   async changeLang(ctx: BotContext, newLang: botLanguage) {
@@ -52,24 +55,36 @@ export class BotModel {
   async navMenu(ctx: BotContext): Promise<void> {
     if (!ctx.chat) return;
     const lang = ctx.session.lang;
+    const curDir = ctx.session.currentDir;
     try {
-      const dirsPaths = await this.repo.listDirectories(ctx.session.currentDir);
-      // console.log(dirs);
+      const dirsPaths: string[] = await this.repo.listDirectories(curDir);
+      const filesPaths: string[] = await this.repo.listAllFilesHere(curDir);
+      console.log("files in", curDir, ":", filesPaths);
 
-      const dirsText = dirsPaths
+      const dirsText: string[] = dirsPaths
         .map((dir) => {
-          return this.dialog.getLastFolder(dir);
+          return this.dialog.shrinkPath(dir);
         })
-        .map((lastDir) => {
-          return this.dialog.reducePath(lastDir);
+        .map((dir) => {
+          return "<b>" + dir + "</b>";
         });
 
+      const filesText: string[] = filesPaths.map((file) => {
+        return this.dialog.leafInPath(file);
+      });
+
+      // dirsText.push(filesText);
       const buttons = this.dirListToButtons(dirsText, dirsPaths);
 
       console.log("buttons = ", buttons);
       console.log("dirText = ", dirsText);
 
-      await this.dialog.sendNavigationMenu(lang, dirsText, buttons, ctx);
+      await this.dialog.sendNavigationMenu(
+        lang,
+        [...dirsText, ...filesText],
+        buttons,
+        ctx,
+      );
     } catch (err) {
       console.error("get-dirs error:", err);
       this.dialog.sendError(lang, "get directories " + err, ctx);
@@ -92,11 +107,6 @@ export class BotModel {
     }
   }
 
-  async listDirectories(currentDir: string = ""): Promise<string[]> {
-    const result = await this.repo.listDirectories(currentDir);
-    return result;
-  }
-
   async createDirectory(currentDir: string, name: string): Promise<void> {
     const result = await this.repo.createDirectory(currentDir, name);
     return result;
@@ -117,7 +127,7 @@ export class BotModel {
     dirText.map((text, i) => {
       result.push({
         text: text,
-        call: `navtext:${dirPath[i] ? dirPath[i] : "WRONG_PATH_FROM_BUTTON"}`,
+        call: `navDir:${dirPath[i] ? dirPath[i] : "WRONG_PATH_FROM_BUTTON"}`,
       });
     });
     return result;

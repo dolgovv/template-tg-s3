@@ -40,6 +40,19 @@ export class DialogEngine {
     const reply = this.factory.text(t.langChanged, m.langChanged);
     await this.resolver.reply(ctx, reply);
   }
+
+  leafInPath(path: string) {
+    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
+    const lastSlashIndex = normalizedPath.lastIndexOf("/");
+    if (lastSlashIndex === -1) {
+      return path;
+    } else {
+      const result = path.slice(lastSlashIndex + 1);
+      console.log("last child in ", path, "is :", result);
+      return result;
+    }
+  }
+
   getLastFolder(path: string): string {
     let i = path.length;
     let slashes = 0;
@@ -48,11 +61,20 @@ export class DialogEngine {
         slashes++;
       }
     }
-
-    // path = path.slice(i);
-
     return path.slice(i);
   }
+
+  pathToFileName(path: string): string {
+    let i = path.length;
+    let slashes = 0;
+    for (; i > 0 && slashes < 1; ) {
+      if (path[--i] === "/") {
+        slashes++;
+      }
+    }
+    return path.slice(i);
+  }
+
   async sendDirChanged(lang: botLanguage, newDir: string, ctx: BotContext) {
     const t = textTranslates[lang];
     const reply = this.factory.text(t.dirChanged + newDir);
@@ -109,15 +131,18 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  reducePath(path: string): string {
-    let i = path.length;
+  shrinkPath(path: string): string {
+    const reducedPath = this.getLastFolder(path);
+    // console.log("rdpath = ", path);
+
+    let i = reducedPath.length;
     let slashes = 0;
     for (; i > 0 && slashes < 2; ) {
-      if (path[--i] === "/") {
+      if (reducedPath[--i] === "/") {
         slashes++;
       }
     }
-    let result = path.substring(i);
+    let result = reducedPath.substring(i);
     // console.log("reduced from ", path, "to ", result, "with ", i);
 
     if (result.length > 20) {

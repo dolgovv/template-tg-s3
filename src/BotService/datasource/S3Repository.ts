@@ -74,6 +74,37 @@ export class BotRepository {
     return dirs;
   }
 
+  async listAllFilesHere(prefix: string = ""): Promise<string[]> {
+    const files: string[] = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const input: ListObjectsV2CommandInput = {
+        Bucket: this.bucket,
+        Delimiter: "/",
+        Prefix: prefix || undefined,
+        ContinuationToken: continuationToken,
+      };
+
+      const response = await this.s3Client.send(
+        new ListObjectsV2Command(input),
+      );
+
+      // Перебираем все объекты (файлы), а не CommonPrefixes
+      for (const obj of response.Contents ?? []) {
+        // Фильтруем только .jpg (регистр можно привести к нижнему)
+        // if (obj.Key && obj.Key.toLowerCase().endsWith(".jpg")) {
+        if (obj.Key) {
+          files.push(obj.Key);
+        }
+      }
+
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return files;
+  }
+
   async createDirectory(prefix: string, name: string): Promise<void> {
     const key = `${prefix}${name}/`;
     await this.s3Client.send(
