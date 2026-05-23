@@ -63,7 +63,6 @@ export class BotModel {
     try {
       const dirsPaths: string[] = await this.repo.listDirectories(curDir);
       const filesPaths: string[] = await this.repo.listAllFilesHere(curDir);
-      console.log("files in", curDir, ":", filesPaths);
 
       const dirsText: string[] = dirsPaths
         .map((dir) => {
@@ -77,11 +76,7 @@ export class BotModel {
         return this.dialog.leafInPath(file);
       });
 
-      // dirsText.push(filesText);
       const buttons = this.dirListToButtons(dirsText, dirsPaths);
-
-      console.log("buttons = ", buttons);
-      console.log("dirText = ", dirsText);
 
       await this.dialog.sendNavigationMenu(
         lang,

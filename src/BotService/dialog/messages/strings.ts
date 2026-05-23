@@ -34,6 +34,7 @@ export const textTranslates = {
 export const menusTranslates = {
   ru: {
     welcome: [
+      { text: "Навигация", call: "navDir:root" },
       { text: "Русский", call: "lang=ru" },
       { text: "English", call: "lang=en" },
     ] as { text: string; call: string }[],
@@ -41,6 +42,7 @@ export const menusTranslates = {
     unknownCommand: [],
     anonName: [],
     langChanged: [
+      { text: "Navigation", call: "navDir:root" },
       { text: "Русский", call: "lang=ru" },
       { text: "English", call: "lang=en" },
     ] as { text: string; call: string }[],
