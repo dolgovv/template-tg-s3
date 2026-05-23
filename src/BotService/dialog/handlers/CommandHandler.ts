@@ -9,6 +9,9 @@ export class CommandHandler {
   ) {
     this.bot.command("start", async (ctx) => await model.onStart(ctx));
     this.bot.command("help", async (ctx) => await model.onHelp(ctx));
-    this.bot.command("nav", async (ctx) => await model.navMenu(ctx));
+    this.bot.command("nav", async (ctx) => {
+      ctx.session.lastMenuMessageId = 0;
+      await model.navMenu(ctx);
+    });
   }
 }

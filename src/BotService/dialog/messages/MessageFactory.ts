@@ -7,6 +7,12 @@ export type TextMessage = {
   keyboard?: InlineKeyboard;
 };
 
+export type MenuMessage = {
+  type: "menu";
+  text: string;
+  keyboard?: InlineKeyboard;
+};
+
 export type PhotoMessage = {
   type: "photo";
   photo: InputFile;
@@ -20,12 +26,23 @@ export type MediaGroupMessage = {
   caption?: string;
 };
 
-export type BotMessage = TextMessage | PhotoMessage | MediaGroupMessage;
+export type BotMessage =
+  | TextMessage
+  | PhotoMessage
+  | MediaGroupMessage
+  | MenuMessage;
 
 export class MessageFactory {
   text(text: string, buttons: MenuButton[] = []): TextMessage {
     const keyboard = this.buildKeyboard(buttons);
     const msg: TextMessage = { type: "text", text: text };
+    if (keyboard) msg.keyboard = keyboard;
+    return msg;
+  }
+
+  menu(text: string, buttons: MenuButton[] = []): MenuMessage {
+    const keyboard = this.buildKeyboard(buttons);
+    const msg: MenuMessage = { type: "menu", text: text };
     if (keyboard) msg.keyboard = keyboard;
     return msg;
   }

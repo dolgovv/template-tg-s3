@@ -18,6 +18,7 @@ export interface BotConfigEnv {
   adminIds: number[];
   currentDir: string | undefined;
   postsDir: string;
+  lastMenuMessageId: number;
 
   // S3
   s3Endpoint: string;
@@ -38,6 +39,7 @@ export function loadConfig(): BotConfigEnv {
     // S3
     currentDir: getEnv("S3_ROOT_FOLDER", false),
     postsDir: getEnv("S3_POST_FOLDER", true),
+    lastMenuMessageId: 0,
     s3Endpoint: getEnv("S3_ENDPOINT", true),
     s3Region: getEnv("S3_REGION") ?? "us-east-1",
     s3AccessKeyId: getEnv("S3_BOT_NAME", true),
