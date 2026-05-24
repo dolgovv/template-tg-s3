@@ -2,9 +2,12 @@ export const textTranslates = {
   ru: {
     welcome: "Добро пожаловать! Бот запущен.",
     notAdmin: "У вас нет доступа.",
+    noFilename:
+      "Вместе с картинкой, пожалуйста, укажите название файла в том же сообщении",
     unknownCommand: "Неизвестная команда.",
     anonName: "Анонимный пользователь",
     langChanged: "Язык успешно изменен!",
+    addImageSuccessful: "Фото успешно загружено",
     help:
       "Доступные команды:." +
       "\n" +
@@ -16,6 +19,9 @@ export const textTranslates = {
       "\n" +
       "/all_imgs_here " +
       "посмотреть все картинки в текущей директории" +
+      "\n" +
+      "/add_img " +
+      "добавить фото/картинку в текущую директорию" +
       "\n" +
       "/help " +
       "\n",
@@ -34,9 +40,11 @@ export const textTranslates = {
   en: {
     welcome: "Welcome! Bot is running.",
     notAdmin: "Access denied.",
+    noFilename: "Please, provide a file name with the same message",
     unknownCommand: "Unknown command.",
     anonName: "Anonymous user",
     langChanged: "Language changed successfully!",
+    addImageSuccessful: "Image uploaded successfully",
     help:
       "All available commands:." +
       "\n" +
@@ -48,6 +56,9 @@ export const textTranslates = {
       "\n" +
       "/all_imgs_here " +
       "to get all .jpg/.png files in current directory" +
+      "\n" +
+      "/add_img " +
+      "add a photo/image in current directory" +
       "\n" +
       "/help " +
       "\n",

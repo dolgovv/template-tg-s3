@@ -116,6 +116,28 @@ export class BotRepository {
     );
   }
 
+  async putImage(
+    buffer: Buffer,
+    dir: string,
+    name: string,
+    extension: string,
+  ): Promise<boolean> {
+    console.log("key=", dir + name + extension);
+
+    const result = await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: dir + name + extension,
+        Body: buffer,
+        // ContentType: "application/octet-stream", // или определите по расширению
+      }),
+    );
+    return result.$metadata.httpStatusCode &&
+      result.$metadata.httpStatusCode - 200 < 100
+      ? true
+      : false;
+  }
+
   // UTILS FUNCTIONS
   private async streamToBuffer(stream: Readable): Promise<Buffer> {
     const chunks: Buffer[] = [];

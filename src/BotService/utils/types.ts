@@ -16,7 +16,7 @@ export type MenuSection = Record<string, MenuButton[]>;
 
 export enum DialogStep {
   Idle = "idle",
-  AwaitingButtonEcho = "awaiting_button_echo",
+  AwaitingDocument = "awaiting_document",
 }
 
 export type SessionData = {

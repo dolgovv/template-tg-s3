@@ -79,6 +79,12 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async sendImageUploadSuccessful(lang: botLanguage, ctx: BotContext) {
+    const t = textTranslates[lang];
+    const reply = this.factory.text(t.addImageSuccessful);
+    await this.resolver.reply(ctx, reply);
+  }
+
   async sendNavigationMenu(
     lang: botLanguage,
     content: string[],
@@ -122,6 +128,11 @@ export class DialogEngine {
 
   async sendAuthError(lang: botLanguage, ctx: BotContext) {
     const reply = this.factory.text(textTranslates[lang].notAdmin);
+    await this.resolver.reply(ctx, reply);
+  }
+
+  async sendNoFileNameProvidedError(lang: botLanguage, ctx: BotContext) {
+    const reply = this.factory.text(textTranslates[lang].noFilename);
     await this.resolver.reply(ctx, reply);
   }
 

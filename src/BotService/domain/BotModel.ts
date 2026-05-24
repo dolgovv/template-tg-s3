@@ -1,7 +1,13 @@
 import type { BotContext } from "../BotService.js";
 import { BotRepository } from "../datasource/S3Repository.js";
 import type { DialogEngine } from "../dialog/DialogEngine.js";
-import type { botLanguage, MenuButton } from "../utils/types.js";
+import { getEnv } from "../utils/env_auth.js";
+import {
+  DialogStep,
+  type botLanguage,
+  type MenuButton,
+} from "../utils/types.js";
+import { fetch, ProxyAgent } from "undici";
 
 export class BotModel {
   constructor(
@@ -30,6 +36,53 @@ export class BotModel {
     }
   }
 
+  sanitizeFileName(name: string): string {
+    return name
+      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, "_")
+      .replace(/\.{2,}/g, ".")
+      .replace(/^\./, "_")
+      .slice(0, 200);
+  }
+
+  async addFile(ctx: BotContext) {
+    if (!ctx.message) {
+      this.dialog.sendError(ctx.session.lang, "Unknown error", ctx);
+    } else if (!ctx.message.photo) {
+      this.dialog.sendError(ctx.session.lang, "No file provided", ctx);
+    } else if (!ctx.message.photo[ctx.message.photo.length - 1]) {
+      this.dialog.sendError(ctx.session.lang, "Error reading file", ctx);
+    } else if (!ctx.message.caption) {
+      this.dialog.sendNoFileNameProvidedError(ctx.session.lang, ctx);
+    } else {
+      const proxyUrl: string | undefined = getEnv("PROXY_URL");
+      const proxyAgent: ProxyAgent | undefined = proxyUrl
+        ? new ProxyAgent(proxyUrl)
+        : undefined;
+
+      const photoId = ctx.message.photo[ctx.message.photo.length - 1]!.file_id;
+      const file = await ctx.api.getFile(photoId);
+      const token = getEnv("BOT_TOKEN", true);
+
+      const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+      const loadedFile = proxyAgent
+        ? await fetch(url, { dispatcher: proxyAgent })
+        : await fetch(url);
+
+      const buffer = Buffer.from(await loadedFile.arrayBuffer());
+      const fileName: string = this.sanitizeFileName(ctx.message.caption);
+      const extension = ".jpg"; // ИСПРАВИТЬ
+      const result = await this.repo.putImage(
+        buffer,
+        ctx.session.currentDir,
+        fileName,
+        extension,
+      );
+      if (result) {
+        this.dialog.sendImageUploadSuccessful(ctx.session.lang, ctx);
+      }
+    }
+  }
+
   async mainMenu(ctx: BotContext) {
     if (ctx.chat && ctx.session) {
       const lang = ctx.session.lang;
@@ -39,14 +92,21 @@ export class BotModel {
         ctx.session.websiteName,
         ctx,
       );
-      this.resetSession(ctx);
+      this.softResetSession(ctx);
     } else {
       console.log("no session bitches: ", ctx.session);
     }
   }
 
-  resetSession(ctx: BotContext) {
+  softResetSession(ctx: BotContext) {
+    ctx.session.dialogStep = DialogStep.Idle;
+    ctx.session.lastMenuMessageId = 0;
+  }
+
+  hardResetSession(ctx: BotContext) {
+    ctx.session.dialogStep = DialogStep.Idle;
     ctx.session.currentDir = "";
+    ctx.session.lang = "en";
     ctx.session.lastMenuMessageId = 0;
   }
 
@@ -132,9 +192,20 @@ export class BotModel {
     return result;
   }
 
+  async loadImagesInDir(path: string): Promise<Buffer[]> {
+    const images: Promise<Buffer[]> = this.repo.getImagesInDir(path);
+    return images;
+  }
+
   async sendImage(ctx: BotContext, path: string) {
     const loadedImage = await this.loadImage(path);
     this.dialog.sendImg(loadedImage, ctx);
+  }
+
+  async sendAllImages(ctx: BotContext) {
+    const path = ctx.session.currentDir;
+    const loadedImages = await this.loadImagesInDir(path);
+    this.dialog.sendImgs(loadedImages, ctx);
   }
 
   async sendTextFile(ctx: BotContext, path: string) {
@@ -143,26 +214,6 @@ export class BotModel {
     const fileContent: string = await this.repo.getTextFileContent(path);
     const reducedPath: string = this.dialog.leafInPath(path);
     this.dialog.sendTextFile(lang, reducedPath, fileContent, ctx);
-  }
-
-  async loadImagesInDir(path: string): Promise<Buffer[]> {
-    const images: Promise<Buffer[]> = this.repo.getImagesInDir(path);
-    return images;
-  }
-
-  private dirListToButtons(dirText: string[], dirPath: string[]): MenuButton[] {
-    let result: MenuButton[] = [{ text: "<-", call: "navDir:.." }];
-    if (dirText.length !== dirPath.length) {
-      return result;
-    }
-
-    dirText.map((text, i) => {
-      result.push({
-        text: text,
-        call: `navDir:${dirPath[i] ? dirPath[i] : "WRONG_PATH_FROM_BUTTON"}`,
-      });
-    });
-    return result;
   }
 
   private dirContentToButtons(names: string[], paths: string[]): MenuButton[] {
