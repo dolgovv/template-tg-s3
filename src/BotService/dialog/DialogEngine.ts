@@ -17,7 +17,7 @@ export class DialogEngine {
   ) {
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
-    const reply = this.factory.text(
+    const reply = this.factory.menu(
       t.greetUser(name ?? t.anonName, websiteName),
       m.welcome,
     );

@@ -7,7 +7,7 @@ export class CommandHandler {
     private bot: Bot<BotContext>,
     private model: BotModel,
   ) {
-    this.bot.command("start", async (ctx) => await model.onStart(ctx));
+    this.bot.command("start", async (ctx) => await model.mainMenu(ctx));
     this.bot.command("help", async (ctx) => await model.onHelp(ctx));
     this.bot.command("nav", async (ctx) => {
       ctx.session.lastMenuMessageId = 0;
