@@ -101,7 +101,7 @@ export class BotService {
 
     this.bot.catch(async (err) => {
       console.log("BOT CATCHED AN ERROR: ", err);
-      this.model.resetSession(err.ctx);
+      this.model.hardResetSession(err.ctx);
     });
   }
 

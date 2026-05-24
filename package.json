@@ -33,6 +33,7 @@
     "https-proxy-agent": "^9.0.0",
     "path": "^0.12.7",
     "socks-proxy-agent": "^10.0.0",
+    "undici": "^8.3.0",
     "url": "^0.11.4"
   }
 }
