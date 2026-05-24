@@ -26,11 +26,11 @@ export class BotModel {
     await ctx.answerCallbackQuery();
     if (newLang !== ctx.session.lang) {
       ctx.session.lang = newLang;
-      this.dialog.sendLanguageChanged(newLang, ctx);
+      // this.dialog.sendLanguageChanged(newLang, ctx);
     }
   }
 
-  async onStart(ctx: BotContext) {
+  async mainMenu(ctx: BotContext) {
     if (ctx.chat && ctx.session) {
       const lang = ctx.session.lang;
       this.dialog.sendWelcome(
