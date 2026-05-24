@@ -98,6 +98,11 @@ export class BotService {
       }
       return next();
     });
+
+    this.bot.catch(async (err) => {
+      console.log("BOT CATCHED AN ERROR: ", err);
+      this.model.resetSession(err.ctx);
+    });
   }
 
   start() {
