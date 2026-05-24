@@ -7,6 +7,9 @@ export const textTranslates = {
     langChanged: "Язык успешно изменен!",
     help: "Здесь будет /help текст.",
     dirChanged: "Текущая директория изменена на: ",
+    fileContent: (path: string) => {
+      return `Содержание файла ${path}:\n`;
+    },
     greetUser: (name: string, websiteName: string) =>
       `Привет, ${name}!\nДобро пожаловать в панель администратора сайта ${websiteName}`,
     yourId: (id: number) => `Ваш ID: ${id}`,
@@ -22,6 +25,9 @@ export const textTranslates = {
     langChanged: "Language changed successfully!",
     help: "Here will be /help text.",
     dirChanged: "Current directory changed: ",
+    fileContent: (path: string) => {
+      return `${path} file content:\n`;
+    },
     greetUser: (name: string) => `Hello, ${name}!`,
     yourId: (id: number) => `Your ID: ${id}`,
     dirListEmpty: "No folders here",

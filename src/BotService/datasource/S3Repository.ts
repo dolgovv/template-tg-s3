@@ -36,7 +36,7 @@ export class BotRepository {
     return Promise.all(bufferPromises);
   }
 
-  async getText(path: string): Promise<string> {
+  async getTextFileContent(path: string): Promise<string> {
     const response = await this.s3Client.send(
       new GetObjectCommand({
         Bucket: this.bucket,

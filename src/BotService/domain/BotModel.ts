@@ -62,6 +62,12 @@ export class BotModel {
     const curDir = ctx.session.currentDir;
     try {
       const dirsPaths: string[] = await this.repo.listDirectories(curDir);
+      const filesPaths: string[] = await this.repo.listAllFilesHere(curDir);
+
+      const filesText: string[] = filesPaths.map((file) => {
+        return this.dialog.leafInPath(file);
+      });
+
       const dirsButtonText: string[] = dirsPaths.map((dir) => {
         return this.dialog.shrinkPath(dir);
       });
@@ -70,12 +76,18 @@ export class BotModel {
         return "<b>" + dir + "</b>";
       });
 
-      const filesPaths: string[] = await this.repo.listAllFilesHere(curDir);
-      const filesText: string[] = filesPaths.map((file) => {
-        return this.dialog.leafInPath(file);
-      });
+      dirsButtonText.push(
+        ...filesText.map((filePath) => {
+          return this.dialog.shrinkPath(
+            filePath.slice(0, filePath.indexOf(".")),
+          );
+        }),
+      );
 
-      const buttons = this.dirListToButtons(dirsButtonText, dirsPaths);
+      const buttons = this.dirContentToButtons(dirsButtonText, [
+        ...dirsPaths,
+        ...filesPaths,
+      ]);
 
       await this.dialog.sendNavigationMenu(
         lang,
@@ -87,6 +99,11 @@ export class BotModel {
       console.error("get-dirs error:", err);
       this.dialog.sendError(lang, "get directories " + err, ctx);
     }
+  }
+
+  async sendError(errorText: string, ctx: BotContext) {
+    const lang = ctx.session.lang;
+    await this.dialog.sendError(lang, errorText, ctx);
   }
 
   async navTo(ctx: BotContext, dir: string) {
@@ -115,6 +132,19 @@ export class BotModel {
     return result;
   }
 
+  async sendImage(ctx: BotContext, path: string) {
+    const loadedImage = await this.loadImage(path);
+    this.dialog.sendImg(loadedImage, ctx);
+  }
+
+  async sendTextFile(ctx: BotContext, path: string) {
+    const lang = ctx.session.lang;
+
+    const fileContent: string = await this.repo.getTextFileContent(path);
+    const reducedPath: string = this.dialog.leafInPath(path);
+    this.dialog.sendTextFile(lang, reducedPath, fileContent, ctx);
+  }
+
   async loadImagesInDir(path: string): Promise<Buffer[]> {
     const images: Promise<Buffer[]> = this.repo.getImagesInDir(path);
     return images;
@@ -130,6 +160,22 @@ export class BotModel {
       result.push({
         text: text,
         call: `navDir:${dirPath[i] ? dirPath[i] : "WRONG_PATH_FROM_BUTTON"}`,
+      });
+    });
+    return result;
+  }
+
+  private dirContentToButtons(names: string[], paths: string[]): MenuButton[] {
+    let result: MenuButton[] = [{ text: "<-", call: "navDir:.." }];
+    if (names.length !== paths.length) {
+      return result;
+    }
+
+    names.map((name, i) => {
+      const actionType: string = name.endsWith("/") ? "navDir" : "openFile";
+      result.push({
+        text: name,
+        call: `${actionType}:${paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"}`,
       });
     });
     return result;

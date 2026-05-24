@@ -34,6 +34,19 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async sendTextFile(
+    lang: botLanguage,
+    path: string,
+    text: string,
+    ctx: BotContext,
+  ) {
+    const t = textTranslates[lang];
+    const reply = this.factory.text(
+      t.fileContent(path) + "<pre>" + text + "</pre>",
+    );
+    await this.resolver.reply(ctx, reply);
+  }
+
   async sendLanguageChanged(lang: botLanguage, ctx: BotContext) {
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
@@ -68,21 +81,22 @@ export class DialogEngine {
 
   async sendNavigationMenu(
     lang: botLanguage,
-    dirs: string[],
+    content: string[],
     buttons: MenuButton[],
     ctx: BotContext,
   ) {
     const t = textTranslates[lang];
 
-    if (!dirs.length) {
+    if (!content.length) {
       const reply = this.factory.menu(t.dirListEmpty, buttons);
 
       await this.resolver.reply(ctx, reply);
     } else {
-      const list = dirs
-        .map((d, i) => {
-          const symbol = d[d.length - 1] === "/" ? "📁" : "📄";
-          return `${symbol} ${i + 1}) ${d}`;
+      const list = content
+        .map((c, i) => {
+          const symbol = c.endsWith(">") ? "📁" : "📄";
+          console.log("is ", c, "ends with '>' ? :", symbol);
+          return `${symbol} ${i + 1}) ${c}`;
         })
         .join("\n");
       const reply = this.factory.menu(list, buttons);
@@ -113,16 +127,6 @@ export class DialogEngine {
 
   shrinkPath(path: string): string {
     let result = this.leafInPath(path);
-    console.log("leaf: ", result);
-
-    // let i = reducedPath.length;
-    // let slashes = 0;
-    // for (; i > 0 && slashes < 2; ) {
-    //   if (reducedPath[--i] === "/") {
-    //     slashes++;
-    //   }
-    // }
-    // let result = reducedPath.substring(i);
 
     if (result.length > 20) {
       result = result.substring(0, 17).concat(".../");
