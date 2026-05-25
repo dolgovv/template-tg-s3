@@ -10,6 +10,7 @@ export const textTranslates = {
     awaitingDocument:
       "Пожалуйста, отправьте фото и название для загрузки одним сообщением",
     addImageSuccessful: "Фото успешно загружено",
+    chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
     help:
       "Доступные команды:." +
       "\n" +
@@ -49,6 +50,7 @@ export const textTranslates = {
     awaitingDocument:
       "Please, send photo and it`s name together in the single message",
     addImageSuccessful: "Image uploaded successfully",
+    chooseAction: "Would you like to open it or remove completely?",
     help:
       "All available commands:." +
       "\n" +

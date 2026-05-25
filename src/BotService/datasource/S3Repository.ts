@@ -5,7 +5,6 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
-  NotFound,
 } from "@aws-sdk/client-s3";
 import type { S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
@@ -107,10 +106,7 @@ export class BotRepository {
         new ListObjectsV2Command(input),
       );
 
-      // Перебираем все объекты (файлы), а не CommonPrefixes
       for (const obj of response.Contents ?? []) {
-        // Фильтруем только .jpg (регистр можно привести к нижнему)
-        // if (obj.Key && obj.Key.toLowerCase().endsWith(".jpg")) {
         if (obj.Key) {
           files.push(obj.Key);
         }

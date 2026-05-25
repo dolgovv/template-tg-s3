@@ -15,89 +15,11 @@ export class BotModel {
     private dialog: DialogEngine,
   ) {}
 
-  private navigateBack(ctx: BotContext) {
-    const path = ctx.session.currentDir;
-    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
-
-    const lastSlashIndex = normalizedPath.lastIndexOf("/");
-
-    if (lastSlashIndex === -1) {
-      ctx.session.currentDir = "";
-    } else {
-      ctx.session.currentDir = normalizedPath.slice(0, lastSlashIndex + 1);
-    }
-  }
-
-  async changeLang(ctx: BotContext, newLang: botLanguage) {
-    await ctx.answerCallbackQuery();
-    if (newLang !== ctx.session.lang) {
-      ctx.session.lang = newLang;
-      // this.dialog.sendLanguageChanged(newLang, ctx);
-    }
-  }
-
-  sanitizeFileName(name: string): string {
-    return name
-      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, "_")
-      .replace(/\.{2,}/g, ".")
-      .replace(/^\./, "_")
-      .slice(0, 200);
-  }
-
-  async addFile(ctx: BotContext) {
-    if (!ctx.message) {
-      this.dialog.sendError(ctx.session.lang, "Unknown error", ctx);
-    } else if (!ctx.message.photo) {
-      this.dialog.sendError(ctx.session.lang, "No file provided", ctx);
-    } else if (!ctx.message.photo[ctx.message.photo.length - 1]) {
-      this.dialog.sendError(ctx.session.lang, "Error reading file", ctx);
-    } else if (!ctx.message.caption) {
-      this.dialog.sendNoFileNameProvidedError(ctx.session.lang, ctx);
-    } else {
-      const proxyUrl: string | undefined = getEnv("PROXY_URL");
-      const proxyAgent: ProxyAgent | undefined = proxyUrl
-        ? new ProxyAgent(proxyUrl)
-        : undefined;
-
-      const photoId = ctx.message.photo[ctx.message.photo.length - 1]!.file_id;
-      const file = await ctx.api.getFile(photoId);
-      const token = getEnv("BOT_TOKEN", true);
-
-      const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-      const loadedFile = proxyAgent
-        ? await fetch(url, { dispatcher: proxyAgent })
-        : await fetch(url);
-
-      const buffer = Buffer.from(await loadedFile.arrayBuffer());
-      const fileName: string = this.sanitizeFileName(ctx.message.caption);
-      const extension = ".jpg"; // ИСПРАВИТЬ
-      const result = await this.repo.putImage(
-        buffer,
-        ctx.session.currentDir,
-        fileName,
-        extension,
-      );
-      if (result) {
-        this.dialog.sendImageUploadSuccessful(ctx.session.lang, ctx);
-        this.softResetSession(ctx);
-        this.navMenu(ctx);
-      }
-    }
-  }
-
-  async deleteFile(ctx: BotContext, path: string) {
-    if (await this.repo.isFileExists(path)) {
-      await this.repo.deleteFile(path);
-      await this.navMenu(ctx);
-    }
-  }
-
+  // MENUS ================================================
   async mainMenu(ctx: BotContext) {
     if (ctx.chat && ctx.session) {
       this.softResetSession(ctx);
-      const lang = ctx.session.lang;
       this.dialog.sendMainMenu(
-        lang,
         ctx.chat.first_name,
         ctx.session.websiteName,
         ctx,
@@ -107,27 +29,8 @@ export class BotModel {
     }
   }
 
-  softResetSession(ctx: BotContext) {
-    ctx.session.dialogStep = DialogStep.Idle;
-    ctx.session.lastMenuMessageId = 0;
-  }
-
-  hardResetSession(ctx: BotContext) {
-    ctx.session.dialogStep = DialogStep.Idle;
-    ctx.session.currentDir = "";
-    ctx.session.lang = "en";
-    ctx.session.lastMenuMessageId = 0;
-  }
-
-  async onHelp(ctx: BotContext) {
-    if (ctx.chat) {
-      this.dialog.sendHelp(ctx.session.lang, ctx);
-    }
-  }
-
   async navMenu(ctx: BotContext): Promise<void> {
     if (!ctx.chat) return;
-    const lang = ctx.session.lang;
     const curDir = ctx.session.currentDir;
     try {
       const dirsPaths: string[] = await this.repo.listDirectories(curDir);
@@ -159,14 +62,13 @@ export class BotModel {
       ]);
 
       await this.dialog.sendNavigationMenu(
-        lang,
         [...dirsText, ...filesText],
         buttons,
         ctx,
       );
     } catch (err) {
       console.error("get-dirs error:", err);
-      this.dialog.sendError(lang, "get directories " + err, ctx);
+      this.dialog.sendError("get directories " + err, ctx);
     }
   }
 
@@ -181,25 +83,144 @@ export class BotModel {
     ];
     this.dialog.sendActionsMenu(buttons, ctx);
   }
+  // ======================================================
+
+  // REPLIES ==============================================
+
+  async onHelp(ctx: BotContext) {
+    if (ctx.chat) {
+      this.dialog.sendHelp(ctx);
+    }
+  }
 
   async sendError(errorText: string, ctx: BotContext) {
-    const lang = ctx.session.lang;
-    await this.dialog.sendError(lang, errorText, ctx);
+    await this.dialog.sendError(errorText, ctx);
+  }
+
+  // ======================================================
+
+  // UTILS ================================================
+  private navigateBack(ctx: BotContext) {
+    const path = ctx.session.currentDir;
+    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
+
+    const lastSlashIndex = normalizedPath.lastIndexOf("/");
+
+    if (lastSlashIndex === -1) {
+      ctx.session.currentDir = "";
+    } else {
+      ctx.session.currentDir = normalizedPath.slice(0, lastSlashIndex + 1);
+    }
+  }
+
+  async changeLang(ctx: BotContext, newLang: botLanguage) {
+    await ctx.answerCallbackQuery();
+    if (newLang !== ctx.session.lang) {
+      ctx.session.lang = newLang;
+    }
+  }
+
+  softResetSession(ctx: BotContext) {
+    ctx.session.dialogStep = DialogStep.Idle;
+    ctx.session.lastMenuMessageId = 0;
+  }
+
+  hardResetSession(ctx: BotContext) {
+    ctx.session.dialogStep = DialogStep.Idle;
+    ctx.session.currentDir = "";
+    ctx.session.lang = "en";
+    ctx.session.lastMenuMessageId = 0;
+  }
+
+  private getNavMenuButtons(names: string[], paths: string[]): MenuButton[] {
+    let result: MenuButton[] = [
+      { text: "⬅️", call: "navDir:.." },
+      { text: "➕", call: "add_img" },
+    ];
+
+    if (names.length !== paths.length) {
+      return result;
+    }
+
+    names.map((name, i) => {
+      const actionType: string = name.endsWith("/")
+        ? "dirActions:"
+        : "fileActions:";
+      result.push({
+        text: name,
+        call: actionType + (paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"),
+      });
+    });
+    return result;
   }
 
   async navTo(ctx: BotContext, dir: string) {
-    const lang = ctx.session.lang;
     await ctx.answerCallbackQuery();
     if (dir) {
       if (dir === "..") {
         this.navigateBack(ctx);
       } else {
-        // ctx.session.currentDir = ctx.session.currentDir.concat(dir);
         ctx.session.currentDir = dir;
       }
     } else {
       console.error("callback nav error: no such location");
-      this.dialog.sendError(lang, "callback nav error: no such location", ctx);
+      this.dialog.sendError("callback nav error: no such location", ctx);
+    }
+  }
+
+  async sendAwaitingDocument(ctx: BotContext) {
+    await this.dialog.sendAwaitingDocument(ctx);
+  }
+  // ======================================================
+
+  // FILE MANAGEMENT ======================================
+  async addFile(ctx: BotContext) {
+    if (!ctx.message) {
+      this.dialog.sendError("Unknown error", ctx);
+    } else if (!ctx.message.photo) {
+      this.dialog.sendError("No file provided", ctx);
+    } else if (!ctx.message.photo[ctx.message.photo.length - 1]) {
+      this.dialog.sendError("Error reading file", ctx);
+    } else if (!ctx.message.caption) {
+      this.dialog.sendNoFileNameProvidedError(ctx);
+    } else {
+      const proxyUrl: string | undefined = getEnv("PROXY_URL");
+      const proxyAgent: ProxyAgent | undefined = proxyUrl
+        ? new ProxyAgent(proxyUrl)
+        : undefined;
+
+      const photoId = ctx.message.photo[ctx.message.photo.length - 1]!.file_id;
+      const file = await ctx.api.getFile(photoId);
+      const token = getEnv("BOT_TOKEN", true);
+
+      const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+      const loadedFile = proxyAgent
+        ? await fetch(url, { dispatcher: proxyAgent })
+        : await fetch(url);
+
+      const buffer = Buffer.from(await loadedFile.arrayBuffer());
+      const fileName: string = this.dialog.sanitizeFileName(
+        ctx.message.caption,
+      );
+      const extension = ".jpg"; // ИСПРАВИТЬ
+      const result = await this.repo.putImage(
+        buffer,
+        ctx.session.currentDir,
+        fileName,
+        extension,
+      );
+      if (result) {
+        this.dialog.sendImageUploadSuccessful(ctx);
+        this.softResetSession(ctx);
+        this.navMenu(ctx);
+      }
+    }
+  }
+
+  async deleteFile(ctx: BotContext, path: string) {
+    if (await this.repo.isFileExists(path)) {
+      await this.repo.deleteFile(path);
+      await this.navMenu(ctx);
     }
   }
 
@@ -230,36 +251,10 @@ export class BotModel {
   }
 
   async sendTextFile(ctx: BotContext, path: string) {
-    const lang = ctx.session.lang;
-
     const fileContent: string = await this.repo.getTextFileContent(path);
     const reducedPath: string = this.dialog.leafInPath(path);
-    this.dialog.sendTextFile(lang, reducedPath, fileContent, ctx);
+    this.dialog.sendTextFile(reducedPath, fileContent, ctx);
   }
 
-  async sendAwaitingDocument(ctx: BotContext) {
-    await this.dialog.sendAwaitingDocument(ctx);
-  }
-
-  private getNavMenuButtons(names: string[], paths: string[]): MenuButton[] {
-    let result: MenuButton[] = [
-      { text: "⬅️", call: "navDir:.." },
-      { text: "➕", call: "add_img" },
-    ];
-
-    if (names.length !== paths.length) {
-      return result;
-    }
-
-    names.map((name, i) => {
-      const actionType: string = name.endsWith("/")
-        ? "dirActions:"
-        : "fileActions:";
-      result.push({
-        text: name,
-        call: actionType + (paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"),
-      });
-    });
-    return result;
-  }
+  // ======================================================
 }

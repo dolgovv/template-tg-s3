@@ -1,20 +1,19 @@
 import type { BotContext } from "../BotService.js";
 import type { MenuButton } from "../utils/types.js";
-import type { botLanguage } from "../utils/types.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
 import { textTranslates, menusTranslates } from "./messages/strings.js";
 import { ReplyResolver } from "./ReplyResolver.js";
 
 export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
-  private resolver: ReplyResolver = new ReplyResolver();
+  private resolver: ReplyResolver = new ReplyResolver("HTML");
 
   async sendMainMenu(
-    lang: botLanguage,
     name: string | undefined,
     websiteName: string,
     ctx: BotContext,
   ) {
+    const lang = ctx.session.lang;
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
     const reply = this.factory.menu(
@@ -34,23 +33,12 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendTextFile(
-    lang: botLanguage,
-    path: string,
-    text: string,
-    ctx: BotContext,
-  ) {
+  async sendTextFile(path: string, text: string, ctx: BotContext) {
+    const lang = ctx.session.lang;
     const t = textTranslates[lang];
     const reply = this.factory.text(
       t.fileContent(path) + "<pre>" + text + "</pre>",
     );
-    await this.resolver.reply(ctx, reply);
-  }
-
-  async sendLanguageChanged(lang: botLanguage, ctx: BotContext) {
-    const t = textTranslates[lang];
-    const m = menusTranslates[lang] ?? {};
-    const reply = this.factory.text(t.langChanged, m.langChanged);
     await this.resolver.reply(ctx, reply);
   }
 
@@ -66,20 +54,16 @@ export class DialogEngine {
     }
   }
 
-  async sendDirChanged(lang: botLanguage, newDir: string, ctx: BotContext) {
-    const t = textTranslates[lang];
-    const reply = this.factory.text(t.dirChanged + newDir);
-    await this.resolver.reply(ctx, reply);
-  }
-
-  async sendHelp(lang: botLanguage, ctx: BotContext) {
+  async sendHelp(ctx: BotContext) {
+    const lang = ctx.session.lang;
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
     const reply = this.factory.text(t.help, m.help);
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendImageUploadSuccessful(lang: botLanguage, ctx: BotContext) {
+  async sendImageUploadSuccessful(ctx: BotContext) {
+    const lang = ctx.session.lang;
     const t = textTranslates[lang];
     const reply = this.factory.text(t.addImageSuccessful);
     await this.resolver.reply(ctx, reply);
@@ -93,18 +77,19 @@ export class DialogEngine {
   }
 
   async sendActionsMenu(buttons: MenuButton[], ctx: BotContext) {
-    const text: string = "Would you like to open it or remove completely?";
+    const lang = ctx.session.lang;
+    const text = textTranslates[lang].chooseAction;
 
     const reply = this.factory.menu(text, buttons);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendNavigationMenu(
-    lang: botLanguage,
     content: string[],
     buttons: MenuButton[],
     ctx: BotContext,
   ) {
+    const lang = ctx.session.lang;
     const t = textTranslates[lang];
 
     if (!content.length) {
@@ -125,14 +110,16 @@ export class DialogEngine {
     }
   }
 
-  async sendError(lang: botLanguage, description: string, ctx: BotContext) {
+  async sendError(description: string, ctx: BotContext) {
+    const lang = ctx.session.lang;
     const reply = this.factory.text(
       `${textTranslates[lang].error} ${description}`,
     );
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendButtonEchoReply(lang: botLanguage, text: string, ctx: BotContext) {
+  async sendButtonEchoReply(text: string, ctx: BotContext) {
+    const lang = ctx.session.lang;
     const t = textTranslates[lang];
     const reply = this.factory.text(t.buttonEchoReply, [
       { text: text, call: `echo:${text}` },
@@ -140,12 +127,14 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendAuthError(lang: botLanguage, ctx: BotContext) {
+  async sendAuthError(ctx: BotContext) {
+    const lang = ctx.session.lang;
     const reply = this.factory.text(textTranslates[lang].notAdmin);
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendNoFileNameProvidedError(lang: botLanguage, ctx: BotContext) {
+  async sendNoFileNameProvidedError(ctx: BotContext) {
+    const lang = ctx.session.lang;
     const reply = this.factory.text(textTranslates[lang].noFilename);
     await this.resolver.reply(ctx, reply);
   }
@@ -153,14 +142,18 @@ export class DialogEngine {
   shrinkPath(path: string): string {
     let result = this.leafInPath(path);
 
-    if (result.length > 20) {
-      result = result.substring(0, 17).concat(".../");
-    }
+    if (result.length > 20) result = result.substring(0, 17).concat(".../");
 
-    if (result[0] === "/") {
-      result = result.slice(1, result.length);
-    }
+    if (result[0] === "/") result = result.slice(1, result.length);
 
     return result;
+  }
+
+  sanitizeFileName(name: string): string {
+    return name
+      .replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, "_")
+      .replace(/\.{2,}/g, ".")
+      .replace(/^\./, "_")
+      .slice(0, 200);
   }
 }

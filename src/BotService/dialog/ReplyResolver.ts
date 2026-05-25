@@ -2,11 +2,13 @@ import type { BotContext } from "../BotService.js";
 import type { BotMessage } from "./messages/MessageFactory.js";
 
 export class ReplyResolver {
+  constructor(private parse_mode: "HTML" | "MarkdownV2") {}
+
   async reply(ctx: BotContext, reply: BotMessage) {
     switch (reply.type) {
       case "text":
         await ctx.reply(reply.text, {
-          parse_mode: "HTML",
+          parse_mode: this.parse_mode,
           ...(reply.keyboard && { reply_markup: reply.keyboard }),
         });
         break;
@@ -21,7 +23,7 @@ export class ReplyResolver {
               ctx.session.lastMenuMessageId,
               reply.text,
               {
-                parse_mode: "HTML",
+                parse_mode: this.parse_mode,
                 ...(reply.keyboard
                   ? { reply_markup: reply.keyboard }
                   : undefined),
@@ -37,7 +39,7 @@ export class ReplyResolver {
           // }
         } else {
           const menuSent = await ctx.reply(reply.text, {
-            parse_mode: "HTML",
+            parse_mode: this.parse_mode,
             ...(reply.keyboard && { reply_markup: reply.keyboard }),
           });
           ctx.session.lastMenuMessageId = menuSent.message_id;
@@ -46,7 +48,7 @@ export class ReplyResolver {
 
       case "photo":
         await ctx.replyWithPhoto(reply.photo, {
-          parse_mode: "HTML",
+          parse_mode: this.parse_mode,
           ...(reply.caption && { caption: reply.caption }),
           ...(reply.keyboard && { reply_markup: reply.keyboard }),
         });
@@ -57,7 +59,7 @@ export class ReplyResolver {
           type: "photo" as const,
           media: photo,
           other: {
-            parse_mode: "HTML",
+            parse_mode: this.parse_mode,
             ...(index === 0 && reply.caption && { caption: reply.caption }),
           },
         }));

@@ -28,21 +28,10 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/^deleteFile:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
-      if (path) {
-        await ctx.answerCallbackQuery();
-        await model.deleteFile(ctx, path);
-      } else {
-        await model.sendError("Delete file error: " + path, ctx);
-      }
-    });
-
     this.bot.callbackQuery(/^deleteDir:(.+)$/, async (ctx) => {
       const path = ctx.match[1]!;
       if (path) {
         await ctx.answerCallbackQuery();
-        // await model.deleteFile(ctx, path);
         await model.sendError(
           "Removing directories is not implemented yet: " + path,
           ctx,
@@ -69,26 +58,19 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/^fileActions:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
-      await model.actionsMenu(ctx, path);
-    });
-
-    this.bot.callbackQuery(/^dirActions:(.+)$/, async (ctx) => {
+    this.bot.callbackQuery(/^(?:dir|file)Actions:(.+)$/, async (ctx) => {
       const path = ctx.match[1]!;
       await model.actionsMenu(ctx, path);
     });
 
     this.bot.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
       const path = ctx.match[1]!;
-      console.log("/OPENFILE CALLED");
 
       if (ctx.session.currentDir === "" && path === "..") {
         await ctx.answerCallbackQuery();
       } else {
         const extensionIndex: number = path.lastIndexOf(".");
         const fileExtension = path.slice(extensionIndex);
-        console.log("ТОЛЬКО ЧТО ТЫ ПОПРОБОВАЛ ОТКРЫТЬ", fileExtension, " файл");
 
         switch (fileExtension) {
           case ".jpg":
@@ -103,7 +85,7 @@ export class ButtonHandler {
             break;
 
           default:
-            console.log("хуйня какя-то");
+            console.log("хуйню какую-то попробовал открыть");
             await model.sendError(
               "Unsupported (yet) file extension: " + path,
               ctx,
