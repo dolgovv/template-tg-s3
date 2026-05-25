@@ -72,11 +72,9 @@ export class MessageFactory {
     if (!buttons || buttons.length === 0) return undefined;
     const keyboard = new InlineKeyboard();
     buttons.forEach((btn, i) => {
-      const fixedText = btn.text.length > 10 ? `${i}` : btn.text;
+      const fixedText = btn.text.length > 10 ? `${i - 1}` : btn.text;
       keyboard.text(fixedText, btn.call);
-      if (i % 3 === 0) {
-        keyboard.row();
-      }
+      if ((i + 1) % 2 === 0) keyboard.row();
     });
     return keyboard;
   }

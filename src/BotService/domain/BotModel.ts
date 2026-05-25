@@ -80,25 +80,28 @@ export class BotModel {
       if (result) {
         this.dialog.sendImageUploadSuccessful(ctx.session.lang, ctx);
         this.softResetSession(ctx);
+        this.navMenu(ctx);
       }
     }
   }
 
   async deleteFile(ctx: BotContext, path: string) {
-    await this.repo.deleteFile(path);
-    await this.navMenu(ctx);
+    if (await this.repo.isFileExists(path)) {
+      await this.repo.deleteFile(path);
+      await this.navMenu(ctx);
+    }
   }
 
   async mainMenu(ctx: BotContext) {
     if (ctx.chat && ctx.session) {
+      this.softResetSession(ctx);
       const lang = ctx.session.lang;
-      this.dialog.sendWelcome(
+      this.dialog.sendMainMenu(
         lang,
         ctx.chat.first_name,
         ctx.session.websiteName,
         ctx,
       );
-      this.softResetSession(ctx);
     } else {
       console.log("no session bitches: ", ctx.session);
     }
@@ -150,7 +153,7 @@ export class BotModel {
         }),
       );
 
-      const buttons = this.dirContentToButtons(dirsButtonText, [
+      const buttons = this.getNavMenuButtons(dirsButtonText, [
         ...dirsPaths,
         ...filesPaths,
       ]);
@@ -165,6 +168,18 @@ export class BotModel {
       console.error("get-dirs error:", err);
       this.dialog.sendError(lang, "get directories " + err, ctx);
     }
+  }
+
+  async actionsMenu(ctx: BotContext, path: string) {
+    const isFile = path[path.length - 1] !== "/";
+    const buttons: MenuButton[] = [
+      { text: "Open", call: isFile ? "openFile:" + path : "navDir:" + path },
+      {
+        text: "Delete",
+        call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+      },
+    ];
+    this.dialog.sendActionsMenu(buttons, ctx);
   }
 
   async sendError(errorText: string, ctx: BotContext) {
@@ -222,17 +237,27 @@ export class BotModel {
     this.dialog.sendTextFile(lang, reducedPath, fileContent, ctx);
   }
 
-  private dirContentToButtons(names: string[], paths: string[]): MenuButton[] {
-    let result: MenuButton[] = [{ text: "<-", call: "navDir:.." }];
+  async sendAwaitingDocument(ctx: BotContext) {
+    await this.dialog.sendAwaitingDocument(ctx);
+  }
+
+  private getNavMenuButtons(names: string[], paths: string[]): MenuButton[] {
+    let result: MenuButton[] = [
+      { text: "⬅️", call: "navDir:.." },
+      { text: "➕", call: "add_img" },
+    ];
+
     if (names.length !== paths.length) {
       return result;
     }
 
     names.map((name, i) => {
-      const actionType: string = name.endsWith("/") ? "navDir" : "openFile";
+      const actionType: string = name.endsWith("/")
+        ? "dirActions:"
+        : "fileActions:";
       result.push({
         text: name,
-        call: `${actionType}:${paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"}`,
+        call: actionType + (paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"),
       });
     });
     return result;

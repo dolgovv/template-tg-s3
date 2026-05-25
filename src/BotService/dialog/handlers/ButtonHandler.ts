@@ -1,6 +1,7 @@
 import type { Bot } from "grammy";
 import type { BotContext } from "../../BotService.js";
 import type { BotModel } from "../../domain/BotModel.js";
+import { DialogStep } from "../../utils/types.js";
 
 export class ButtonHandler {
   constructor(
@@ -17,6 +18,46 @@ export class ButtonHandler {
       await model.mainMenu(ctx);
     });
 
+    this.bot.callbackQuery(/^deleteFile:(.+)$/, async (ctx) => {
+      const path = ctx.match[1]!;
+      if (path) {
+        await ctx.answerCallbackQuery();
+        await model.deleteFile(ctx, path);
+      } else {
+        await model.sendError("Delete file error: " + path, ctx);
+      }
+    });
+
+    this.bot.callbackQuery(/^deleteFile:(.+)$/, async (ctx) => {
+      const path = ctx.match[1]!;
+      if (path) {
+        await ctx.answerCallbackQuery();
+        await model.deleteFile(ctx, path);
+      } else {
+        await model.sendError("Delete file error: " + path, ctx);
+      }
+    });
+
+    this.bot.callbackQuery(/^deleteDir:(.+)$/, async (ctx) => {
+      const path = ctx.match[1]!;
+      if (path) {
+        await ctx.answerCallbackQuery();
+        // await model.deleteFile(ctx, path);
+        await model.sendError(
+          "Removing directories is not implemented yet: " + path,
+          ctx,
+        );
+      } else {
+        await model.sendError("Delete file error: " + path, ctx);
+      }
+    });
+
+    this.bot.callbackQuery("add_img", async (ctx) => {
+      ctx.session.dialogStep = DialogStep.AwaitingDocument;
+      await ctx.answerCallbackQuery();
+      await model.sendAwaitingDocument(ctx);
+    });
+
     this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
       const dir = ctx.match[1]!;
 
@@ -26,6 +67,16 @@ export class ButtonHandler {
         await model.navTo(ctx, dir === "root" ? ".." : dir);
         await model.navMenu(ctx);
       }
+    });
+
+    this.bot.callbackQuery(/^fileActions:(.+)$/, async (ctx) => {
+      const path = ctx.match[1]!;
+      await model.actionsMenu(ctx, path);
+    });
+
+    this.bot.callbackQuery(/^dirActions:(.+)$/, async (ctx) => {
+      const path = ctx.match[1]!;
+      await model.actionsMenu(ctx, path);
     });
 
     this.bot.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
@@ -43,10 +94,12 @@ export class ButtonHandler {
           case ".jpg":
           case ".png":
             await model.sendImage(ctx, path);
+            await model.navMenu(ctx);
             break;
 
           case ".txt":
             await model.sendTextFile(ctx, path);
+            await model.navMenu(ctx);
             break;
 
           default:
