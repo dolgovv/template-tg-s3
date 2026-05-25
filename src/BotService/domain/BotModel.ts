@@ -79,8 +79,14 @@ export class BotModel {
       );
       if (result) {
         this.dialog.sendImageUploadSuccessful(ctx.session.lang, ctx);
+        this.softResetSession(ctx);
       }
     }
+  }
+
+  async deleteFile(ctx: BotContext, path: string) {
+    await this.repo.deleteFile(path);
+    await this.navMenu(ctx);
   }
 
   async mainMenu(ctx: BotContext) {
