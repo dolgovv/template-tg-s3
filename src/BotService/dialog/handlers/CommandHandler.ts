@@ -12,6 +12,10 @@ export class CommandHandler {
     this.bot.command("add_img", async (ctx) => {
       ctx.session.dialogStep = DialogStep.AwaitingDocument;
     });
+    this.bot.command("delete", async (ctx) => {
+      await model.deleteFile(ctx, "Vvbvv.jpg");
+      // ctx.session.dialogStep = DialogStep.AwaitingDocument;
+    });
     this.bot.command("help", async (ctx) => await model.onHelp(ctx));
     this.bot.command(
       "all_imgs_here",

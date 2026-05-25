@@ -3,6 +3,7 @@ import {
   type ListObjectsV2CommandInput,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import type { S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
@@ -115,7 +116,14 @@ export class BotRepository {
       }),
     );
   }
-
+  async deleteFile(key: string): Promise<void> {
+    await this.s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }),
+    );
+  }
   async putImage(
     buffer: Buffer,
     dir: string,
