@@ -7,6 +7,8 @@ export const textTranslates = {
     unknownCommand: "Неизвестная команда.",
     anonName: "Анонимный пользователь",
     langChanged: "Язык успешно изменен!",
+    awaitingDocument:
+      "Пожалуйста, отправьте фото и название для загрузки одним сообщением",
     addImageSuccessful: "Фото успешно загружено",
     help:
       "Доступные команды:." +
@@ -44,6 +46,8 @@ export const textTranslates = {
     unknownCommand: "Unknown command.",
     anonName: "Anonymous user",
     langChanged: "Language changed successfully!",
+    awaitingDocument:
+      "Please, send photo and it`s name together in the single message",
     addImageSuccessful: "Image uploaded successfully",
     help:
       "All available commands:." +
@@ -80,9 +84,9 @@ export const textTranslates = {
 export const menusTranslates = {
   ru: {
     welcome: [
-      { text: "Навигация", call: "navDir:root" },
       { text: "Русский", call: "lang=ru" },
       { text: "English", call: "lang=en" },
+      { text: "Навигация", call: "navDir:root" },
     ] as { text: string; call: string }[],
     notAdmin: [],
     unknownCommand: [],
@@ -95,9 +99,9 @@ export const menusTranslates = {
   },
   en: {
     welcome: [
-      { text: "Navigation", call: "navDir:root" },
       { text: "English", call: "lang=en" },
       { text: "Русский", call: "lang=ru" },
+      { text: "Navigation", call: "navDir:root" },
     ] as { text: string; call: string }[],
     notAdmin: [],
     unknownCommand: [],

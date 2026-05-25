@@ -9,7 +9,7 @@ export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
   private resolver: ReplyResolver = new ReplyResolver();
 
-  async sendWelcome(
+  async sendMainMenu(
     lang: botLanguage,
     name: string | undefined,
     websiteName: string,
@@ -82,6 +82,20 @@ export class DialogEngine {
   async sendImageUploadSuccessful(lang: botLanguage, ctx: BotContext) {
     const t = textTranslates[lang];
     const reply = this.factory.text(t.addImageSuccessful);
+    await this.resolver.reply(ctx, reply);
+  }
+
+  async sendAwaitingDocument(ctx: BotContext) {
+    const lang = ctx.session.lang;
+    const t = textTranslates[lang];
+    const reply = this.factory.menu(t.awaitingDocument);
+    await this.resolver.reply(ctx, reply);
+  }
+
+  async sendActionsMenu(buttons: MenuButton[], ctx: BotContext) {
+    const text: string = "Would you like to open it or remove completely?";
+
+    const reply = this.factory.menu(text, buttons);
     await this.resolver.reply(ctx, reply);
   }
 

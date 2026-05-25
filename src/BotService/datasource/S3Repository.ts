@@ -4,6 +4,8 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  HeadObjectCommand,
+  NotFound,
 } from "@aws-sdk/client-s3";
 import type { S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
@@ -27,6 +29,20 @@ export class BotRepository {
     );
 
     return this.streamToBuffer(response.Body as Readable);
+  }
+
+  async isFileExists(path: string): Promise<boolean> {
+    try {
+      await this.s3Client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: path,
+        }),
+      );
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   async getImagesInDir(path: string): Promise<Buffer[]> {
