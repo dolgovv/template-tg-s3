@@ -18,7 +18,7 @@ export class BotService {
   private dialogEngine!: DialogEngine;
   private repo!: BotRepository;
   private model!: BotModel;
-  private router!: BotRouter;
+  router!: BotRouter;
 
   constructor(config: BotConfigEnv) {
     this.config = config;
@@ -32,9 +32,6 @@ export class BotService {
     this.setUpS3();
 
     this.setUpDialog();
-
-    this.model = new BotModel(this.repo, this.dialogEngine);
-    this.router = new BotRouter(this.bot, this.model);
 
     this.setUpMiddleware();
   }
@@ -70,6 +67,8 @@ export class BotService {
 
   private setUpDialog() {
     this.dialogEngine = new DialogEngine();
+    this.model = new BotModel(this.repo, this.dialogEngine);
+    this.router = new BotRouter(this.bot, this.model);
   }
 
   private setUpSession() {
@@ -91,8 +90,7 @@ export class BotService {
   private async setUpMiddleware() {
     this.bot.use(async (ctx, next) => {
       if (!ctx.chatId || !this.isAdmin(ctx.chatId)) {
-        const lang = ctx.session.lang;
-        this.dialogEngine.sendAuthError(lang, ctx);
+        this.dialogEngine.sendAuthError(ctx);
         console.log(ctx.chatId + " tried to log in. Failed");
         return;
       }
