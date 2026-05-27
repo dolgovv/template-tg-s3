@@ -52,7 +52,7 @@ export class BotModel {
           type: { type: "UI", symbol: "*" },
           msgText: undefined,
           btnText: "➕",
-          btnCallback: "add_img",
+          btnCallback: "addNew",
           fullPath: "",
           index: 0,
         },
@@ -118,6 +118,10 @@ export class BotModel {
 
   async sendError(errorText: string, ctx: BotContext) {
     await this.dialog.sendError(errorText, ctx);
+  }
+
+  async askForDocumentType(ctx: BotContext) {
+    await this.dialog.addAskType(ctx);
   }
 
   // ======================================================
@@ -188,6 +192,10 @@ export class BotModel {
     await this.dialog.sendAwaitingDocument(ctx);
   }
 
+  async sendAwaitingDirectoryName(ctx: BotContext) {
+    await this.dialog.sendAwaitingDirectoryName(ctx);
+  }
+
   // ======================================================
 
   // FILE MANAGEMENT ======================================
@@ -243,6 +251,11 @@ export class BotModel {
 
   async createDirectory(currentDir: string, name: string): Promise<void> {
     const result = await this.repo.createDirectory(currentDir, name);
+    return result;
+  }
+
+  async removeDirectory(path: string) {
+    const result = await this.repo.removeDirectory(path);
     return result;
   }
 

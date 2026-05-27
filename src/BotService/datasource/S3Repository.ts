@@ -5,6 +5,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import type { S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
@@ -119,7 +120,7 @@ export class BotRepository {
   }
 
   async createDirectory(prefix: string, name: string): Promise<void> {
-    const key = `${prefix}${name}/`;
+    const key = prefix + name + "/";
     await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
@@ -128,6 +129,41 @@ export class BotRepository {
       }),
     );
   }
+
+  async removeDirectory(path: string) {
+    let continuationToken: string | undefined;
+    do {
+      // 1. Получаем все объекты с этим префиксом (без разделителя — нам нужны все)
+      const listResponse = await this.s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: path,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      // 2. Собираем ключи для удаления
+      const objectsToDelete = (listResponse.Contents ?? [])
+        .map((obj) => ({ Key: obj.Key! }))
+        .filter((obj) => obj.Key); // на всякий случай убираем undefined
+
+      if (objectsToDelete.length > 0) {
+        // 3. Удаляем до 1000 объектов за один запрос
+        await this.s3Client.send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: {
+              Objects: objectsToDelete,
+              Quiet: false, // можно true, если не нужен детальный отчёт
+            },
+          }),
+        );
+      }
+
+      continuationToken = listResponse.NextContinuationToken;
+    } while (continuationToken);
+  }
+
   async deleteFile(key: string): Promise<void> {
     await this.s3Client.send(
       new DeleteObjectCommand({

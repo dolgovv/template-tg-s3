@@ -27,20 +27,33 @@ export class ButtonHandler {
     this.bot.callbackQuery(/^deleteDir:(.+)$/, async (ctx) => {
       const path = ctx.match[1]!;
       if (path) {
+        await model.removeDirectory(path);
         await ctx.answerCallbackQuery();
-        await model.sendError(
-          "Removing directories is not implemented yet: " + path,
-          ctx,
-        );
+        await model.navMenu(ctx);
       } else {
-        await model.sendError("Delete file error: " + path, ctx);
+        await model.sendError("Delete directory error: " + path, ctx);
       }
     });
 
-    this.bot.callbackQuery("add_img", async (ctx) => {
-      ctx.session.dialogStep = DialogStep.AwaitingDocument;
+    this.bot.callbackQuery(/new(File|Directory)/, async (ctx) => {
+      const isFile = ctx.match[1]! === "File";
+      console.log("ctx.match = ", ctx.match);
+
+      if (isFile) {
+        ctx.session.dialogStep = DialogStep.AwaitingDocument;
+        await ctx.answerCallbackQuery();
+        await model.sendAwaitingDocument(ctx);
+      } else {
+        ctx.session.dialogStep = DialogStep.AwaitingDirectoryName;
+        await ctx.answerCallbackQuery();
+        await model.sendAwaitingDirectoryName(ctx);
+      }
+    });
+
+    this.bot.callbackQuery("addNew", async (ctx) => {
+      ctx.session.dialogStep = DialogStep.AwaitingDocumentType;
       await ctx.answerCallbackQuery();
-      await model.sendAwaitingDocument(ctx);
+      await model.askForDocumentType(ctx);
     });
 
     this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
