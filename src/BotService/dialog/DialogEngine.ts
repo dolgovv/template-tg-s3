@@ -1,5 +1,5 @@
 import type { BotContext } from "../BotService.js";
-import type { MenuButton } from "../utils/types.js";
+import type { MenuButton, NavigationInstance } from "../utils/types.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
 import { textTranslates, menusTranslates } from "./messages/strings.js";
 import { ReplyResolver } from "./ReplyResolver.js";
@@ -83,27 +83,49 @@ export class DialogEngine {
     const reply = this.factory.menu(text, buttons);
     await this.resolver.reply(ctx, reply);
   }
+  private getNavMenuButtons(names: string[], paths: string[]): MenuButton[] {
+    let result: MenuButton[] = [
+      { text: "⬅️", call: "navDir:.." },
+      { text: "➕", call: "add_img" },
+    ];
 
-  async sendNavigationMenu(
-    content: string[],
-    buttons: MenuButton[],
-    ctx: BotContext,
-  ) {
+    if (names.length !== paths.length) {
+      return result;
+    }
+
+    names.map((name, i) => {
+      const actionType: string = name.endsWith("/")
+        ? "dirActions:"
+        : "fileActions:";
+      result.push({
+        text: name,
+        call: actionType + (paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"),
+      });
+    });
+    return result;
+  }
+
+  async sendNavigationMenu(content: NavigationInstance[], ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang];
 
-    if (!content.length) {
+    const buttons = content.map((it) => {
+      return { text: it.btnText, call: it.btnCallback };
+    });
+
+    if (content.length < 3) {
       const reply = this.factory.menu(t.dirListEmpty, buttons);
 
       await this.resolver.reply(ctx, reply);
     } else {
       const list = content
         .map((c, i) => {
-          const symbol = c.endsWith(">") ? "📁" : "📄";
-          console.log("is ", c, "ends with '>' ? :", symbol);
-          return `${symbol} ${i + 1}) ${c}`;
+          if (c.msgText) {
+            return `${c.type.symbol} ${c.index}) ${c.msgText}`;
+          }
         })
         .join("\n");
+
       const reply = this.factory.menu(list, buttons);
 
       await this.resolver.reply(ctx, reply);

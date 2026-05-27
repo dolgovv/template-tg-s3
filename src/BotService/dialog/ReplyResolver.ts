@@ -30,10 +30,6 @@ export class ReplyResolver {
               },
             );
           } catch (error) {
-            console.log("\n");
-            console.log("\n");
-            console.log("\n");
-            console.log("error with editing message:", error);
             ctx.session.lastMenuMessageId = 0;
           }
           // }

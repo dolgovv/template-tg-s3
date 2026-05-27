@@ -31,3 +31,19 @@ export type Post = {
   image?: Buffer[];
   text?: string;
 };
+
+export type ContentType =
+  | { type: "UI"; symbol: "*" }
+  | { type: "Directory"; symbol: "📁" }
+  | { type: "Image"; symbol: "🖼️" }
+  | { type: "Text"; symbol: "📄" }
+  | { type: "Unknown"; symbol: "?" };
+
+export type NavigationInstance = {
+  type: ContentType;
+  msgText: string | undefined;
+  btnText: string;
+  btnCallback: string;
+  fullPath: string;
+  index: number;
+};
