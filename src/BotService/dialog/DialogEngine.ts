@@ -83,27 +83,6 @@ export class DialogEngine {
     const reply = this.factory.menu(text, buttons);
     await this.resolver.reply(ctx, reply);
   }
-  private getNavMenuButtons(names: string[], paths: string[]): MenuButton[] {
-    let result: MenuButton[] = [
-      { text: "⬅️", call: "navDir:.." },
-      { text: "➕", call: "add_img" },
-    ];
-
-    if (names.length !== paths.length) {
-      return result;
-    }
-
-    names.map((name, i) => {
-      const actionType: string = name.endsWith("/")
-        ? "dirActions:"
-        : "fileActions:";
-      result.push({
-        text: name,
-        call: actionType + (paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"),
-      });
-    });
-    return result;
-  }
 
   async sendNavigationMenu(content: NavigationInstance[], ctx: BotContext) {
     const lang = ctx.session.lang;
