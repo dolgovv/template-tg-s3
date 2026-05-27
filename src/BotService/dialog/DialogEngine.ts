@@ -76,6 +76,13 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async sendAwaitingDirectoryName(ctx: BotContext) {
+    const lang = ctx.session.lang;
+    const t = textTranslates[lang];
+    const reply = this.factory.menu(t.awaitingDirectoryName);
+    await this.resolver.reply(ctx, reply);
+  }
+
   async sendActionsMenu(buttons: MenuButton[], ctx: BotContext) {
     const lang = ctx.session.lang;
     const text = textTranslates[lang].chooseAction;
@@ -137,6 +144,14 @@ export class DialogEngine {
   async sendNoFileNameProvidedError(ctx: BotContext) {
     const lang = ctx.session.lang;
     const reply = this.factory.text(textTranslates[lang].noFilename);
+    await this.resolver.reply(ctx, reply);
+  }
+
+  async addAskType(ctx: BotContext) {
+    const lang = ctx.session.lang;
+    const t = textTranslates[lang];
+    const m = menusTranslates[lang];
+    const reply = this.factory.menu(t.addAskType, m.addAskType);
     await this.resolver.reply(ctx, reply);
   }
 

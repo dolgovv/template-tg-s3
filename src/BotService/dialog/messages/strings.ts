@@ -9,8 +9,10 @@ export const textTranslates = {
     langChanged: "Язык успешно изменен!",
     awaitingDocument:
       "Пожалуйста, отправьте фото и название для загрузки одним сообщением",
+    awaitingDirectoryName: "Укажите название директории:",
     addImageSuccessful: "Фото успешно загружено",
     chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
+    addAskType: "Добавить файл или директорию?",
     help:
       "Доступные команды:." +
       "\n" +
@@ -49,8 +51,10 @@ export const textTranslates = {
     langChanged: "Language changed successfully!",
     awaitingDocument:
       "Please, send photo and it`s name together in the single message",
+    awaitingDirectoryName: "Name new folder:",
     addImageSuccessful: "Image uploaded successfully",
     chooseAction: "Would you like to open it or remove completely?",
+    addAskType: "Add file or directory?",
     help:
       "All available commands:." +
       "\n" +
@@ -85,6 +89,11 @@ export const textTranslates = {
 
 export const menusTranslates = {
   ru: {
+    addAskType: [
+      { text: "Файл", call: "newFile" },
+      { text: "Папку", call: "newDirectory" },
+    ],
+
     welcome: [
       { text: "Русский", call: "lang=ru" },
       { text: "English", call: "lang=en" },
@@ -100,6 +109,10 @@ export const menusTranslates = {
     help: [],
   },
   en: {
+    addAskType: [
+      { text: "File", call: "newFile" },
+      { text: "Folder", call: "newDirectory" },
+    ],
     welcome: [
       { text: "English", call: "lang=en" },
       { text: "Русский", call: "lang=ru" },
