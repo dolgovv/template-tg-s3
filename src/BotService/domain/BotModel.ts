@@ -5,7 +5,9 @@ import { getEnv } from "../utils/env_auth.js";
 import {
   DialogStep,
   type botLanguage,
+  type ContentType,
   type MenuButton,
+  type NavigationInstance,
 } from "../utils/types.js";
 import { fetch, ProxyAgent } from "undici";
 
@@ -36,39 +38,72 @@ export class BotModel {
       const dirsPaths: string[] = await this.repo.listDirectories(curDir);
       const filesPaths: string[] = await this.repo.listAllFilesHere(curDir);
 
-      const filesText: string[] = filesPaths.map((file) => {
-        return this.dialog.leafInPath(file);
-      });
+      let uiInstances: NavigationInstance[] = [
+        {
+          type: { type: "UI", symbol: "*" },
+          msgText: undefined,
+          btnText: "⬅️",
+          btnCallback: "navDir:..",
+          fullPath: "",
+          index: 0,
+        },
+        {
+          type: { type: "UI", symbol: "*" },
+          msgText: undefined,
+          btnText: "➕",
+          btnCallback: "add_img",
+          fullPath: "",
+          index: 0,
+        },
+      ];
 
-      const dirsButtonText: string[] = dirsPaths.map((dir) => {
-        return this.dialog.shrinkPath(dir);
-      });
-
-      const dirsText = dirsButtonText.map((dir) => {
-        return "<b>" + dir + "</b>";
-      });
-
-      dirsButtonText.push(
-        ...filesText.map((filePath) => {
-          return this.dialog.shrinkPath(
-            filePath.slice(0, filePath.indexOf(".")),
+      const content = [...dirsPaths, ...filesPaths];
+      const contentInstances: NavigationInstance[] = content.map(
+        (fullPath, i) => {
+          const type = this.pathToType(fullPath);
+          const msgText =
+            type.type === "Directory"
+              ? "<b>" + this.dialog.shrinkPath(fullPath) + "</b>"
+              : this.dialog.shrinkPath(fullPath);
+          const btnText = this.dialog.shrinkPath(
+            fullPath.slice(0, fullPath.indexOf(".")),
           );
-        }),
+          const callback =
+            type.type === "Directory"
+              ? "dirActions:" + fullPath
+              : "fileActions:" + fullPath;
+          return {
+            type: type,
+            msgText: msgText,
+            btnText: btnText,
+            btnCallback: callback,
+            fullPath: fullPath,
+            index: i + 1,
+          };
+        },
       );
 
-      const buttons = this.getNavMenuButtons(dirsButtonText, [
-        ...dirsPaths,
-        ...filesPaths,
-      ]);
-
       await this.dialog.sendNavigationMenu(
-        [...dirsText, ...filesText],
-        buttons,
+        [...uiInstances, ...contentInstances],
         ctx,
       );
     } catch (err) {
       console.error("get-dirs error:", err);
       this.dialog.sendError("get directories " + err, ctx);
+    }
+  }
+
+  pathToType(path: string): ContentType {
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
+
+    if (path.endsWith("/")) {
+      return { type: "Directory", symbol: "📁" };
+    } else if (imageExtensions.some((ext) => path.endsWith(ext))) {
+      return { type: "Image", symbol: "🖼️" };
+    } else if (path.endsWith(".txt")) {
+      return { type: "Text", symbol: "📄" };
+    } else {
+      return { type: "Unknown", symbol: "?" };
     }
   }
 
@@ -130,28 +165,6 @@ export class BotModel {
     ctx.session.currentDir = "";
     ctx.session.lang = "en";
     ctx.session.lastMenuMessageId = 0;
-  }
-
-  private getNavMenuButtons(names: string[], paths: string[]): MenuButton[] {
-    let result: MenuButton[] = [
-      { text: "⬅️", call: "navDir:.." },
-      { text: "➕", call: "add_img" },
-    ];
-
-    if (names.length !== paths.length) {
-      return result;
-    }
-
-    names.map((name, i) => {
-      const actionType: string = name.endsWith("/")
-        ? "dirActions:"
-        : "fileActions:";
-      result.push({
-        text: name,
-        call: actionType + (paths[i] ? paths[i] : "WRONG_PATH_FROM_BUTTON"),
-      });
-    });
-    return result;
   }
 
   async navTo(ctx: BotContext, dir: string) {
