@@ -18,6 +18,7 @@ export class BotModel {
   ) {}
 
   // MENUS ================================================
+
   async mainMenu(ctx: BotContext) {
     if (ctx.chat && ctx.session) {
       this.softResetSession(ctx);
@@ -93,20 +94,6 @@ export class BotModel {
     }
   }
 
-  pathToType(path: string): ContentType {
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
-
-    if (path.endsWith("/")) {
-      return { type: "Directory", symbol: "📁" };
-    } else if (imageExtensions.some((ext) => path.endsWith(ext))) {
-      return { type: "Image", symbol: "🖼️" };
-    } else if (path.endsWith(".txt")) {
-      return { type: "Text", symbol: "📄" };
-    } else {
-      return { type: "Unknown", symbol: "?" };
-    }
-  }
-
   async actionsMenu(ctx: BotContext, path: string) {
     const isFile = path[path.length - 1] !== "/";
     const buttons: MenuButton[] = [
@@ -118,6 +105,7 @@ export class BotModel {
     ];
     this.dialog.sendActionsMenu(buttons, ctx);
   }
+
   // ======================================================
 
   // REPLIES ==============================================
@@ -135,6 +123,21 @@ export class BotModel {
   // ======================================================
 
   // UTILS ================================================
+
+  private pathToType(path: string): ContentType {
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
+
+    if (path.endsWith("/")) {
+      return { type: "Directory", symbol: "📁" };
+    } else if (imageExtensions.some((ext) => path.endsWith(ext))) {
+      return { type: "Image", symbol: "🖼️" };
+    } else if (path.endsWith(".txt")) {
+      return { type: "Text", symbol: "📄" };
+    } else {
+      return { type: "Unknown", symbol: "?" };
+    }
+  }
+
   private navigateBack(ctx: BotContext) {
     const path = ctx.session.currentDir;
     const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
@@ -184,6 +187,7 @@ export class BotModel {
   async sendAwaitingDocument(ctx: BotContext) {
     await this.dialog.sendAwaitingDocument(ctx);
   }
+
   // ======================================================
 
   // FILE MANAGEMENT ======================================
