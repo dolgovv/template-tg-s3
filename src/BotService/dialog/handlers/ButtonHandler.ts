@@ -8,6 +8,11 @@ export class ButtonHandler {
     private bot: Bot<BotContext>,
     model: BotModel,
   ) {
+    this.bot.callbackQuery("cancel", async (ctx) => {
+      ctx.answerCallbackQuery();
+      await model.navMenu(ctx);
+    });
+
     this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
       const newLang = ctx.match[1]! === "ru" ? "ru" : "en";
       await model.changeLang(ctx, newLang);

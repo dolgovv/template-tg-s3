@@ -90,11 +90,12 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendActionsMenu(buttons: MenuButton[], ctx: BotContext) {
+  async sendActionsMenu(ctx: BotContext, isFile: boolean, path: string) {
     const lang = ctx.session.lang;
-    const text = textTranslates[lang].chooseAction;
+    const t = textTranslates[lang].chooseAction;
+    const m = menusTranslates[lang].actionsMenu(isFile, path);
 
-    const reply = this.factory.menu(text, buttons);
+    const reply = this.factory.menu(t, m);
     await this.resolver.reply(ctx, reply);
   }
 
