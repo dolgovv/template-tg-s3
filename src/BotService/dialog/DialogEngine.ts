@@ -69,17 +69,24 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendAwaitingDocument(ctx: BotContext) {
+  async sendAwaitingImage(ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang];
-    const reply = this.factory.menu(t.awaitingDocument);
+    const reply = this.factory.text(t.awaitingImage);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendAwaitingDirectoryName(ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang];
-    const reply = this.factory.menu(t.awaitingDirectoryName);
+    const reply = this.factory.text(t.awaitingDirectoryName);
+    await this.resolver.reply(ctx, reply);
+  }
+
+  async sendAwaitingMultiplePhotos(ctx: BotContext) {
+    const lang = ctx.session.lang;
+    const t = textTranslates[lang];
+    const reply = this.factory.text(t.awaitingImage);
     await this.resolver.reply(ctx, reply);
   }
 

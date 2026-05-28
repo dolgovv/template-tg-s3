@@ -40,7 +40,7 @@ export class ButtonHandler {
       console.log("ctx.match = ", ctx.match);
 
       if (isFile) {
-        ctx.session.dialogStep = DialogStep.AwaitingDocument;
+        ctx.session.dialogStep = DialogStep.AwaitingPhoto;
         await ctx.answerCallbackQuery();
         await model.sendAwaitingDocument(ctx);
       } else {
@@ -51,7 +51,7 @@ export class ButtonHandler {
     });
 
     this.bot.callbackQuery("addNew", async (ctx) => {
-      ctx.session.dialogStep = DialogStep.AwaitingDocumentType;
+      ctx.session.dialogStep = DialogStep.AwaitingAdditionType;
       await ctx.answerCallbackQuery();
       await model.askForDocumentType(ctx);
     });

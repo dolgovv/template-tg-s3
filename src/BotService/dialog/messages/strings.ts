@@ -7,8 +7,11 @@ export const textTranslates = {
     unknownCommand: "Неизвестная команда.",
     anonName: "Анонимный пользователь",
     langChanged: "Язык успешно изменен!",
-    awaitingDocument:
+    awaitingImage:
       "Пожалуйста, отправьте фото и название для загрузки одним сообщением",
+
+    awaitingMultipleImages:
+      "Пожалуйста, отправьте несколько фото и укажите названия для каждого из них в сообщении через пробел\n<i>Например, с 5 картинками нужно написать текст 'название_первой_картинки название_второй_картинки' и тд. Если названий будет меньше, чем картинок - название сгенерируется автоматически </i>",
     awaitingDirectoryName: "Укажите название директории:",
     addImageSuccessful: "Фото успешно загружено",
     chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
@@ -49,8 +52,10 @@ export const textTranslates = {
     unknownCommand: "Unknown command.",
     anonName: "Anonymous user",
     langChanged: "Language changed successfully!",
-    awaitingDocument:
+    awaitingImage:
       "Please, send photo and it`s name together in the single message",
+    awaitingMultipleImages:
+      "Please send multiple photos and include titles for each in the message, separated by spaces. \n<i>For example, with 5 images, you should write the text 'title_of_the_first_image, title_of_the_second_image,' etc. If there are fewer titles than images, the title will be generated automatically.</i>",
     awaitingDirectoryName: "Name new folder:",
     addImageSuccessful: "Image uploaded successfully",
     chooseAction: "Would you like to open it or remove completely?",
