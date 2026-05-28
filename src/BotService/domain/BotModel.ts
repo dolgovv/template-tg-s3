@@ -104,7 +104,7 @@ export class BotModel {
         call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
       },
     ];
-    this.dialog.sendActionsMenu(buttons, ctx);
+    this.dialog.sendActionsMenu(ctx, isFile, path);
   }
 
   // ======================================================

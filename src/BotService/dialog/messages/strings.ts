@@ -98,7 +98,22 @@ export const menusTranslates = {
       { text: "Файл", call: "newFile" },
       { text: "Папку", call: "newDirectory" },
     ],
-
+    actionsMenu: (isFile: boolean, path: string) => {
+      return [
+        {
+          text: "Открыть",
+          call: isFile ? "openFile:" + path : "navDir:" + path,
+        },
+        {
+          text: "Удалить",
+          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+        },
+        {
+          text: "⬅️",
+          call: "cancel",
+        },
+      ];
+    },
     welcome: [
       { text: "Русский", call: "lang=ru" },
       { text: "English", call: "lang=en" },
@@ -118,6 +133,19 @@ export const menusTranslates = {
       { text: "File", call: "newFile" },
       { text: "Folder", call: "newDirectory" },
     ],
+    actionsMenu: (isFile: boolean, path: string) => {
+      return [
+        { text: "Open", call: isFile ? "openFile:" + path : "navDir:" + path },
+        {
+          text: "Delete",
+          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+        },
+        {
+          text: "⬅️",
+          call: "cancel",
+        },
+      ];
+    },
     welcome: [
       { text: "English", call: "lang=en" },
       { text: "Русский", call: "lang=ru" },
