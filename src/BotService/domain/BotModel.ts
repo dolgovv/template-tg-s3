@@ -1,3 +1,4 @@
+import { nanoid } from "nanoid";
 import type { BotContext } from "../BotService.js";
 import { BotRepository } from "../datasource/S3Repository.js";
 import type { DialogEngine } from "../dialog/DialogEngine.js";
@@ -189,7 +190,7 @@ export class BotModel {
   }
 
   async sendAwaitingDocument(ctx: BotContext) {
-    await this.dialog.sendAwaitingDocument(ctx);
+    await this.dialog.sendAwaitingImage(ctx);
   }
 
   async sendAwaitingDirectoryName(ctx: BotContext) {
@@ -199,7 +200,11 @@ export class BotModel {
   // ======================================================
 
   // FILE MANAGEMENT ======================================
-  async addFile(ctx: BotContext) {
+  async sendAwaitingMultiplePhotos(ctx: BotContext) {
+    await this.dialog.sendAwaitingMultiplePhotos(ctx);
+  }
+
+  async addPhoto(ctx: BotContext) {
     if (!ctx.message) {
       this.dialog.sendError("Unknown error", ctx);
     } else if (!ctx.message.photo) {
@@ -209,24 +214,11 @@ export class BotModel {
     } else if (!ctx.message.caption) {
       this.dialog.sendNoFileNameProvidedError(ctx);
     } else {
-      const proxyUrl: string | undefined = getEnv("PROXY_URL");
-      const proxyAgent: ProxyAgent | undefined = proxyUrl
-        ? new ProxyAgent(proxyUrl)
-        : undefined;
-
       const photoId = ctx.message.photo[ctx.message.photo.length - 1]!.file_id;
-      const file = await ctx.api.getFile(photoId);
-      const token = getEnv("BOT_TOKEN", true);
-
-      const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-      const loadedFile = proxyAgent
-        ? await fetch(url, { dispatcher: proxyAgent })
-        : await fetch(url);
-
-      const buffer = Buffer.from(await loadedFile.arrayBuffer());
       const fileName: string = this.dialog.sanitizeFileName(
         ctx.message.caption,
       );
+      const buffer = await this.fetchPhotoFromTelegram(photoId, ctx);
       const extension = ".jpg"; // ИСПРАВИТЬ
       const result = await this.repo.putImage(
         buffer,
@@ -240,6 +232,83 @@ export class BotModel {
         this.navMenu(ctx);
       }
     }
+  }
+
+  async fetchPhotoFromTelegram(photoId: string, ctx: BotContext) {
+    const proxyUrl: string | undefined = getEnv("PROXY_URL");
+    const proxyAgent: ProxyAgent | undefined = proxyUrl
+      ? new ProxyAgent(proxyUrl)
+      : undefined;
+
+    const file = await ctx.api.getFile(photoId);
+    const token = getEnv("BOT_TOKEN", true);
+
+    const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+    const loadedFile = proxyAgent
+      ? await fetch(url, { dispatcher: proxyAgent })
+      : await fetch(url);
+
+    const buffer = Buffer.from(await loadedFile.arrayBuffer());
+    return buffer;
+  }
+
+  async addMultiplePhotos(ctx: BotContext) {
+    if (!ctx.message) {
+      this.dialog.sendError("Unknown error", ctx);
+    } else if (!ctx.message.caption) {
+      this.dialog.sendNoFileNameProvidedError(ctx);
+    } else if (!ctx.message.photo) {
+      this.dialog.sendError("No files provided", ctx);
+    } else {
+      const photos = ctx.message.photo;
+
+      const fileNames: string[] = ctx.message.caption
+        .split(" ")
+        .map((it) => this.dialog.sanitizeFileName(it));
+
+      for (let i = photos.length - fileNames.length; i > 0; i--) {
+        const genName = await this.getRandomName(ctx.session.currentDir, 8);
+        console.log("genName = ", genName);
+        console.log("photos.length = ", photos.length);
+        console.log("fileNames.length = ", fileNames.length);
+        fileNames.push(genName);
+      }
+
+      const imageBuffers: Buffer[] = [];
+
+      for (let i = 0; i < photos.length; i++) {
+        if (i % 2 === 1) {
+          const photoId = photos[i]!.file_id;
+          const buffer = await this.fetchPhotoFromTelegram(photoId, ctx);
+          imageBuffers.push(buffer);
+        }
+      }
+
+      const result = await this.repo.putImages(
+        imageBuffers,
+        ctx.session.currentDir,
+        fileNames,
+      );
+
+      if (result) {
+        await this.dialog.sendImageUploadSuccessful(ctx);
+        this.softResetSession(ctx);
+        await this.navMenu(ctx);
+      }
+    }
+  }
+
+  async getRandomName(
+    prefix: string,
+    length: number = 8,
+    retries: number = 3,
+  ): Promise<string> {
+    let name = nanoid(length);
+    while ((await this.repo.isFileExists(prefix + name)) && retries--) {
+      name = nanoid(length);
+    }
+
+    return retries ? name : "";
   }
 
   async deleteFile(ctx: BotContext, path: string) {

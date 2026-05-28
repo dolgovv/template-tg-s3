@@ -11,13 +11,13 @@ export class TextHandler {
     this.bot.on("message", async (ctx) => {
       const step = ctx.session.dialogStep;
       switch (step) {
-        case DialogStep.AwaitingDocumentType:
+        case DialogStep.AwaitingAdditionType:
           model.askForDocumentType(ctx);
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 
-        case DialogStep.AwaitingDocument:
-          await model.addFile(ctx);
+        case DialogStep.AwaitingPhoto:
+          await model.addPhoto(ctx);
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 
@@ -29,6 +29,11 @@ export class TextHandler {
             );
             await model.navMenu(ctx);
           }
+          ctx.session.dialogStep = DialogStep.Idle;
+          break;
+
+        case DialogStep.AwaitingMultiplePhotos:
+          await model.addMultiplePhotos(ctx);
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 

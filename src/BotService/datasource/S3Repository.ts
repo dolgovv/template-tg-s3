@@ -172,6 +172,20 @@ export class BotRepository {
       }),
     );
   }
+
+  async putImages(
+    imagesBuffers: Buffer<ArrayBufferLike>[],
+    path: string,
+    fileNames: string[],
+  ) {
+    const putPromises = imagesBuffers.map((buffer, i) => {
+      if (fileNames[i]) {
+        this.putImage(buffer, path, fileNames[i], ".jpg");
+      }
+    });
+    return Promise.all(putPromises);
+  }
+
   async putImage(
     buffer: Buffer,
     dir: string,
@@ -185,7 +199,6 @@ export class BotRepository {
         Bucket: this.bucket,
         Key: dir + name + extension,
         Body: buffer,
-        // ContentType: "application/octet-stream", // или определите по расширению
       }),
     );
     return result.$metadata.httpStatusCode &&

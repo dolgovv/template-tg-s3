@@ -31,6 +31,7 @@
     "fs": "0.0.1-security",
     "grammy": "^1.42.0",
     "https-proxy-agent": "^9.0.0",
+    "nanoid": "^5.1.11",
     "path": "^0.12.7",
     "socks-proxy-agent": "^10.0.0",
     "undici": "^8.3.0",
