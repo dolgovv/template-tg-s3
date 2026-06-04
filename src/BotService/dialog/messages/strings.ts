@@ -16,6 +16,11 @@ export const textTranslates = {
     addImageSuccessful: "Фото успешно загружено",
     chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
     addAskType: "Добавить файл или директорию?",
+    deleteAsk: (isFile: boolean) => {
+      return (
+        "Вы уверены, что хотите удалить " + (isFile ? "файл" : "папку") + "?"
+      );
+    },
     help:
       "Доступные команды:." +
       "\n" +
@@ -60,6 +65,13 @@ export const textTranslates = {
     addImageSuccessful: "Image uploaded successfully",
     chooseAction: "Would you like to open it or remove completely?",
     addAskType: "Add file or directory?",
+    deleteAsk: (isFile: boolean) => {
+      return (
+        "Are you shure you want to delete this " +
+        (isFile ? "file" : "folder") +
+        "?"
+      );
+    },
     help:
       "All available commands:." +
       "\n" +
@@ -106,10 +118,22 @@ export const menusTranslates = {
         },
         {
           text: "Удалить",
-          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+          call: isFile ? "deleteFileAsk:" + path : "deleteDirAsk:" + path,
         },
         {
           text: "⬅️",
+          call: "cancel",
+        },
+      ];
+    },
+    deleteAskMenu: (isFile: boolean, path: string) => {
+      return [
+        {
+          text: "Да",
+          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+        },
+        {
+          text: "Нет",
           call: "cancel",
         },
       ];
@@ -138,10 +162,22 @@ export const menusTranslates = {
         { text: "Open", call: isFile ? "openFile:" + path : "navDir:" + path },
         {
           text: "Delete",
-          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+          call: isFile ? "deleteFileAsk:" + path : "deleteDirAsk:" + path,
         },
         {
           text: "⬅️",
+          call: "cancel",
+        },
+      ];
+    },
+    deleteAskMenu: (isFile: boolean, path: string) => {
+      return [
+        {
+          text: "Yes",
+          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+        },
+        {
+          text: "No",
           call: "cancel",
         },
       ];

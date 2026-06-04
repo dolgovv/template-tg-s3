@@ -10,6 +10,7 @@ export class TextHandler {
   ) {
     this.bot.on("message:text", async (ctx) => {
       const step = ctx.session.dialogStep;
+
       switch (step) {
         case DialogStep.AwaitingAdditionType:
           model.askForDocumentType(ctx);
@@ -17,8 +18,11 @@ export class TextHandler {
           break;
 
         case DialogStep.AwaitingPhoto:
-          const result = await model.addPhoto(ctx);
-          if (result) ctx.session.dialogStep = DialogStep.Idle;
+          const bestPhoto = model.getBestPhoto(ctx);
+          if (bestPhoto) {
+            const result = await model.addPhoto(bestPhoto, ctx);
+            if (result) ctx.session.dialogStep = DialogStep.Idle;
+          }
           break;
 
         case DialogStep.AwaitingDirectoryName:
@@ -32,11 +36,6 @@ export class TextHandler {
             }
             await model.navMenu(ctx);
           }
-          ctx.session.dialogStep = DialogStep.Idle;
-          break;
-
-        case DialogStep.AwaitingMultiplePhotos:
-          await model.addMultiplePhotos(ctx);
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 
