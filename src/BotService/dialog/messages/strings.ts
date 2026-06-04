@@ -28,8 +28,8 @@ export const textTranslates = {
       "/all_imgs_here " +
       "посмотреть все картинки в текущей директории" +
       "\n" +
-      "/add_img " +
-      "добавить фото/картинку в текущую директорию" +
+      "/add_mult_photos " +
+      "добавить несколько фото в текущую директорию" +
       "\n" +
       "/help " +
       "\n",
@@ -72,8 +72,8 @@ export const textTranslates = {
       "/all_imgs_here " +
       "to get all .jpg/.png files in current directory" +
       "\n" +
-      "/add_img " +
-      "add a photo/image in current directory" +
+      "/add_mult_photos " +
+      "add multiple images in current directory" +
       "\n" +
       "/help " +
       "\n",

@@ -7,12 +7,12 @@ import {
   DialogStep,
   type botLanguage,
   type ContentType,
-  type MenuButton,
   type NavigationInstance,
 } from "../utils/types.js";
 import { fetch, ProxyAgent } from "undici";
 
 export class BotModel {
+  private pendingAlbums = new Map<string, { filesIds: string[] }>();
   constructor(
     private repo: BotRepository,
     private dialog: DialogEngine,
@@ -97,13 +97,6 @@ export class BotModel {
 
   async actionsMenu(ctx: BotContext, path: string) {
     const isFile = path[path.length - 1] !== "/";
-    const buttons: MenuButton[] = [
-      { text: "Open", call: isFile ? "openFile:" + path : "navDir:" + path },
-      {
-        text: "Delete",
-        call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
-      },
-    ];
     this.dialog.sendActionsMenu(ctx, isFile, path);
   }
 
@@ -204,7 +197,25 @@ export class BotModel {
     await this.dialog.sendAwaitingMultiplePhotos(ctx);
   }
 
-  async addPhoto(ctx: BotContext) {
+  async fetchPhotoFromTelegram(photoId: string, ctx: BotContext) {
+    const proxyUrl: string | undefined = getEnv("PROXY_URL");
+    const proxyAgent: ProxyAgent | undefined = proxyUrl
+      ? new ProxyAgent(proxyUrl)
+      : undefined;
+
+    const file = await ctx.api.getFile(photoId);
+    const token = getEnv("BOT_TOKEN", true);
+
+    const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+    const loadedFile = proxyAgent
+      ? await fetch(url, { dispatcher: proxyAgent })
+      : await fetch(url);
+
+    const buffer = Buffer.from(await loadedFile.arrayBuffer());
+    return buffer;
+  }
+
+  async addPhoto(ctx: BotContext): Promise<boolean> {
     if (!ctx.message) {
       this.dialog.sendError("Unknown error", ctx);
     } else if (!ctx.message.photo) {
@@ -226,30 +237,84 @@ export class BotModel {
         fileName,
         extension,
       );
+
       if (result) {
         this.dialog.sendImageUploadSuccessful(ctx);
         this.softResetSession(ctx);
         this.navMenu(ctx);
+        return true;
       }
+    }
+    return false;
+  }
+
+  albumTimers = new Map<string, NodeJS.Timeout>();
+
+  async albumCollector(ctx: BotContext) {
+    const msg = ctx.message;
+    if (!msg) return;
+    if (!msg.photo) return;
+
+    const groupId = msg.media_group_id;
+    if (!groupId) return;
+
+    const key = msg.chat.id + "_" + groupId;
+    if (this.albumTimers.has(key)) {
+      clearTimeout(this.albumTimers.get(key)!);
+      this.albumTimers.delete(key);
+    }
+
+    const pending: Map<string, { filesIds: string[] }> = this.pendingAlbums;
+    console.log("pending:::", pending);
+
+    if (!pending.has(key)) {
+      pending.set(key, { filesIds: [] });
+    }
+
+    const album = pending.get(key)!;
+
+    const bestPhoto = msg.photo[msg.photo.length - 1]!;
+    const fileId = bestPhoto.file_id;
+
+    album.filesIds.push(fileId);
+
+    const timer = setTimeout(async () => {
+      console.log(`Альбом ${key} собран: ${album.filesIds.length} фото`);
+      console.log("album.filesIds: ", album.filesIds);
+
+      this.handleAlbum(album.filesIds, ctx);
+      pending.delete(key);
+      this.albumTimers.delete(key);
+    }, 1500);
+
+    this.albumTimers.set(key, timer);
+  }
+
+  async handleAlbum(filesIds: string[], ctx: BotContext) {
+    console.log(`Обработка альбома из ${filesIds.length} фото`);
+
+    for (const fileId of filesIds) {
+      console.log("fileId = ", fileId);
+      await this.handlePhoto(fileId, ctx);
     }
   }
 
-  async fetchPhotoFromTelegram(photoId: string, ctx: BotContext) {
-    const proxyUrl: string | undefined = getEnv("PROXY_URL");
-    const proxyAgent: ProxyAgent | undefined = proxyUrl
-      ? new ProxyAgent(proxyUrl)
-      : undefined;
+  async handlePhoto(fileId: string, ctx: BotContext) {
+    const buffer = await this.fetchPhotoFromTelegram(fileId, ctx);
+    const extension = ".jpg"; // ИСПРАВИТЬ
+    const result = await this.repo.putImage(
+      buffer,
+      ctx.session.currentDir,
+      await this.getRandomName(ctx.session.currentDir),
+      extension,
+    );
 
-    const file = await ctx.api.getFile(photoId);
-    const token = getEnv("BOT_TOKEN", true);
-
-    const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-    const loadedFile = proxyAgent
-      ? await fetch(url, { dispatcher: proxyAgent })
-      : await fetch(url);
-
-    const buffer = Buffer.from(await loadedFile.arrayBuffer());
-    return buffer;
+    if (result) {
+      this.dialog.sendImageUploadSuccessful(ctx);
+      this.softResetSession(ctx);
+      this.navMenu(ctx);
+      return true;
+    }
   }
 
   async addMultiplePhotos(ctx: BotContext) {
@@ -260,8 +325,16 @@ export class BotModel {
     } else if (!ctx.message.photo) {
       this.dialog.sendError("No files provided", ctx);
     } else {
-      const photos = ctx.message.photo;
+      const album = new Map<string, [{ chatId: string; fileId: string }]>();
+      const groupId = ctx.message.media_group_id;
 
+      // if (groupId) {
+      //   if (!album.has(groupId)) {
+      //     album.set(groupId, [{}]);
+      //   }
+      // }
+
+      const photos = ctx.message.photo;
       const fileNames: string[] = ctx.message.caption
         .split(" ")
         .map((it) => this.dialog.sanitizeFileName(it));
@@ -318,7 +391,11 @@ export class BotModel {
     }
   }
 
-  async createDirectory(currentDir: string, name: string): Promise<void> {
+  async createDirectory(
+    currentDir: string,
+    name: string | undefined,
+  ): Promise<string> {
+    if (!name?.trim()) name = await this.getRandomName(currentDir);
     const result = await this.repo.createDirectory(currentDir, name);
     return result;
   }

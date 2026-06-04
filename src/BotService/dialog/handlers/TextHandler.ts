@@ -8,7 +8,7 @@ export class TextHandler {
     private bot: Bot<BotContext>,
     model: BotModel,
   ) {
-    this.bot.on("message", async (ctx) => {
+    this.bot.on("message:text", async (ctx) => {
       const step = ctx.session.dialogStep;
       switch (step) {
         case DialogStep.AwaitingAdditionType:
@@ -17,16 +17,19 @@ export class TextHandler {
           break;
 
         case DialogStep.AwaitingPhoto:
-          await model.addPhoto(ctx);
-          ctx.session.dialogStep = DialogStep.Idle;
+          const result = await model.addPhoto(ctx);
+          if (result) ctx.session.dialogStep = DialogStep.Idle;
           break;
 
         case DialogStep.AwaitingDirectoryName:
           if (ctx.message.text) {
-            await model.createDirectory(
+            const result = await model.createDirectory(
               ctx.session.currentDir,
               ctx.message.text,
             );
+            if (result === "") {
+              model.sendError("Error while creating directory", ctx);
+            }
             await model.navMenu(ctx);
           }
           ctx.session.dialogStep = DialogStep.Idle;
