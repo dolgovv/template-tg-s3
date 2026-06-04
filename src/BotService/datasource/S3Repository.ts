@@ -119,15 +119,20 @@ export class BotRepository {
     return files;
   }
 
-  async createDirectory(prefix: string, name: string): Promise<void> {
+  async createDirectory(prefix: string, name: string): Promise<string> {
     const key = prefix + name + "/";
-    await this.s3Client.send(
+    const result = await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: "",
       }),
     );
+    if (result.$metadata.httpStatusCode !== 200) {
+      return "";
+    } else {
+      return key;
+    }
   }
 
   async removeDirectory(path: string) {

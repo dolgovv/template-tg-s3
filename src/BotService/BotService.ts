@@ -84,6 +84,7 @@ export class BotService {
         storage: new FileAdapter({ dirName: "sessions" }),
       }),
     );
+
     // console.log("currentDir from setUpSession: ", ctx.session.currentDir);
   }
 
