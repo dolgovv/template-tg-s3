@@ -8,8 +8,9 @@ export class MediaHandler {
     model: BotModel,
   ) {
     this.bot.on(":photo", async (ctx: BotContext) => {
-      console.log(":photo activated");
-      await model.albumCollector(ctx);
+      const bestPhoto = model.getBestPhoto(ctx);
+      const name = ctx.message?.caption;
+      if (bestPhoto) await model.addPhoto(bestPhoto, ctx, name);
     });
   }
 }

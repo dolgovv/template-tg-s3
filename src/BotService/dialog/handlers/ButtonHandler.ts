@@ -40,6 +40,30 @@ export class ButtonHandler {
       }
     });
 
+    this.bot.callbackQuery(/^deleteDirAsk:(.+)$/, async (ctx) => {
+      const path = ctx.match[1]!;
+      console.log("asked");
+
+      if (path) {
+        await model.deleteAskMenu(ctx, path);
+        await ctx.answerCallbackQuery();
+      } else {
+        await model.sendError("Delete directory error: " + path, ctx);
+      }
+    });
+
+    this.bot.callbackQuery(/^deleteFileAsk:(.+)$/, async (ctx) => {
+      const path = ctx.match[1]!;
+      console.log("asked");
+
+      if (path) {
+        await model.deleteAskMenu(ctx, path);
+        await ctx.answerCallbackQuery();
+      } else {
+        await model.sendError("Delete directory error: " + path, ctx);
+      }
+    });
+
     this.bot.callbackQuery(/new(File|Directory)/, async (ctx) => {
       const isFile = ctx.match[1]! === "File";
       console.log("ctx.match = ", ctx.match);
