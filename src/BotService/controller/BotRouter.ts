@@ -1,10 +1,10 @@
 import type { Bot } from "grammy";
-import { CommandHandler } from "../dialog/handlers/CommandHandler.js";
-import type { BotContext } from "../BotService.js";
-import { ButtonHandler } from "../dialog/handlers/ButtonHandler.js";
+import { CommandHandler } from "./handlers/CommandHandler.js";
+import { ButtonHandler } from "./handlers/ButtonHandler.js";
 import type { BotModel } from "../domain/BotModel.js";
-import { TextHandler } from "../dialog/handlers/TextHandler.js";
-import { MediaHandler } from "../dialog/handlers/MediaHandler.js";
+import { TextHandler } from "./handlers/TextHandler.js";
+import { MediaHandler } from "./handlers/MediaHandler.js";
+import type { BotContext } from "../utils/types.js";
 
 export class BotRouter {
   private commands: CommandHandler;

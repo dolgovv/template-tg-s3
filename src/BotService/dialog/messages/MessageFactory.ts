@@ -1,5 +1,10 @@
 import { InlineKeyboard, InputFile } from "grammy";
-import type { MenuButton } from "../../utils/types.js";
+export type MenuSection = Record<string, MenuButton[]>;
+
+export type MenuButton = {
+  text: string;
+  call: string;
+};
 
 export type TextMessage = {
   type: "text";

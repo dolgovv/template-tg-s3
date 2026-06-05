@@ -1,16 +1,17 @@
-import { Bot, Context, session } from "grammy";
-import type { SessionFlavor } from "grammy";
+import { Bot, session } from "grammy";
 import { FileAdapter } from "@grammyjs/storage-file";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { DialogEngine } from "./dialog/DialogEngine.js";
-import { DialogStep, type SessionData } from "./utils/types.js";
+import {
+  DialogStep,
+  type BotContext,
+  type SessionData,
+} from "./utils/types.js";
 import { BotRepository } from "./datasource/S3Repository.js";
 import { createS3Client } from "./datasource/S3Client.js";
 import type { BotConfigEnv } from "./utils/env_auth.js";
 import { BotModel } from "./domain/BotModel.js";
 import { BotRouter } from "./controller/BotRouter.js";
-
-export type BotContext = Context & SessionFlavor<SessionData>;
 
 export class BotService {
   private config: BotConfigEnv;

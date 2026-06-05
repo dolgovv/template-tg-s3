@@ -1,10 +1,10 @@
 import { nanoid } from "nanoid";
-import type { BotContext } from "../BotService.js";
 import { BotRepository } from "../datasource/S3Repository.js";
 import type { DialogEngine } from "../dialog/DialogEngine.js";
 import { getEnv } from "../utils/env_auth.js";
 import {
   DialogStep,
+  type BotContext,
   type botLanguage,
   type ContentType,
   type NavigationInstance,
