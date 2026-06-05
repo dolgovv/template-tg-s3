@@ -22,7 +22,10 @@ export const textTranslates = {
       );
     },
     help:
-      "Доступные команды:." +
+      "<b>Чтобы добавить файлы в текущую директорию - просто отправьте их в этот чат с указанием названий через пробел. <i>Недостающие названия будут сгенерированы автоматически</i></b>" +
+      "\n" +
+      "\n" +
+      "Доступные команды:" +
       "\n" +
       "/start " +
       "главное меню" +
@@ -32,9 +35,6 @@ export const textTranslates = {
       "\n" +
       "/all_imgs_here " +
       "посмотреть все картинки в текущей директории" +
-      "\n" +
-      "/add_mult_photos " +
-      "добавить несколько фото в текущую директорию" +
       "\n" +
       "/help " +
       "\n",
@@ -73,7 +73,10 @@ export const textTranslates = {
       );
     },
     help:
-      "All available commands:." +
+      "<b>To add files to the current directory, just send them to this chat with the names separated by a space. <i>Missing titles will be generated automatically</i></b>" +
+      "\n" +
+      "\n" +
+      "All available commands:" +
       "\n" +
       "/start " +
       "to get main menu" +
@@ -83,9 +86,6 @@ export const textTranslates = {
       "\n" +
       "/all_imgs_here " +
       "to get all .jpg/.png files in current directory" +
-      "\n" +
-      "/add_mult_photos " +
-      "add multiple images in current directory" +
       "\n" +
       "/help " +
       "\n",
