@@ -1,7 +1,6 @@
 import type { Bot } from "grammy";
-import type { BotContext } from "../../BotService.js";
 import type { BotModel } from "../../domain/BotModel.js";
-import { DialogStep } from "../../utils/types.js";
+import { DialogStep, type BotContext } from "../../utils/types.js";
 
 export class ButtonHandler {
   constructor(

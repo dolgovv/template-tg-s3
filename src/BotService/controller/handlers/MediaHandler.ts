@@ -1,5 +1,5 @@
 import type { Bot } from "grammy";
-import type { BotContext } from "../../BotService.js";
+import type { BotContext } from "../../utils/types.js";
 import type { BotModel } from "../../domain/BotModel.js";
 
 export class MediaHandler {

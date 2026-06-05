@@ -1,4 +1,4 @@
-import type { BotContext } from "../BotService.js";
+import type { BotContext } from "../utils/types.js";
 import type { BotMessage } from "./messages/MessageFactory.js";
 
 export class ReplyResolver {
