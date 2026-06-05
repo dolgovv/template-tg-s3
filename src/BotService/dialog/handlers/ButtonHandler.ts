@@ -8,24 +8,41 @@ export class ButtonHandler {
     private bot: Bot<BotContext>,
     model: BotModel,
   ) {
-    this.bot.callbackQuery("cancel", async (ctx) => {
-      ctx.answerCallbackQuery();
-      await model.navMenu(ctx);
-    });
-
     this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
       const newLang = ctx.match[1]! === "ru" ? "ru" : "en";
       await model.changeLang(ctx, newLang);
       await model.mainMenu(ctx);
     });
 
-    this.bot.callbackQuery(/^deleteFile:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
-      if (path) {
+    this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
+      const dir = ctx.match[1]!;
+
+      if (ctx.session.currentDir === "" && dir === "..") {
         await ctx.answerCallbackQuery();
-        await model.deleteFile(ctx, path);
       } else {
-        await model.sendError("Delete file error: " + path, ctx);
+        await model.navTo(ctx, dir === "root" ? ".." : dir);
+        await model.navMenu(ctx);
+      }
+    });
+
+    this.bot.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
+      const type = ctx.match[1]!;
+      if (type === "File") {
+        const path = ctx.match[2]!;
+        if (path) {
+          await model.deleteFile(ctx, path);
+          await ctx.answerCallbackQuery();
+        } else {
+          await model.sendError("Delete file error: " + path, ctx);
+        }
+      } else if (type === "Directory") {
+        const path = ctx.match[2]!;
+        if (path) {
+          await model.removeDirectory(path);
+          await ctx.answerCallbackQuery();
+        } else {
+          await model.sendError("Delete directory error: " + path, ctx);
+        }
       }
     });
 
@@ -64,6 +81,11 @@ export class ButtonHandler {
       }
     });
 
+    this.bot.callbackQuery("cancel", async (ctx) => {
+      ctx.answerCallbackQuery();
+      await model.navMenu(ctx);
+    });
+
     this.bot.callbackQuery(/new(File|Directory)/, async (ctx) => {
       const isFile = ctx.match[1]! === "File";
       console.log("ctx.match = ", ctx.match);
@@ -79,25 +101,16 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery("addNew", async (ctx) => {
+    this.bot.callbackQuery("newAsk", async (ctx) => {
       ctx.session.dialogStep = DialogStep.AwaitingAdditionType;
       await ctx.answerCallbackQuery();
       await model.askForDocumentType(ctx);
     });
 
-    this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
-      const dir = ctx.match[1]!;
-
-      if (ctx.session.currentDir === "" && dir === "..") {
-        await ctx.answerCallbackQuery();
-      } else {
-        await model.navTo(ctx, dir === "root" ? ".." : dir);
-        await model.navMenu(ctx);
-      }
-    });
-
     this.bot.callbackQuery(/^(?:dir|file)Actions:(.+)$/, async (ctx) => {
       const path = ctx.match[1]!;
+      console.log("path = ", path);
+
       await model.actionsMenu(ctx, path);
     });
 

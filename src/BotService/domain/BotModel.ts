@@ -12,9 +12,6 @@ import {
 import { fetch, ProxyAgent } from "undici";
 
 export class BotModel {
-  private pendingAlbums = new Map<string, { filesIds: string[] }>();
-  private albumTimers = new Map<string, NodeJS.Timeout>();
-
   constructor(
     private repo: BotRepository,
     private dialog: DialogEngine,
@@ -25,7 +22,7 @@ export class BotModel {
   async mainMenu(ctx: BotContext) {
     if (ctx.chat && ctx.session) {
       this.softResetSession(ctx);
-      this.dialog.sendMainMenu(
+      await this.dialog.sendMainMenu(
         ctx.chat.first_name,
         ctx.session.websiteName,
         ctx,
@@ -55,7 +52,7 @@ export class BotModel {
           type: { type: "UI", symbol: "*" },
           msgText: undefined,
           btnText: "➕",
-          btnCallback: "addNew",
+          btnCallback: "newAsk",
           fullPath: "",
           index: 0,
         },
@@ -93,13 +90,13 @@ export class BotModel {
       );
     } catch (err) {
       console.error("get-dirs error:", err);
-      this.dialog.sendError("get directories " + err, ctx);
+      await this.dialog.sendError("get directories " + err, ctx);
     }
   }
 
   async actionsMenu(ctx: BotContext, path: string) {
     const isFile = path[path.length - 1] !== "/";
-    this.dialog.sendActionsMenu(ctx, isFile, path);
+    await this.dialog.sendActionsMenu(ctx, isFile, path);
   }
 
   async deleteAskMenu(ctx: BotContext, path: string) {
@@ -109,7 +106,7 @@ export class BotModel {
 
   async asksMenu(ctx: BotContext, path: string) {
     const isFile = path[path.length - 1] !== "/";
-    this.dialog.sendAsksMenu(ctx, isFile, path);
+    await this.dialog.sendAsksMenu(ctx, isFile, path);
   }
 
   // ======================================================
@@ -118,7 +115,7 @@ export class BotModel {
 
   async onHelp(ctx: BotContext) {
     if (ctx.chat) {
-      this.dialog.sendHelp(ctx);
+      await this.dialog.sendHelp(ctx);
     }
   }
 
@@ -200,7 +197,7 @@ export class BotModel {
       }
     } else {
       console.error("callback nav error: no such location");
-      this.dialog.sendError("callback nav error: no such location", ctx);
+      await this.dialog.sendError("callback nav error: no such location", ctx);
     }
   }
 
@@ -249,9 +246,9 @@ export class BotModel {
     );
 
     if (result) {
-      this.dialog.sendImageUploadSuccessful(ctx);
+      await this.dialog.sendImageUploadSuccessful(ctx);
       this.softResetSession(ctx);
-      this.navMenu(ctx);
+      await this.navMenu(ctx);
       return true;
     }
   }
@@ -270,9 +267,13 @@ export class BotModel {
   }
 
   async deleteFile(ctx: BotContext, path: string) {
-    if (await this.repo.isFileExists(path)) {
-      await this.repo.deleteFile(path);
+    const result = await this.repo.deleteFile(path);
+    const resultCode = result.$metadata.httpStatusCode;
+    if (resultCode && resultCode - 200 < 100 && resultCode - 200 > 0) {
       await this.navMenu(ctx);
+    } else {
+      await this.sendError("Ошибка удаления файла", ctx);
+      await this.sendError(resultCode!.toString(), ctx);
     }
   }
 
@@ -290,31 +291,30 @@ export class BotModel {
     return result;
   }
 
-  async loadImage(path: string): Promise<Buffer> {
-    const result = await this.repo.getImage(path);
-    return result;
-  }
-
-  async loadImagesInDir(path: string): Promise<Buffer[]> {
-    const images: Promise<Buffer[]> = this.repo.getImagesInDir(path);
-    return images;
-  }
-
   async sendImage(ctx: BotContext, path: string) {
-    const loadedImage = await this.loadImage(path);
-    this.dialog.sendImg(loadedImage, ctx);
+    const imageName = this.dialog.leafInPath(path);
+    const result = await this.repo.getImage(path);
+
+    if (result) {
+      await this.dialog.sendImg(result, ctx, imageName);
+    } else {
+      await this.sendError(
+        "Изображения '" + imageName + "' не существует",
+        ctx,
+      );
+    }
   }
 
   async sendAllImages(ctx: BotContext) {
     const path = ctx.session.currentDir;
-    const loadedImages = await this.loadImagesInDir(path);
-    this.dialog.sendImgs(loadedImages, ctx);
+    const loadedImages = await this.repo.getImagesInDir(path);
+    await this.dialog.sendImgs(loadedImages, ctx);
   }
 
   async sendTextFile(ctx: BotContext, path: string) {
     const fileContent: string = await this.repo.getTextFileContent(path);
     const reducedPath: string = this.dialog.leafInPath(path);
-    this.dialog.sendTextFile(reducedPath, fileContent, ctx);
+    await this.dialog.sendTextFile(reducedPath, fileContent, ctx);
   }
 
   // ======================================================

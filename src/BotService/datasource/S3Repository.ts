@@ -6,6 +6,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   DeleteObjectsCommand,
+  NoSuchKey,
 } from "@aws-sdk/client-s3";
 import type { S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
@@ -20,15 +21,23 @@ export class BotRepository {
   }
 
   // FUNCTIONS TO WORK WITH FILES
-  async getImage(path: string): Promise<Buffer> {
-    const response = await this.s3Client.send(
-      new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: path,
-      }),
-    );
+  async getImage(path: string): Promise<Buffer | undefined> {
+    try {
+      const response = await this.s3Client.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: path,
+        }),
+      );
 
-    return this.streamToBuffer(response.Body as Readable);
+      return this.streamToBuffer(response.Body as Readable);
+    } catch (error) {
+      if (error instanceof NoSuchKey) {
+        return undefined;
+      }
+
+      throw error;
+    }
   }
 
   async isFileExists(path: string): Promise<boolean> {
@@ -47,10 +56,11 @@ export class BotRepository {
 
   async getImagesInDir(path: string): Promise<Buffer[]> {
     const imagesList = await this.listImagesInDir(path);
-    const bufferPromises = imagesList.map((imagePath) =>
-      this.getImage(imagePath),
+    const bufferPromises = imagesList.map(
+      async (imagePath) => await this.getImage(imagePath),
     );
-    return Promise.all(bufferPromises);
+    const result = await Promise.all(bufferPromises);
+    return result.filter((it) => it !== undefined);
   }
 
   async getTextFileContent(path: string): Promise<string> {
@@ -89,34 +99,6 @@ export class BotRepository {
     } while (continuationToken);
 
     return dirs;
-  }
-
-  async listAllFilesHere(prefix: string = ""): Promise<string[]> {
-    const files: string[] = [];
-    let continuationToken: string | undefined;
-
-    do {
-      const input: ListObjectsV2CommandInput = {
-        Bucket: this.bucket,
-        Delimiter: "/",
-        Prefix: prefix || undefined,
-        ContinuationToken: continuationToken,
-      };
-
-      const response = await this.s3Client.send(
-        new ListObjectsV2Command(input),
-      );
-
-      for (const obj of response.Contents ?? []) {
-        if (obj.Key) {
-          files.push(obj.Key);
-        }
-      }
-
-      continuationToken = response.NextContinuationToken;
-    } while (continuationToken);
-
-    return files;
   }
 
   async createDirectory(prefix: string, name: string): Promise<string> {
@@ -169,8 +151,8 @@ export class BotRepository {
     } while (continuationToken);
   }
 
-  async deleteFile(key: string): Promise<void> {
-    await this.s3Client.send(
+  async deleteFile(key: string) {
+    return await this.s3Client.send(
       new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: key,
@@ -246,5 +228,33 @@ export class BotRepository {
     return response.Contents.map((obj) => obj.Key!).filter((key) => {
       return imageExtensions.some((ext) => key.endsWith(ext));
     });
+  }
+
+  async listAllFilesHere(prefix: string = ""): Promise<string[]> {
+    const files: string[] = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const input: ListObjectsV2CommandInput = {
+        Bucket: this.bucket,
+        Delimiter: "/",
+        Prefix: prefix || undefined,
+        ContinuationToken: continuationToken,
+      };
+
+      const response = await this.s3Client.send(
+        new ListObjectsV2Command(input),
+      );
+
+      for (const obj of response.Contents ?? []) {
+        if (obj.Key) {
+          files.push(obj.Key);
+        }
+      }
+
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return files;
   }
 }
