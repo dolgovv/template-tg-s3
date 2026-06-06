@@ -123,12 +123,24 @@ export class BotModel {
     await this.dialog.sendError(errorText, ctx);
   }
 
+  async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
+    await this.dialog.sendDeletionError(isFile, path, ctx);
+  }
+
   async askForDocumentType(ctx: BotContext) {
     await this.dialog.addAskType(ctx);
   }
 
   async askNewName(ctx: BotContext) {
     await this.dialog.askNewName(ctx);
+  }
+
+  async sendDeletedSuccessfully(
+    ctx: BotContext,
+    isFile: boolean,
+    path: string,
+  ) {
+    await this.dialog.sendDeletedSuccessfully(ctx, isFile, path);
   }
 
   // ======================================================
@@ -193,7 +205,6 @@ export class BotModel {
   }
 
   async navTo(ctx: BotContext, dir: string) {
-    await ctx.answerCallbackQuery();
     if (dir) {
       if (dir === "..") {
         this.navigateBack(ctx);
@@ -271,14 +282,16 @@ export class BotModel {
     return retries ? name : "";
   }
 
-  async deleteFile(ctx: BotContext, path: string) {
+  async deleteFile(ctx: BotContext, path: string): Promise<boolean> {
     const result = await this.repo.deleteFile(path);
     const resultCode = result.$metadata.httpStatusCode;
     if (resultCode && resultCode - 200 < 100 && resultCode - 200 > 0) {
       await this.navMenu(ctx);
+      return true;
     } else {
       await this.sendError("Ошибка удаления файла", ctx);
       await this.sendError(resultCode!.toString(), ctx);
+      return false;
     }
   }
 
@@ -322,8 +335,8 @@ export class BotModel {
     await this.dialog.sendTextFile(reducedPath, fileContent, ctx);
   }
 
-  async renameDir(prefix: string, oldName: string, newName: string) {
-    await this.repo.renameDir(prefix, oldName, newName);
+  async renameDir(oldPath: string, newPath: string) {
+    return await this.repo.renameDir(oldPath, newPath);
   }
 
   // ======================================================

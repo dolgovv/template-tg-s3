@@ -48,7 +48,6 @@ export class DialogEngine {
       return path;
     } else {
       const result = path.slice(lastSlashIndex + 1);
-      console.log("last child in ", path, "is :", result);
       return result;
     }
   }
@@ -100,6 +99,18 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async sendDeletedSuccessfully(
+    ctx: BotContext,
+    isFile: boolean,
+    path: string,
+  ) {
+    const lang = ctx.session.lang;
+    const t = textTranslates[lang].sendDeletedSuccessfully(isFile, path);
+
+    const reply = this.factory.text(t);
+    await this.resolver.reply(ctx, reply);
+  }
+
   async sendNavigationMenu(content: NavigationInstance[], ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang];
@@ -135,12 +146,11 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendButtonEchoReply(text: string, ctx: BotContext) {
+  async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
-    const reply = this.factory.text(t.buttonEchoReply, [
-      { text: text, call: `echo:${text}` },
-    ]);
+    const reply = this.factory.text(
+      textTranslates[lang].errorDeletion(isFile, path),
+    );
     await this.resolver.reply(ctx, reply);
   }
 
