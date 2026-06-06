@@ -20,9 +20,8 @@ export class TextHandler {
         case DialogStep.AwaitingNewName:
           if (ctx.message.text) {
             const result = await model.renameDir(
-              ctx.session.currentDir,
               ctx.session.chosenPath,
-              ctx.message.text + "/",
+              ctx.session.currentDir + ctx.message.text + "/",
             );
             await model.navMenu(ctx);
           }
@@ -52,6 +51,7 @@ export class TextHandler {
           break;
 
         default:
+          await model.onHelp(ctx);
           break;
       }
     });

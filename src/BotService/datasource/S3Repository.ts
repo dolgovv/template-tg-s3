@@ -118,38 +118,70 @@ export class BotRepository {
     }
   }
 
-  async removeDirectory(path: string) {
+  private async getEverythingFrom(prefix: string) {
     let continuationToken: string | undefined;
+    let result: _Object[] = [];
+
     do {
-      // 1. Получаем все объекты с этим префиксом (без разделителя — нам нужны все)
-      const listResponse = await this.s3Client.send(
+      const response = await this.s3Client.send(
         new ListObjectsV2Command({
           Bucket: this.bucket,
-          Prefix: path,
+          Prefix: prefix,
           ContinuationToken: continuationToken,
         }),
       );
 
-      // 2. Собираем ключи для удаления
-      const objectsToDelete = (listResponse.Contents ?? [])
-        .map((obj) => ({ Key: obj.Key! }))
-        .filter((obj) => obj.Key); // на всякий случай убираем undefined
-
-      if (objectsToDelete.length > 0) {
-        // 3. Удаляем до 1000 объектов за один запрос
-        await this.s3Client.send(
-          new DeleteObjectsCommand({
-            Bucket: this.bucket,
-            Delete: {
-              Objects: objectsToDelete,
-              Quiet: false, // можно true, если не нужен детальный отчёт
-            },
-          }),
-        );
+      if (response.Contents) {
+        result.push(...response.Contents);
       }
-
-      continuationToken = listResponse.NextContinuationToken;
+      continuationToken = response.NextContinuationToken;
     } while (continuationToken);
+
+    return result;
+  }
+
+  async copyAllRecursively(src: string, dst: string) {
+    let result = false;
+    const sourcePrefix = src.endsWith("/") ? src : src + "/";
+    const destPrefix = dst.endsWith("/") ? dst : dst + "/";
+    const filesToCopy: _Object[] = await this.getEverythingFrom(sourcePrefix);
+
+    for (const obj of filesToCopy) {
+      const oldKey = obj.Key!;
+      const newKey = oldKey.replace(sourcePrefix, destPrefix);
+      const copyCommand = new CopyObjectCommand({
+        Bucket: this.bucket,
+        CopySource: `${this.bucket}/${oldKey}`,
+        Key: newKey,
+      });
+      const response = await this.s3Client.send(copyCommand);
+      this.isStatusCodeOk(response.$metadata.httpStatusCode);
+      console.log(`Скопирован: ${oldKey} -> ${newKey}`);
+    }
+    return result;
+  }
+
+  async removeDirectory(path: string): Promise<boolean> {
+    let result = false;
+    const tempObjectsToDelete: _Object[] = await this.getEverythingFrom(path);
+
+    const objectsToDelete = (tempObjectsToDelete ?? [])
+      .map((obj) => ({ Key: obj.Key! }))
+      .filter((obj) => obj.Key);
+
+    if (objectsToDelete.length > 0) {
+      const response = await this.s3Client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: {
+            Objects: objectsToDelete,
+            Quiet: false,
+          },
+        }),
+      );
+      result = this.isStatusCodeOk(response.$metadata.httpStatusCode);
+    }
+    return result;
   }
 
   async deleteFile(key: string) {
@@ -182,17 +214,25 @@ export class BotRepository {
   ): Promise<boolean> {
     console.log("key=", dir + name + extension);
 
-    const result = await this.s3Client.send(
+    const response = await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: dir + name + extension,
         Body: buffer,
       }),
     );
-    return result.$metadata.httpStatusCode &&
-      result.$metadata.httpStatusCode - 200 < 100
-      ? true
-      : false;
+    return this.isStatusCodeOk(response.$metadata.httpStatusCode);
+  }
+
+  isStatusCodeOk(httpStatusCode: number | undefined): boolean {
+    let result = true;
+    if (!httpStatusCode) {
+      result = false;
+    } else {
+      const temp = httpStatusCode - 200;
+      if (temp > 100 || temp < 0) result = false;
+    }
+    return result;
   }
 
   // UTILS FUNCTIONS
@@ -231,59 +271,10 @@ export class BotRepository {
     });
   }
 
-  private async getFilesInDir(prefix: string) {
-    const command = new ListObjectsV2Command({
-      Bucket: this.bucket,
-      Prefix: prefix,
-      Delimiter: "/",
-    });
-
-    const response = await this.s3Client.send(command);
-
-    if (!response.Contents) {
-      return [];
-    }
-
-    return response.Contents;
-  }
-
-  async copyAllRecursively(src: string, dst: string) {
-    const sourcePrefix = src.endsWith("/") ? src : src + "/";
-    const destPrefix = dst.endsWith("/") ? dst : dst + "/";
-    let continuationToken: string | undefined;
-    let filesToCopy: _Object[] = [];
-
-    do {
-      const command = new ListObjectsV2Command({
-        Bucket: this.bucket,
-        Prefix: sourcePrefix,
-        ContinuationToken: continuationToken,
-      });
-      const response = await this.s3Client.send(command);
-      if (response.Contents) {
-        filesToCopy.push(...response.Contents);
-      }
-      continuationToken = response.NextContinuationToken;
-    } while (continuationToken);
-
-    for (const obj of filesToCopy) {
-      const oldKey = obj.Key!;
-      const newKey = oldKey.replace(src, dst);
-      const copyCommand = new CopyObjectCommand({
-        Bucket: this.bucket,
-        CopySource: `${this.bucket}/${oldKey}`,
-        Key: newKey,
-      });
-      await this.s3Client.send(copyCommand);
-      console.log(`Скопирован: ${oldKey} -> ${newKey}`);
-    }
-  }
-
-  async renameDir(prefix: string, oldDir: string, newDir: string) {
-    const copyResult = await this.copyAllRecursively(prefix + oldDir, newDir);
-    console.log("prefix, oldDir, newDir: ", prefix, oldDir, newDir);
-
-    const deletitionResult = await this.removeDirectory(prefix + oldDir);
+  async renameDir(oldPath: string, newPath: string) {
+    let result = await this.copyAllRecursively(oldPath, newPath);
+    if (result) result = await this.removeDirectory(oldPath);
+    return result;
   }
 
   async listAllFilesHere(prefix: string = ""): Promise<string[]> {

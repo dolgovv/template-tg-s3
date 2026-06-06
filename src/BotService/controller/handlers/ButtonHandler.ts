@@ -20,29 +20,34 @@ export class ButtonHandler {
         await ctx.answerCallbackQuery();
       } else {
         await model.navTo(ctx, dir === "root" ? ".." : dir);
+        await ctx.answerCallbackQuery();
         await model.navMenu(ctx);
       }
     });
 
     this.bot.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
       const type = ctx.match[1]!;
-      if (type === "File") {
-        const path = ctx.match[2]!;
-        if (path) {
-          await model.deleteFile(ctx, path);
-          await ctx.answerCallbackQuery();
-        } else {
-          await model.sendError("Delete file error: " + path, ctx);
-        }
-      } else if (type === "Dir") {
-        const path = ctx.match[2]!;
-        if (path) {
-          await model.removeDirectory(path);
-          await ctx.answerCallbackQuery();
-        } else {
-          await model.sendError("Delete directory error: " + path, ctx);
-        }
+      const isFile = type === "File";
+      const path = ctx.match[2]!;
+      if (!path) {
+        await model.sendDeletionError(isFile, path, ctx);
       }
+
+      if (type === "File") {
+        const result = await model.deleteFile(ctx, path);
+
+        result
+          ? await model.sendDeletedSuccessfully(ctx, isFile, path)
+          : await model.sendDeletionError(isFile, path, ctx);
+      } else if (type === "Dir") {
+        const result = await model.removeDirectory(path);
+
+        result
+          ? await model.sendDeletedSuccessfully(ctx, isFile, path)
+          : await model.sendDeletionError(isFile, path, ctx);
+      }
+      await ctx.answerCallbackQuery();
+      await model.navMenu(ctx);
     });
 
     this.bot.callbackQuery(/^delete(File|Dir)Ask:(.+)$/, async (ctx) => {

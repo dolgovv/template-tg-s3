@@ -17,6 +17,11 @@ export const textTranslates = {
     chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
     addAskType: "Добавить файл или директорию?",
     askNewName: "Введите новое имя:",
+    sendDeletedSuccessfully: (isFile: boolean, path: string): string => {
+      return (
+        (isFile ? "Файл " : "Папка ") + path + " удален" + (isFile ? "" : "а")
+      );
+    },
     deleteAsk: (isFile: boolean) => {
       return (
         "Вы уверены, что хотите удалить " + (isFile ? "файл" : "папку") + "?"
@@ -49,6 +54,17 @@ export const textTranslates = {
     yourId: (id: number) => `Ваш ID: ${id}`,
     dirListEmpty: "В текущей директории нет папок",
     error: "Возникла непредвиденная ошибка: ",
+    errorDeletion: (isFile: boolean, path: string) => {
+      return (
+        "Ошибка удаления " +
+        (isFile ? "файла " : "папки ") +
+        ": " +
+        path +
+        ".\nУбедитесь, что " +
+        (isFile ? "такой файл " : "такая папка ") +
+        "существует"
+      );
+    },
     buttonEchoReply: "Вот твоя кнопка:",
   },
   en: {
@@ -67,6 +83,9 @@ export const textTranslates = {
     chooseAction: "Would you like to open it or remove completely?",
     addAskType: "Add file or directory?",
     askNewName: "Enter new name:",
+    sendDeletedSuccessfully: (isFile: boolean, path: string): string => {
+      return (isFile ? "File " : "Folder ") + path + " removed successfully";
+    },
     deleteAsk: (isFile: boolean) => {
       return (
         "Are you shure you want to delete this " +
@@ -101,6 +120,15 @@ export const textTranslates = {
     yourId: (id: number) => `Your ID: ${id}`,
     dirListEmpty: "No folders here",
     error: "An error occured: ",
+    errorDeletion: (isFile: boolean, path: string) => {
+      return (
+        "Delete " +
+        (isFile ? "file " : "folder ") +
+        "error: " +
+        path +
+        ".\nMake sure it exist"
+      );
+    },
     buttonEchoReply: "Here's your button:",
   },
   // here you can add more languages
