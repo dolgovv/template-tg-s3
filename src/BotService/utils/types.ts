@@ -6,6 +6,7 @@ export enum DialogStep {
   AwaitingMultiplePhotos = "AwaitingMultiplePhotos",
   AwaitingAdditionType = "AwaitingDocumentType",
   AwaitingDirectoryName = "AwaitingDirectoryName",
+  AwaitingNewName = "AwaitingNewName",
 }
 
 export type NavigationInstance = {
@@ -29,6 +30,7 @@ export type SessionData = {
   dialogStep: DialogStep;
   websiteName: string;
   currentDir: string;
+  chosenPath: string;
   lastMenuMessageId: number;
 };
 export type BotContext = Context & SessionFlavor<SessionData>;
