@@ -16,6 +16,7 @@ export const textTranslates = {
     addImageSuccessful: "Фото успешно загружено",
     chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
     addAskType: "Добавить файл или директорию?",
+    askNewName: "Введите новое имя:",
     deleteAsk: (isFile: boolean) => {
       return (
         "Вы уверены, что хотите удалить " + (isFile ? "файл" : "папку") + "?"
@@ -65,6 +66,7 @@ export const textTranslates = {
     addImageSuccessful: "Image uploaded successfully",
     chooseAction: "Would you like to open it or remove completely?",
     addAskType: "Add file or directory?",
+    askNewName: "Enter new name:",
     deleteAsk: (isFile: boolean) => {
       return (
         "Are you shure you want to delete this " +
@@ -110,6 +112,12 @@ export const menusTranslates = {
       { text: "Файл", call: "newFile" },
       { text: "Папку", call: "newDirectory" },
     ],
+    askNewName: [
+      {
+        text: "⬅️",
+        call: "cancel",
+      },
+    ],
     actionsMenu: (isFile: boolean, path: string) => {
       return [
         {
@@ -119,6 +127,10 @@ export const menusTranslates = {
         {
           text: "Удалить",
           call: isFile ? "deleteFileAsk:" + path : "deleteDirAsk:" + path,
+        },
+        {
+          text: "Переименовать",
+          call: isFile ? "renameFileAsk:" + path : "renameDirAsk:" + path,
         },
         {
           text: "⬅️",
@@ -157,12 +169,22 @@ export const menusTranslates = {
       { text: "File", call: "newFile" },
       { text: "Folder", call: "newDirectory" },
     ],
+    askNewName: [
+      {
+        text: "⬅️",
+        call: "cancel",
+      },
+    ],
     actionsMenu: (isFile: boolean, path: string) => {
       return [
         { text: "Open", call: isFile ? "openFile:" + path : "navDir:" + path },
         {
           text: "Delete",
           call: isFile ? "deleteFileAsk:" + path : "deleteDirAsk:" + path,
+        },
+        {
+          text: "Rename",
+          call: isFile ? "renameFileAsk:" + path : "renameDirAsk:" + path,
         },
         {
           text: "⬅️",

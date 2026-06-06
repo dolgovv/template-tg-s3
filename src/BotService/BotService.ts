@@ -80,6 +80,7 @@ export class BotService {
           dialogStep: DialogStep.Idle,
           websiteName: this.config.websiteName ?? "Not specified",
           currentDir: this.config.currentDir ?? "",
+          chosenPath: "",
           lastMenuMessageId: this.config.lastMenuMessageId ?? "",
         }),
         storage: new FileAdapter({ dirName: "sessions" }),

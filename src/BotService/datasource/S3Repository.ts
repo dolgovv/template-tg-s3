@@ -7,8 +7,9 @@ import {
   HeadObjectCommand,
   DeleteObjectsCommand,
   NoSuchKey,
+  CopyObjectCommand,
 } from "@aws-sdk/client-s3";
-import type { S3Client } from "@aws-sdk/client-s3";
+import type { _Object, S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
 
 export class BotRepository {
@@ -228,6 +229,61 @@ export class BotRepository {
     return response.Contents.map((obj) => obj.Key!).filter((key) => {
       return imageExtensions.some((ext) => key.endsWith(ext));
     });
+  }
+
+  private async getFilesInDir(prefix: string) {
+    const command = new ListObjectsV2Command({
+      Bucket: this.bucket,
+      Prefix: prefix,
+      Delimiter: "/",
+    });
+
+    const response = await this.s3Client.send(command);
+
+    if (!response.Contents) {
+      return [];
+    }
+
+    return response.Contents;
+  }
+
+  async copyAllRecursively(src: string, dst: string) {
+    const sourcePrefix = src.endsWith("/") ? src : src + "/";
+    const destPrefix = dst.endsWith("/") ? dst : dst + "/";
+    let continuationToken: string | undefined;
+    let filesToCopy: _Object[] = [];
+
+    do {
+      const command = new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: sourcePrefix,
+        ContinuationToken: continuationToken,
+      });
+      const response = await this.s3Client.send(command);
+      if (response.Contents) {
+        filesToCopy.push(...response.Contents);
+      }
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    for (const obj of filesToCopy) {
+      const oldKey = obj.Key!;
+      const newKey = oldKey.replace(src, dst);
+      const copyCommand = new CopyObjectCommand({
+        Bucket: this.bucket,
+        CopySource: `${this.bucket}/${oldKey}`,
+        Key: newKey,
+      });
+      await this.s3Client.send(copyCommand);
+      console.log(`Скопирован: ${oldKey} -> ${newKey}`);
+    }
+  }
+
+  async renameDir(prefix: string, oldDir: string, newDir: string) {
+    const copyResult = await this.copyAllRecursively(prefix + oldDir, newDir);
+    console.log("prefix, oldDir, newDir: ", prefix, oldDir, newDir);
+
+    const deletitionResult = await this.removeDirectory(prefix + oldDir);
   }
 
   async listAllFilesHere(prefix: string = ""): Promise<string[]> {

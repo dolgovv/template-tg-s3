@@ -17,6 +17,18 @@ export class TextHandler {
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 
+        case DialogStep.AwaitingNewName:
+          if (ctx.message.text) {
+            const result = await model.renameDir(
+              ctx.session.currentDir,
+              ctx.session.chosenPath,
+              ctx.message.text + "/",
+            );
+            await model.navMenu(ctx);
+          }
+          ctx.session.dialogStep = DialogStep.Idle;
+          break;
+
         case DialogStep.AwaitingPhoto:
           const bestPhoto = model.getBestPhoto(ctx);
           if (bestPhoto) {

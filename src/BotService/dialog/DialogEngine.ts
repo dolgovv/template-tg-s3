@@ -164,6 +164,14 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async askNewName(ctx: BotContext) {
+    const lang = ctx.session.lang;
+    const t = textTranslates[lang];
+    const m = menusTranslates[lang];
+    const reply = this.factory.menu(t.askNewName, m.askNewName);
+    await this.resolver.reply(ctx, reply);
+  }
+
   shrinkPath(path: string): string {
     let result = this.leafInPath(path);
 

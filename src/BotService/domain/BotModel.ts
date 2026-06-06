@@ -127,6 +127,10 @@ export class BotModel {
     await this.dialog.addAskType(ctx);
   }
 
+  async askNewName(ctx: BotContext) {
+    await this.dialog.askNewName(ctx);
+  }
+
   // ======================================================
 
   // UTILS ================================================
@@ -184,6 +188,7 @@ export class BotModel {
     ctx.session.dialogStep = DialogStep.Idle;
     ctx.session.currentDir = "";
     ctx.session.lang = "en";
+    ctx.session.chosenPath = "";
     ctx.session.lastMenuMessageId = 0;
   }
 
@@ -315,6 +320,10 @@ export class BotModel {
     const fileContent: string = await this.repo.getTextFileContent(path);
     const reducedPath: string = this.dialog.leafInPath(path);
     await this.dialog.sendTextFile(reducedPath, fileContent, ctx);
+  }
+
+  async renameDir(prefix: string, oldName: string, newName: string) {
+    await this.repo.renameDir(prefix, oldName, newName);
   }
 
   // ======================================================

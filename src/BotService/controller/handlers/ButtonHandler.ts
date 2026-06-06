@@ -34,7 +34,7 @@ export class ButtonHandler {
         } else {
           await model.sendError("Delete file error: " + path, ctx);
         }
-      } else if (type === "Directory") {
+      } else if (type === "Dir") {
         const path = ctx.match[2]!;
         if (path) {
           await model.removeDirectory(path);
@@ -45,39 +45,10 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/^deleteDir:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
-      if (path) {
-        await model.removeDirectory(path);
-        await ctx.answerCallbackQuery();
-        await model.navMenu(ctx);
-      } else {
-        await model.sendError("Delete directory error: " + path, ctx);
-      }
-    });
-
-    this.bot.callbackQuery(/^deleteDirAsk:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
-      console.log("asked");
-
-      if (path) {
-        await model.deleteAskMenu(ctx, path);
-        await ctx.answerCallbackQuery();
-      } else {
-        await model.sendError("Delete directory error: " + path, ctx);
-      }
-    });
-
-    this.bot.callbackQuery(/^deleteFileAsk:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
-      console.log("asked");
-
-      if (path) {
-        await model.deleteAskMenu(ctx, path);
-        await ctx.answerCallbackQuery();
-      } else {
-        await model.sendError("Delete directory error: " + path, ctx);
-      }
+    this.bot.callbackQuery(/^delete(File|Dir)Ask:(.+)$/, async (ctx) => {
+      const path = ctx.match[2]!;
+      await model.deleteAskMenu(ctx, path);
+      await ctx.answerCallbackQuery();
     });
 
     this.bot.callbackQuery("cancel", async (ctx) => {
@@ -85,7 +56,7 @@ export class ButtonHandler {
       await model.navMenu(ctx);
     });
 
-    this.bot.callbackQuery(/new(File|Directory)/, async (ctx) => {
+    this.bot.callbackQuery(/new(File|Dir)/, async (ctx) => {
       const isFile = ctx.match[1]! === "File";
       console.log("ctx.match = ", ctx.match);
 
@@ -100,6 +71,16 @@ export class ButtonHandler {
       }
     });
 
+    this.bot.callbackQuery(/rename(?:File|Dir)Ask:(.+)/, async (ctx) => {
+      const path = ctx.match[1];
+      ctx.session.chosenPath = path ? path : "";
+      ctx.session.dialogStep = DialogStep.AwaitingNewName;
+      await ctx.answerCallbackQuery();
+      console.log("new name required");
+
+      await model.askNewName(ctx);
+    });
+
     this.bot.callbackQuery("newAsk", async (ctx) => {
       ctx.session.dialogStep = DialogStep.AwaitingAdditionType;
       await ctx.answerCallbackQuery();
@@ -108,7 +89,6 @@ export class ButtonHandler {
 
     this.bot.callbackQuery(/^(?:dir|file)Actions:(.+)$/, async (ctx) => {
       const path = ctx.match[1]!;
-      console.log("path = ", path);
 
       await model.actionsMenu(ctx, path);
     });
