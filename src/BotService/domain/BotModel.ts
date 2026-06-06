@@ -19,9 +19,9 @@ export class BotModel {
 
   // MENUS ================================================
 
-  async mainMenu(ctx: BotContext) {
+  async mainMenu(ctx: BotContext, shouldReset: boolean = true) {
     if (ctx.chat && ctx.session) {
-      this.softResetSession(ctx);
+      if (shouldReset) this.softResetSession(ctx);
       await this.dialog.sendMainMenu(
         ctx.chat.first_name,
         ctx.session.websiteName,
