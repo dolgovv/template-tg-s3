@@ -10,7 +10,7 @@ export class ButtonHandler {
     this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
       const newLang = ctx.match[1]! === "ru" ? "ru" : "en";
       await model.changeLang(ctx, newLang);
-      await model.mainMenu(ctx);
+      await model.mainMenu(ctx, false);
     });
 
     this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
