@@ -1,21 +1,18 @@
 import type { Bot } from "grammy";
-import { CommandHandler } from "./handlers/CommandHandler.js";
-import { ButtonHandler } from "./handlers/ButtonHandler.js";
 import type { IBotModel } from "./IBotModel.js";
-import { TextHandler } from "./handlers/TextHandler.js";
-import { MediaHandler } from "./handlers/MediaHandler.js";
 import type { BotContext } from "../utils/types.js";
+import * as Handlers from "./handlers/handlers.js";
 
 export class BotRouter {
-  private commands: CommandHandler;
-  private buttons: ButtonHandler;
-  private texts: TextHandler;
-  private media: MediaHandler;
+  private commands: Handlers.CommandHandler;
+  private buttons: Handlers.ButtonHandler;
+  private texts: Handlers.TextHandler;
+  private media: Handlers.MediaHandler;
 
   constructor(bot: Bot<BotContext>, model: IBotModel) {
-    this.commands = new CommandHandler(bot, model);
-    this.buttons = new ButtonHandler(bot, model);
-    this.texts = new TextHandler(bot, model);
-    this.media = new MediaHandler(bot, model);
+    this.commands = new Handlers.CommandHandler(bot, model);
+    this.buttons = new Handlers.ButtonHandler(bot, model);
+    this.texts = new Handlers.TextHandler(bot, model);
+    this.media = new Handlers.MediaHandler(bot, model);
   }
 }
