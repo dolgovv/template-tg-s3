@@ -6,11 +6,10 @@ export interface IBotModel {
   navMenu(ctx: BotContext): Promise<void>;
   actionsMenu(ctx: BotContext, path: string): Promise<void>;
   deleteAskMenu(ctx: BotContext, path: string): Promise<void>;
-  asksMenu(ctx: BotContext, path: string): Promise<void>;
 
   // Replies
+  sendError(message: string, ctx: BotContext): Promise<void>;
   onHelp(ctx: BotContext): Promise<void>;
-  sendError(errorText: string, ctx: BotContext): Promise<void>;
   errorCallback(callback: string, ctx: BotContext): Promise<void>;
   sendDeletionError(
     isFile: boolean,
@@ -34,19 +33,12 @@ export interface IBotModel {
   navTo(ctx: BotContext, dir: string): Promise<void>;
 
   // File management
-  addPhoto(
-    fileId: string,
-    ctx: BotContext,
-    name?: string,
-  ): Promise<true | undefined>;
+  addPhoto(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
   deleteFile(ctx: BotContext, path: string): Promise<boolean>;
-  createDirectory(
-    currentDir: string,
-    name: string | undefined,
-  ): Promise<string>;
+  createDirectory(currentDir: string, name: string): Promise<string>;
   removeDirectory(path: string): Promise<unknown>;
   sendImage(ctx: BotContext, path: string): Promise<void>;
   sendAllImages(ctx: BotContext): Promise<void>;
   sendTextFile(ctx: BotContext, path: string): Promise<void>;
-  renameDir(oldPath: string, newPath: string): Promise<unknown>;
+  renameDir(oldPath: string, newPath: string): Promise<boolean>;
 }

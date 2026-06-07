@@ -33,6 +33,7 @@ export type SessionData = {
   chosenPath: string;
   lastMenuMessageId: number;
 };
+
 export type BotContext = Context & SessionFlavor<SessionData>;
 
 export type botLanguage = "ru" | "en";

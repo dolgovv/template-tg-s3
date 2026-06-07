@@ -7,16 +7,12 @@ export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
   private resolver: ReplyResolver = new ReplyResolver("HTML");
 
-  async sendMainMenu(
-    name: string | undefined,
-    websiteName: string,
-    ctx: BotContext,
-  ) {
+  async sendMainMenu(ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang];
     const m = menusTranslates[lang] ?? {};
     const reply = this.factory.menu(
-      t.greetUser(name ?? t.anonName, websiteName),
+      t.greetUser(ctx.chat?.first_name ?? t.anonName, ctx.session.websiteName),
       m.welcome,
     );
     await this.resolver.reply(ctx, reply);

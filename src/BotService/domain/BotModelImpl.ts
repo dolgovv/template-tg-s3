@@ -23,15 +23,9 @@ export class BotModelImpl implements IBotModel {
   // MENUS ================================================
 
   async mainMenu(ctx: BotContext, shouldReset: boolean = true) {
-    if (ctx.chat && ctx.session) {
+    if (ctx.chat) {
       if (shouldReset) this.sessionReset(ctx);
-      await this.dialog.sendMainMenu(
-        ctx.chat.first_name,
-        ctx.session.websiteName,
-        ctx,
-      );
-    } else {
-      this.logger.error("No session bitches: " + this.logger.getDetails(ctx));
+      await this.dialog.sendMainMenu(ctx);
     }
   }
 
@@ -97,17 +91,12 @@ export class BotModelImpl implements IBotModel {
   }
 
   async actionsMenu(ctx: BotContext, path: string) {
-    const isFile = path[path.length - 1] !== "/";
+    const isFile = path.endsWith("/");
     await this.dialog.sendActionsMenu(ctx, isFile, path);
   }
 
   async deleteAskMenu(ctx: BotContext, path: string) {
-    const isFile = path[path.length - 1] !== "/";
-    await this.dialog.sendAsksMenu(ctx, isFile, path);
-  }
-
-  async asksMenu(ctx: BotContext, path: string) {
-    const isFile = path[path.length - 1] !== "/";
+    const isFile = path.endsWith("/");
     await this.dialog.sendAsksMenu(ctx, isFile, path);
   }
 
@@ -121,9 +110,9 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  async sendError(errorText: string, ctx: BotContext) {
-    this.logger.error(errorText + this.logger.getDetails(ctx));
-    await this.dialog.sendError(errorText, ctx);
+  async sendError(message: string, ctx: BotContext) {
+    this.logger.error(message + this.logger.getDetails(ctx));
+    await this.dialog.sendError(message, ctx);
   }
 
   async errorCallback(callback: string, ctx: BotContext) {
@@ -258,7 +247,11 @@ export class BotModelImpl implements IBotModel {
     return buffer;
   }
 
-  async addPhoto(fileId: string, ctx: BotContext, name?: string) {
+  async addPhoto(
+    fileId: string,
+    ctx: BotContext,
+    name?: string,
+  ): Promise<boolean> {
     const buffer = await this.fetchPhotoFromTelegram(fileId, ctx);
     const extension = ".jpg"; // ИСПРАВИТЬ
     const finalName = name
@@ -277,6 +270,8 @@ export class BotModelImpl implements IBotModel {
       this.sessionReset(ctx);
       await this.navMenu(ctx);
       return true;
+    } else {
+      return false;
     }
   }
 
@@ -306,10 +301,7 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  async createDirectory(
-    currentDir: string,
-    name: string | undefined,
-  ): Promise<string> {
+  async createDirectory(currentDir: string, name: string): Promise<string> {
     if (!name?.trim()) name = await this.getRandomName(currentDir);
     const result = await this.repo.createDirectory(currentDir, name);
     return result;
@@ -346,8 +338,9 @@ export class BotModelImpl implements IBotModel {
     await this.dialog.sendTextFile(reducedPath, fileContent, ctx);
   }
 
-  async renameDir(oldPath: string, newPath: string) {
-    return await this.repo.renameDir(oldPath, newPath);
+  async renameDir(oldPath: string, newPath: string): Promise<boolean> {
+    const result = await this.repo.renameDir(oldPath, newPath);
+    return result;
   }
 
   // ======================================================

@@ -125,6 +125,10 @@ export class BotService {
 
   private async setUpMiddleware() {
     this.bot.use(async (ctx, next) => {
+      if (!ctx.chat || !ctx.session) {
+        this.logger.error("Session error");
+        return;
+      }
       if (!ctx.chatId || !this.isAdmin(ctx.chatId)) {
         await this.dialogEngine.sendAuthError(ctx);
         this.logger.error(
@@ -133,7 +137,7 @@ export class BotService {
         return;
       }
 
-      return next();
+      await next();
     });
 
     this.bot.catch(async (err) => {

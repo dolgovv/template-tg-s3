@@ -268,7 +268,7 @@ export class BotRepository {
     });
   }
 
-  async renameDir(oldPath: string, newPath: string) {
+  async renameDir(oldPath: string, newPath: string): Promise<boolean> {
     let result = await this.copyAllRecursively(oldPath, newPath);
     if (result) result = await this.removeDirectory(oldPath);
     return result;
