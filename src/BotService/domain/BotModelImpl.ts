@@ -161,6 +161,25 @@ export class BotModelImpl implements IBotModel {
     return bestPhoto?.file_id;
   }
 
+  getFileId(ctx: BotContext): string | undefined {
+    const msg = ctx.message;
+    if (!msg) return undefined;
+
+    if (msg.photo?.length) {
+      const lastPhoto = msg.photo[msg.photo.length - 1];
+      if (lastPhoto) return lastPhoto.file_id;
+    }
+    if (msg.document) return msg.document.file_id;
+    if (msg.video) return msg.video.file_id;
+    if (msg.audio) return msg.audio.file_id;
+    if (msg.voice) return msg.voice.file_id;
+    if (msg.video_note) return msg.video_note.file_id;
+    if (msg.sticker) return msg.sticker.file_id;
+    if (msg.animation) return msg.animation.file_id;
+
+    return undefined;
+  }
+
   private pathToType(path: string): ContentType {
     const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
 
@@ -225,38 +244,66 @@ export class BotModelImpl implements IBotModel {
     await this.dialog.sendAwaitingDirectoryName(ctx);
   }
 
+  async sendInvalidNameError(ctx: BotContext) {
+    await this.dialog.sendInvalidNameError(ctx);
+  }
+
+  sanitizeName(raw: string): string | null {
+    const sanitized = this.dialog.sanitizeFileName(raw.trim());
+    if (!sanitized || sanitized.length === 0) return null;
+    return sanitized;
+  }
+
   // ======================================================
 
   // FILE MANAGEMENT ======================================
 
-  async fetchPhotoFromTelegram(photoId: string, ctx: BotContext) {
+  async fetchFileFromTelegram(
+    fileId: string,
+    ctx: BotContext,
+  ): Promise<{ buffer: Buffer; extension: string }> {
     const proxyUrl: string | undefined = getEnv("PROXY_URL");
     const proxyAgent: ProxyAgent | undefined = proxyUrl
       ? new ProxyAgent(proxyUrl)
       : undefined;
 
-    const file = await ctx.api.getFile(photoId);
+    const file = await ctx.api.getFile(fileId);
     const token = getEnv("BOT_TOKEN", true);
 
-    const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+    // file_path looks like "photos/file_123.jpg" — grab the extension from it
+    const filePath = file.file_path ?? "";
+    const dotIndex = filePath.lastIndexOf(".");
+    const extension = dotIndex !== -1 ? filePath.slice(dotIndex) : "";
+
+    const url = `https://api.telegram.org/file/bot${token}/${filePath}`;
     const loadedFile = proxyAgent
       ? await fetch(url, { dispatcher: proxyAgent })
       : await fetch(url);
 
     const buffer = Buffer.from(await loadedFile.arrayBuffer());
-    return buffer;
+    return { buffer, extension };
   }
 
-  async addImage(
+  async addFile(
     fileId: string,
     ctx: BotContext,
     name?: string,
   ): Promise<boolean> {
-    const buffer = await this.fetchPhotoFromTelegram(fileId, ctx);
-    const extension = ".jpg"; // ИСПРАВИТЬ
-    const finalName = name
-      ? name
-      : await this.getRandomName(ctx.session.currentDir);
+    const { buffer, extension } = await this.fetchFileFromTelegram(fileId, ctx);
+
+    let finalName: string;
+    if (name !== undefined && name.trim() !== "") {
+      // user provided a name — validate it
+      const sanitized = this.sanitizeName(name);
+      if (!sanitized) {
+        await this.sendInvalidNameError(ctx);
+        return false;
+      }
+      finalName = sanitized;
+    } else {
+      // no name or empty string → autogenerate
+      finalName = await this.getRandomName(ctx.session.currentDir);
+    }
 
     const result = await this.repo.putImage(
       buffer,
@@ -302,9 +349,14 @@ export class BotModelImpl implements IBotModel {
   }
 
   async createDirectory(currentDir: string, name: string): Promise<string> {
-    if (!name?.trim()) name = await this.getRandomName(currentDir);
-    const result = await this.repo.createDirectory(currentDir, name);
-    return result;
+    // empty name → autogenerate; non-empty but invalid → return "" to signal error
+    if (!name.trim()) {
+      const generated = await this.getRandomName(currentDir);
+      return await this.repo.createDirectory(currentDir, generated);
+    }
+    const sanitized = this.sanitizeName(name);
+    if (!sanitized) return "";
+    return await this.repo.createDirectory(currentDir, sanitized);
   }
 
   async removeDirectory(path: string) {

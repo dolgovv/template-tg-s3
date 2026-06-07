@@ -162,6 +162,12 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async sendInvalidNameError(ctx: BotContext) {
+    const lang = ctx.session.lang;
+    const reply = this.factory.text(textTranslates[lang].invalidName);
+    await this.resolver.reply(ctx, reply);
+  }
+
   async addAskType(ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang];

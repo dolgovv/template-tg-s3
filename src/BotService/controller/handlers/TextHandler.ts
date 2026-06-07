@@ -13,17 +13,22 @@ export class TextHandler {
 
       switch (step) {
         case DialogStep.AwaitingAdditionType:
-          model.askForDocumentType(ctx);
+          await model.askForDocumentType(ctx);
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 
         case DialogStep.AwaitingNewName:
           if (ctx.message.text) {
-            const result = await model.renameDir(
-              ctx.session.chosenPath,
-              ctx.session.currentDir + ctx.message.text + "/",
-            );
-            await model.navMenu(ctx);
+            const sanitized = model.sanitizeName(ctx.message.text);
+            if (!sanitized) {
+              await model.sendInvalidNameError(ctx);
+            } else {
+              await model.renameDir(
+                ctx.session.chosenPath,
+                ctx.session.currentDir + sanitized + "/",
+              );
+              await model.navMenu(ctx);
+            }
           }
           ctx.session.dialogStep = DialogStep.Idle;
           break;
@@ -31,19 +36,35 @@ export class TextHandler {
         case DialogStep.AwaitingPhoto:
           const bestPhoto = model.getBiggestPhoto(ctx);
           if (bestPhoto) {
-            const result = await model.addImage(bestPhoto, ctx);
+            const result = await model.addFile(bestPhoto, ctx);
             if (result) ctx.session.dialogStep = DialogStep.Idle;
           }
           break;
 
         case DialogStep.AwaitingDirectoryName:
-          if (ctx.message.text) {
-            const result = await model.createDirectory(
-              ctx.session.currentDir,
-              ctx.message.text,
-            );
-            if (result === "") {
-              model.sendError("Error while creating directory", ctx);
+          if (ctx.message.text !== undefined) {
+            const raw = ctx.message.text.trim();
+            if (raw === "") {
+              const result = await model.createDirectory(
+                ctx.session.currentDir,
+                "",
+              );
+              if (result === "") {
+                model.sendError("Error while creating directory", ctx);
+              }
+            } else {
+              const sanitized = model.sanitizeName(raw);
+              if (!sanitized) {
+                await model.sendInvalidNameError(ctx);
+              } else {
+                const result = await model.createDirectory(
+                  ctx.session.currentDir,
+                  sanitized,
+                );
+                if (result === "") {
+                  model.sendError("Error while creating directory", ctx);
+                }
+              }
             }
             await model.navMenu(ctx);
           }

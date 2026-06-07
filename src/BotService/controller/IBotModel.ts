@@ -25,15 +25,18 @@ export interface IBotModel {
   ): Promise<void>;
   sendAwaitingDocument(ctx: BotContext): Promise<void>;
   sendAwaitingDirectoryName(ctx: BotContext): Promise<void>;
+  sendInvalidNameError(ctx: BotContext): Promise<void>;
 
   // Utils
   getBiggestPhoto(ctx: BotContext): string;
+  getFileId(ctx: BotContext): string | undefined;
   changeLang(ctx: BotContext, newLang: botLanguage): Promise<void>;
   sessionReset(ctx: BotContext, hard: boolean): void;
   navigateTo(ctx: BotContext, dir: string): Promise<void>;
+  sanitizeName(name: string): string | null;
 
   // File management
-  addImage(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
+  addFile(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
   deleteFile(ctx: BotContext, path: string): Promise<boolean>;
   createDirectory(currentDir: string, name: string): Promise<string>;
   removeDirectory(path: string): Promise<unknown>;

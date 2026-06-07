@@ -7,10 +7,10 @@ export class MediaHandler {
     private bot: Bot<BotContext>,
     model: IBotModel,
   ) {
-    this.bot.on(":photo", async (ctx: BotContext) => {
-      const bestPhoto = model.getBiggestPhoto(ctx);
+    this.bot.on(":file", async (ctx: BotContext) => {
+      const fileId = model.getFileId(ctx);
       const name = ctx.message?.caption;
-      if (bestPhoto) await model.addImage(bestPhoto, ctx, name);
+      if (fileId) await model.addFile(fileId, ctx, name);
     });
   }
 }
