@@ -8,9 +8,9 @@ export class MediaHandler {
     model: IBotModel,
   ) {
     this.bot.on(":photo", async (ctx: BotContext) => {
-      const bestPhoto = model.getBestPhoto(ctx);
+      const bestPhoto = model.getBiggestPhoto(ctx);
       const name = ctx.message?.caption;
-      if (bestPhoto) await model.addPhoto(bestPhoto, ctx, name);
+      if (bestPhoto) await model.addImage(bestPhoto, ctx, name);
     });
   }
 }

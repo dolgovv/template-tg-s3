@@ -24,7 +24,7 @@ export class ButtonHandler {
         if (ctx.session.currentDir === "" && dir === "..") {
           await ctx.answerCallbackQuery();
         } else {
-          await model.navTo(ctx, dir === "root" ? ".." : dir);
+          await model.navigateTo(ctx, dir === "root" ? ".." : dir);
           await ctx.answerCallbackQuery();
           await model.navMenu(ctx);
         }

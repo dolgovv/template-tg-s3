@@ -9,8 +9,8 @@ export interface IBotModel {
 
   // Replies
   sendError(message: string, ctx: BotContext): Promise<void>;
-  onHelp(ctx: BotContext): Promise<void>;
   errorCallback(callback: string, ctx: BotContext): Promise<void>;
+  sendHelp(ctx: BotContext): Promise<void>;
   sendDeletionError(
     isFile: boolean,
     path: string,
@@ -27,18 +27,18 @@ export interface IBotModel {
   sendAwaitingDirectoryName(ctx: BotContext): Promise<void>;
 
   // Utils
-  getBestPhoto(ctx: BotContext): string;
+  getBiggestPhoto(ctx: BotContext): string;
   changeLang(ctx: BotContext, newLang: botLanguage): Promise<void>;
   sessionReset(ctx: BotContext, hard: boolean): void;
-  navTo(ctx: BotContext, dir: string): Promise<void>;
+  navigateTo(ctx: BotContext, dir: string): Promise<void>;
 
   // File management
-  addPhoto(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
+  addImage(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
   deleteFile(ctx: BotContext, path: string): Promise<boolean>;
   createDirectory(currentDir: string, name: string): Promise<string>;
   removeDirectory(path: string): Promise<unknown>;
   sendImage(ctx: BotContext, path: string): Promise<void>;
-  sendAllImages(ctx: BotContext): Promise<void>;
+  sendAllImagesHere(ctx: BotContext): Promise<void>;
   sendTextFile(ctx: BotContext, path: string): Promise<void>;
   renameDir(oldPath: string, newPath: string): Promise<boolean>;
 }

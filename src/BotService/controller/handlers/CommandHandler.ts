@@ -9,11 +9,11 @@ export class CommandHandler {
   ) {
     this.bot.command("start", async (ctx) => await model.mainMenu(ctx));
 
-    this.bot.command("help", async (ctx) => await model.onHelp(ctx));
+    this.bot.command("help", async (ctx) => await model.sendHelp(ctx));
 
     this.bot.command(
       "all_imgs_here",
-      async (ctx) => await model.sendAllImages(ctx),
+      async (ctx) => await model.sendAllImagesHere(ctx),
     );
     this.bot.command("nav", async (ctx) => {
       ctx.session.lastMenuMessageId = 0;

@@ -91,7 +91,7 @@ export class BotModelImpl implements IBotModel {
   }
 
   async actionsMenu(ctx: BotContext, path: string) {
-    const isFile = path.endsWith("/");
+    const isFile = !path.endsWith("/");
     await this.dialog.sendActionsMenu(ctx, isFile, path);
   }
 
@@ -104,7 +104,7 @@ export class BotModelImpl implements IBotModel {
 
   // REPLIES ==============================================
 
-  async onHelp(ctx: BotContext) {
+  async sendHelp(ctx: BotContext) {
     if (ctx.chat) {
       await this.dialog.sendHelp(ctx);
     }
@@ -151,7 +151,7 @@ export class BotModelImpl implements IBotModel {
 
   // UTILS ================================================
 
-  getBestPhoto(ctx: BotContext): string {
+  getBiggestPhoto(ctx: BotContext): string {
     const msg = ctx.message;
     if (!msg) return "";
     const photo = msg.photo;
@@ -205,7 +205,7 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  async navTo(ctx: BotContext, dir: string) {
+  async navigateTo(ctx: BotContext, dir: string) {
     if (dir) {
       if (dir === "..") {
         this.navigateBack(ctx);
@@ -247,7 +247,7 @@ export class BotModelImpl implements IBotModel {
     return buffer;
   }
 
-  async addPhoto(
+  async addImage(
     fileId: string,
     ctx: BotContext,
     name?: string,
@@ -326,7 +326,7 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  async sendAllImages(ctx: BotContext) {
+  async sendAllImagesHere(ctx: BotContext) {
     const path = ctx.session.currentDir;
     const loadedImages = await this.repo.getImagesInDir(path);
     await this.dialog.sendImgs(loadedImages, ctx);

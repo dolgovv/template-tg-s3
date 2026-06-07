@@ -29,9 +29,9 @@ export class TextHandler {
           break;
 
         case DialogStep.AwaitingPhoto:
-          const bestPhoto = model.getBestPhoto(ctx);
+          const bestPhoto = model.getBiggestPhoto(ctx);
           if (bestPhoto) {
-            const result = await model.addPhoto(bestPhoto, ctx);
+            const result = await model.addImage(bestPhoto, ctx);
             if (result) ctx.session.dialogStep = DialogStep.Idle;
           }
           break;
@@ -51,7 +51,7 @@ export class TextHandler {
           break;
 
         default:
-          await model.onHelp(ctx);
+          await model.sendHelp(ctx);
           break;
       }
     });
