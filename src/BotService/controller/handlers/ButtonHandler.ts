@@ -63,8 +63,6 @@ export class ButtonHandler {
 
     this.bot.callbackQuery(/new(File|Dir)/, async (ctx) => {
       const isFile = ctx.match[1]! === "File";
-      console.log("ctx.match = ", ctx.match);
-
       if (isFile) {
         ctx.session.dialogStep = DialogStep.AwaitingPhoto;
         await ctx.answerCallbackQuery();
@@ -81,8 +79,6 @@ export class ButtonHandler {
       ctx.session.chosenPath = path ? path : "";
       ctx.session.dialogStep = DialogStep.AwaitingNewName;
       await ctx.answerCallbackQuery();
-      console.log("new name required");
-
       await model.askNewName(ctx);
     });
 
@@ -120,7 +116,6 @@ export class ButtonHandler {
             break;
 
           default:
-            console.log("хуйню какую-то попробовал открыть");
             await model.sendError(
               "Unsupported (yet) file extension: " + path,
               ctx,

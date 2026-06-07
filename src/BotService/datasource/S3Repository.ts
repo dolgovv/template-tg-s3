@@ -156,7 +156,6 @@ export class BotRepository {
       });
       const response = await this.s3Client.send(copyCommand);
       this.isStatusCodeOk(response.$metadata.httpStatusCode);
-      console.log(`Скопирован: ${oldKey} -> ${newKey}`);
     }
     return result;
   }
@@ -212,8 +211,6 @@ export class BotRepository {
     name: string,
     extension: string,
   ): Promise<boolean> {
-    console.log("key=", dir + name + extension);
-
     const response = await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.bucket,

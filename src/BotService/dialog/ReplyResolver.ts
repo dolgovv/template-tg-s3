@@ -14,8 +14,6 @@ export class ReplyResolver {
         break;
 
       case "menu":
-        console.log("MENU SENT");
-
         if (ctx.session.lastMenuMessageId > 0) {
           try {
             await ctx.api.editMessageText(

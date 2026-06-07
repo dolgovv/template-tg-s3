@@ -12,6 +12,40 @@ import { createS3Client } from "./datasource/S3Client.js";
 import type { BotConfigEnv } from "./utils/env_auth.js";
 import { BotModel } from "./domain/BotModel.js";
 import { BotRouter } from "./controller/BotRouter.js";
+import Logger, { FileTransport } from "zario";
+
+export class BotLogger {
+  private infoLogger = new Logger({
+    level: "info",
+    transports: [new FileTransport({ path: "./logs/info.log" })],
+  });
+
+  private errorLogger = new Logger({
+    level: "error",
+    transports: [new FileTransport({ path: "./logs/error.log" })],
+  });
+
+  getDetails(ctx: BotContext): string {
+    const chat = ctx.chat;
+    if (!chat) return "";
+    const username = chat.username;
+    const result =
+      "\nID: " + chat.id + username ? "\tLink: t.me/" + username : "";
+    return result;
+  }
+
+  info(message: string) {
+    this.infoLogger.info(message);
+  }
+
+  error(message: string) {
+    this.errorLogger.error(message);
+  }
+
+  warn(message: string) {
+    this.infoLogger.warn(message);
+  }
+}
 
 export class BotService {
   private config: BotConfigEnv;
@@ -20,6 +54,7 @@ export class BotService {
   private repo!: BotRepository;
   private model!: BotModel;
   router!: BotRouter;
+  private logger: BotLogger = new BotLogger();
 
   constructor(config: BotConfigEnv) {
     this.config = config;
@@ -32,9 +67,8 @@ export class BotService {
 
     this.setUpS3();
 
-    this.setUpDialog();
-
     this.setUpMiddleware();
+    this.setUpDialog();
   }
 
   private buildBotProxyConfig(): object {
@@ -68,7 +102,7 @@ export class BotService {
 
   private setUpDialog() {
     this.dialogEngine = new DialogEngine();
-    this.model = new BotModel(this.repo, this.dialogEngine);
+    this.model = new BotModel(this.repo, this.dialogEngine, this.logger);
     this.router = new BotRouter(this.bot, this.model);
   }
 
@@ -86,22 +120,25 @@ export class BotService {
         storage: new FileAdapter({ dirName: "sessions" }),
       }),
     );
-
-    // console.log("currentDir from setUpSession: ", ctx.session.currentDir);
   }
 
   private async setUpMiddleware() {
     this.bot.use(async (ctx, next) => {
       if (!ctx.chatId || !this.isAdmin(ctx.chatId)) {
-        this.dialogEngine.sendAuthError(ctx);
-        console.log(ctx.chatId + " tried to log in. Failed");
+        console.log(ctx.chatId);
+
+        await this.dialogEngine.sendAuthError(ctx);
+        this.logger.error(
+          "Log in attempt failed" + this.logger.getDetails(ctx),
+        );
         return;
       }
+
       return next();
     });
 
     this.bot.catch(async (err) => {
-      console.log("BOT CATCHED AN ERROR: ", err);
+      this.logger.error(err.message + this.logger.getDetails(err.ctx));
       this.model.hardResetSession(err.ctx);
     });
   }

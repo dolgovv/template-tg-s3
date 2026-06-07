@@ -41,6 +41,9 @@ importers:
       url:
         specifier: ^0.11.4
         version: 0.11.4
+      zario:
+        specifier: ^0.8.0
+        version: 0.8.0
     devDependencies:
       '@types/node':
         specifier: ^25.6.2
@@ -215,6 +218,7 @@ packages:
   '@smithy/core@3.24.1':
     resolution: {integrity: sha512-3mT7o4qQyUWttYnVK3A0Z/u3Xha3E81tXn32Tz6vjZiUXhBrkEivpw1hBYfh84iFF9CSzkBU9Y1DJ3Q6RQ231g==}
     engines: {node: '>=18.0.0'}
+    deprecated: Deprecated due to bug in browser bundling instructions https://github.com/smithy-lang/smithy-typescript/issues/2025
 
   '@smithy/credential-provider-imds@4.3.1':
     resolution: {integrity: sha512-0S/acwHnqX4WrjXzhdiDRxsG2s9SC0cpPIK9nZ1R6UOHd+j7uL28+4bHu22urbLk2TVw3fkp6na/+fkUt/pLNQ==}
@@ -584,6 +588,9 @@ packages:
 
   whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+
+  zario@0.8.0:
+    resolution: {integrity: sha512-C1We6i2K+glTqkKsDB1D7qp99Ccv+RwQWIAYHm1VwrLVFE0HaGj55pAB2ITG8Uz7Z+mstjFQXhs3LDYJR/7Iig==}
 
 snapshots:
 
@@ -1468,3 +1475,5 @@ snapshots:
     dependencies:
       tr46: 0.0.3
       webidl-conversions: 3.0.1
+
+  zario@0.8.0: {}

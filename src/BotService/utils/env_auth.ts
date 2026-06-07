@@ -49,10 +49,13 @@ export function loadConfig(): BotConfigEnv {
 }
 
 function parseAdminIds(raw: string): number[] {
-  return raw
+  const ids = raw
     .split(",")
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
     .map((s) => parseInt(s, 10))
     .filter((id) => !isNaN(id));
+  console.log(ids);
+
+  return ids;
 }

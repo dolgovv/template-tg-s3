@@ -10,11 +10,13 @@ import {
   type NavigationInstance,
 } from "../utils/types.js";
 import { fetch, ProxyAgent } from "undici";
+import type { BotLogger } from "../BotService.js";
 
 export class BotModel {
   constructor(
     private repo: BotRepository,
     private dialog: DialogEngine,
+    private logger: BotLogger,
   ) {}
 
   // MENUS ================================================
@@ -28,7 +30,7 @@ export class BotModel {
         ctx,
       );
     } else {
-      console.log("no session bitches: ", ctx.session);
+      this.logger.error("No session bitches: " + this.logger.getDetails(ctx));
     }
   }
 
@@ -120,10 +122,12 @@ export class BotModel {
   }
 
   async sendError(errorText: string, ctx: BotContext) {
+    this.logger.error(errorText + this.logger.getDetails(ctx));
     await this.dialog.sendError(errorText, ctx);
   }
 
   async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
+    this.logger.error("Deletion error: " + path + this.logger.getDetails(ctx));
     await this.dialog.sendDeletionError(isFile, path, ctx);
   }
 
@@ -140,6 +144,11 @@ export class BotModel {
     isFile: boolean,
     path: string,
   ) {
+    this.logger.info(
+      (isFile ? "File " : "Folder") +
+        " was deleted" +
+        this.logger.getDetails(ctx),
+    );
     await this.dialog.sendDeletedSuccessfully(ctx, isFile, path);
   }
 
