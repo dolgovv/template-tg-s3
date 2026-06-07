@@ -55,7 +55,6 @@ function parseAdminIds(raw: string): number[] {
     .filter((s) => s.length > 0)
     .map((s) => parseInt(s, 10))
     .filter((id) => !isNaN(id));
-  console.log(ids);
 
   return ids;
 }

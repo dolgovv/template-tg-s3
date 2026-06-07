@@ -125,8 +125,6 @@ export class BotService {
   private async setUpMiddleware() {
     this.bot.use(async (ctx, next) => {
       if (!ctx.chatId || !this.isAdmin(ctx.chatId)) {
-        console.log(ctx.chatId);
-
         await this.dialogEngine.sendAuthError(ctx);
         this.logger.error(
           "Log in attempt failed" + this.logger.getDetails(ctx),
