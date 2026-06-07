@@ -8,52 +8,68 @@ export class ButtonHandler {
     model: BotModel,
   ) {
     this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
-      const newLang = ctx.match[1]! === "ru" ? "ru" : "en";
-      await model.changeLang(ctx, newLang);
-      await model.mainMenu(ctx, false);
+      if (ctx.match[1]) {
+        const newLang = ctx.match[1] === "ru" ? "ru" : "en";
+        await model.changeLang(ctx, newLang);
+        await model.mainMenu(ctx, false);
+      } else {
+        model.errorCallback(ctx.match[0], ctx);
+      }
     });
 
     this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
-      const dir = ctx.match[1]!;
+      if (ctx.match[1]) {
+        const dir = ctx.match[1];
 
-      if (ctx.session.currentDir === "" && dir === "..") {
-        await ctx.answerCallbackQuery();
+        if (ctx.session.currentDir === "" && dir === "..") {
+          await ctx.answerCallbackQuery();
+        } else {
+          await model.navTo(ctx, dir === "root" ? ".." : dir);
+          await ctx.answerCallbackQuery();
+          await model.navMenu(ctx);
+        }
       } else {
-        await model.navTo(ctx, dir === "root" ? ".." : dir);
-        await ctx.answerCallbackQuery();
-        await model.navMenu(ctx);
+        model.errorCallback(ctx.match[0], ctx);
       }
     });
 
     this.bot.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
-      const type = ctx.match[1]!;
-      const isFile = type === "File";
-      const path = ctx.match[2]!;
-      if (!path) {
-        await model.sendDeletionError(isFile, path, ctx);
+      if (ctx.match[1]) {
+        const type = ctx.match[1];
+        const isFile = type === "File";
+        const path = ctx.match[2]!;
+        if (!path) {
+          await model.sendDeletionError(isFile, path, ctx);
+        }
+
+        if (type === "File") {
+          const result = await model.deleteFile(ctx, path);
+
+          result
+            ? await model.sendDeletedSuccessfully(ctx, isFile, path)
+            : await model.sendDeletionError(isFile, path, ctx);
+        } else if (type === "Dir") {
+          const result = await model.removeDirectory(path);
+
+          result
+            ? await model.sendDeletedSuccessfully(ctx, isFile, path)
+            : await model.sendDeletionError(isFile, path, ctx);
+        }
+        await ctx.answerCallbackQuery();
+        await model.navMenu(ctx);
+      } else {
+        model.errorCallback(ctx.match[0], ctx);
       }
-
-      if (type === "File") {
-        const result = await model.deleteFile(ctx, path);
-
-        result
-          ? await model.sendDeletedSuccessfully(ctx, isFile, path)
-          : await model.sendDeletionError(isFile, path, ctx);
-      } else if (type === "Dir") {
-        const result = await model.removeDirectory(path);
-
-        result
-          ? await model.sendDeletedSuccessfully(ctx, isFile, path)
-          : await model.sendDeletionError(isFile, path, ctx);
-      }
-      await ctx.answerCallbackQuery();
-      await model.navMenu(ctx);
     });
 
-    this.bot.callbackQuery(/^delete(File|Dir)Ask:(.+)$/, async (ctx) => {
-      const path = ctx.match[2]!;
-      await model.deleteAskMenu(ctx, path);
-      await ctx.answerCallbackQuery();
+    this.bot.callbackQuery(/^delete(:?File|Dir)Ask:(.+)$/, async (ctx) => {
+      if (ctx.match[1]) {
+        const path = ctx.match[1];
+        await model.deleteAskMenu(ctx, path);
+        await ctx.answerCallbackQuery();
+      } else {
+        model.errorCallback(ctx.match[0], ctx);
+      }
     });
 
     this.bot.callbackQuery("cancel", async (ctx) => {
@@ -62,24 +78,32 @@ export class ButtonHandler {
     });
 
     this.bot.callbackQuery(/new(File|Dir)/, async (ctx) => {
-      const isFile = ctx.match[1]! === "File";
-      if (isFile) {
-        ctx.session.dialogStep = DialogStep.AwaitingPhoto;
-        await ctx.answerCallbackQuery();
-        await model.sendAwaitingDocument(ctx);
+      if (ctx.match[1]) {
+        const isFile = ctx.match[1] === "File";
+        if (isFile) {
+          ctx.session.dialogStep = DialogStep.AwaitingPhoto;
+          await ctx.answerCallbackQuery();
+          await model.sendAwaitingDocument(ctx);
+        } else {
+          ctx.session.dialogStep = DialogStep.AwaitingDirectoryName;
+          await ctx.answerCallbackQuery();
+          await model.sendAwaitingDirectoryName(ctx);
+        }
       } else {
-        ctx.session.dialogStep = DialogStep.AwaitingDirectoryName;
-        await ctx.answerCallbackQuery();
-        await model.sendAwaitingDirectoryName(ctx);
+        model.errorCallback(ctx.match[0], ctx);
       }
     });
 
     this.bot.callbackQuery(/rename(?:File|Dir)Ask:(.+)/, async (ctx) => {
-      const path = ctx.match[1];
-      ctx.session.chosenPath = path ? path : "";
-      ctx.session.dialogStep = DialogStep.AwaitingNewName;
-      await ctx.answerCallbackQuery();
-      await model.askNewName(ctx);
+      if (ctx.match[1]) {
+        const path = ctx.match[1];
+        ctx.session.chosenPath = path ? path : "";
+        ctx.session.dialogStep = DialogStep.AwaitingNewName;
+        await ctx.answerCallbackQuery();
+        await model.askNewName(ctx);
+      } else {
+        model.errorCallback(ctx.match[0], ctx);
+      }
     });
 
     this.bot.callbackQuery("newAsk", async (ctx) => {
@@ -89,42 +113,49 @@ export class ButtonHandler {
     });
 
     this.bot.callbackQuery(/^(?:dir|file)Actions:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
-
-      await model.actionsMenu(ctx, path);
+      if (ctx.match[1]) {
+        const path = ctx.match[1];
+        await model.actionsMenu(ctx, path);
+      } else {
+        model.errorCallback(ctx.match[0], ctx);
+      }
     });
 
     this.bot.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
-      const path = ctx.match[1]!;
+      if (ctx.match[1]) {
+        const path = ctx.match[1];
 
-      if (ctx.session.currentDir === "" && path === "..") {
-        await ctx.answerCallbackQuery();
-      } else {
-        const extensionIndex: number = path.lastIndexOf(".");
-        const fileExtension = path.slice(extensionIndex);
+        if (ctx.session.currentDir === "" && path === "..") {
+          await ctx.answerCallbackQuery();
+        } else {
+          const extensionIndex: number = path.lastIndexOf(".");
+          const fileExtension = path.slice(extensionIndex);
 
-        switch (fileExtension) {
-          case ".jpg":
-          case ".png":
-            await model.sendImage(ctx, path);
-            await model.navMenu(ctx);
-            break;
+          switch (fileExtension) {
+            case ".jpg":
+            case ".png":
+              await model.sendImage(ctx, path);
+              await model.navMenu(ctx);
+              break;
 
-          case ".txt":
-            await model.sendTextFile(ctx, path);
-            await model.navMenu(ctx);
-            break;
+            case ".txt":
+              await model.sendTextFile(ctx, path);
+              await model.navMenu(ctx);
+              break;
 
-          default:
-            await model.sendError(
-              "Unsupported (yet) file extension: " + path,
-              ctx,
-            );
+            default:
+              await model.sendError(
+                "Unsupported (yet) file extension: " + path,
+                ctx,
+              );
 
-            break;
+              break;
+          }
+
+          await ctx.answerCallbackQuery();
         }
-
-        await ctx.answerCallbackQuery();
+      } else {
+        model.errorCallback(ctx.match[0], ctx);
       }
     });
   }

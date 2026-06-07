@@ -125,6 +125,12 @@ export class BotModel {
     await this.dialog.sendError(errorText, ctx);
   }
 
+  async errorCallback(callback: string, ctx: BotContext) {
+    this.logger.error(
+      "Callback error '" + callback + "'" + this.logger.getDetails(ctx),
+    );
+  }
+
   async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
     this.logger.error("Deletion error: " + path + this.logger.getDetails(ctx));
     await this.dialog.sendDeletionError(isFile, path, ctx);
