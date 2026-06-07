@@ -30,8 +30,7 @@ export interface IBotModel {
   // Utils
   getBestPhoto(ctx: BotContext): string;
   changeLang(ctx: BotContext, newLang: botLanguage): Promise<void>;
-  softResetSession(ctx: BotContext): void;
-  hardResetSession(ctx: BotContext): void;
+  sessionReset(ctx: BotContext, hard: boolean): void;
   navTo(ctx: BotContext, dir: string): Promise<void>;
 
   // File management

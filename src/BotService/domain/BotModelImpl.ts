@@ -24,7 +24,7 @@ export class BotModelImpl implements IBotModel {
 
   async mainMenu(ctx: BotContext, shouldReset: boolean = true) {
     if (ctx.chat && ctx.session) {
-      if (shouldReset) this.softResetSession(ctx);
+      if (shouldReset) this.sessionReset(ctx);
       await this.dialog.sendMainMenu(
         ctx.chat.first_name,
         ctx.session.websiteName,
@@ -206,17 +206,14 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  softResetSession(ctx: BotContext) {
+  sessionReset(ctx: BotContext, hard: boolean = false): void {
     ctx.session.dialogStep = DialogStep.Idle;
     ctx.session.lastMenuMessageId = 0;
-  }
-
-  hardResetSession(ctx: BotContext) {
-    ctx.session.dialogStep = DialogStep.Idle;
-    ctx.session.currentDir = "";
-    ctx.session.lang = "en";
-    ctx.session.chosenPath = "";
-    ctx.session.lastMenuMessageId = 0;
+    if (hard) {
+      ctx.session.currentDir = "";
+      ctx.session.lang = "en";
+      ctx.session.chosenPath = "";
+    }
   }
 
   async navTo(ctx: BotContext, dir: string) {
@@ -277,7 +274,7 @@ export class BotModelImpl implements IBotModel {
 
     if (result) {
       await this.dialog.sendImageUploadSuccessful(ctx);
-      this.softResetSession(ctx);
+      this.sessionReset(ctx);
       await this.navMenu(ctx);
       return true;
     }

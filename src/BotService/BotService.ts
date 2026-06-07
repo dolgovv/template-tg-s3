@@ -138,7 +138,7 @@ export class BotService {
 
     this.bot.catch(async (err) => {
       this.logger.error(err.message + this.logger.getDetails(err.ctx));
-      this.model.hardResetSession(err.ctx);
+      this.model.sessionReset(err.ctx, true);
     });
   }
 
