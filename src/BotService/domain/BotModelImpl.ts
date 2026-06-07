@@ -11,8 +11,9 @@ import {
 } from "../utils/types.js";
 import { fetch, ProxyAgent } from "undici";
 import type { BotLogger } from "../BotService.js";
+import type { IBotModel } from "../controller/IBotModel.js";
 
-export class BotModel {
+export class BotModelImpl implements IBotModel {
   constructor(
     private repo: BotRepository,
     private dialog: DialogEngine,

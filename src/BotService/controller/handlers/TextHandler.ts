@@ -1,12 +1,12 @@
 import type { Bot } from "grammy";
 import type { BotContext } from "../../utils/types.js";
-import type { BotModel } from "../../domain/BotModel.js";
+import type { IBotModel } from "../../controller/IBotModel.js";
 import { DialogStep } from "../../utils/types.js";
 
 export class TextHandler {
   constructor(
     private bot: Bot<BotContext>,
-    model: BotModel,
+    model: IBotModel,
   ) {
     this.bot.on("message:text", async (ctx) => {
       const step = ctx.session.dialogStep;

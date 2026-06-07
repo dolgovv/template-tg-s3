@@ -1,11 +1,11 @@
 import type { Bot } from "grammy";
-import type { BotModel } from "../../domain/BotModel.js";
+import type { IBotModel } from "../../controller/IBotModel.js";
 import type { BotContext } from "../../utils/types.js";
 
 export class CommandHandler {
   constructor(
     private bot: Bot<BotContext>,
-    model: BotModel,
+    model: IBotModel,
   ) {
     this.bot.command("start", async (ctx) => await model.mainMenu(ctx));
 

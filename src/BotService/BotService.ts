@@ -10,7 +10,8 @@ import {
 import { BotRepository } from "./datasource/S3Repository.js";
 import { createS3Client } from "./datasource/S3Client.js";
 import type { BotConfigEnv } from "./utils/env_auth.js";
-import { BotModel } from "./domain/BotModel.js";
+import { BotModelImpl } from "./domain/BotModelImpl.js";
+import type { IBotModel } from "./controller/IBotModel.js";
 import { BotRouter } from "./controller/BotRouter.js";
 import Logger, { FileTransport } from "zario";
 
@@ -52,7 +53,7 @@ export class BotService {
   private bot!: Bot<BotContext>;
   private dialogEngine!: DialogEngine;
   private repo!: BotRepository;
-  private model!: BotModel;
+  private model!: IBotModel;
   router!: BotRouter;
   private logger: BotLogger = new BotLogger();
 
@@ -102,7 +103,7 @@ export class BotService {
 
   private setUpDialog() {
     this.dialogEngine = new DialogEngine();
-    this.model = new BotModel(this.repo, this.dialogEngine, this.logger);
+    this.model = new BotModelImpl(this.repo, this.dialogEngine, this.logger);
     this.router = new BotRouter(this.bot, this.model);
   }
 

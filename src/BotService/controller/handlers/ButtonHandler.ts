@@ -1,11 +1,11 @@
 import type { Bot } from "grammy";
-import type { BotModel } from "../../domain/BotModel.js";
+import type { IBotModel } from "../../controller/IBotModel.js";
 import { DialogStep, type BotContext } from "../../utils/types.js";
 
 export class ButtonHandler {
   constructor(
     private bot: Bot<BotContext>,
-    model: BotModel,
+    model: IBotModel,
   ) {
     this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
       if (ctx.match[1]) {
