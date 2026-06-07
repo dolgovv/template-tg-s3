@@ -91,7 +91,6 @@ export class BotModel {
         ctx,
       );
     } catch (err) {
-      console.error("get-dirs error:", err);
       await this.dialog.sendError("get directories " + err, ctx);
     }
   }
@@ -221,7 +220,6 @@ export class BotModel {
         ctx.session.currentDir = dir;
       }
     } else {
-      console.error("callback nav error: no such location");
       await this.dialog.sendError("callback nav error: no such location", ctx);
     }
   }
