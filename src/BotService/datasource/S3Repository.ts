@@ -141,21 +141,23 @@ export class BotRepository {
   }
 
   async copyAllRecursively(src: string, dst: string) {
-    let result = false;
+    let result = true;
     const sourcePrefix = src.endsWith("/") ? src : src + "/";
     const destPrefix = dst.endsWith("/") ? dst : dst + "/";
     const filesToCopy: _Object[] = await this.getEverythingFrom(sourcePrefix);
 
     for (const obj of filesToCopy) {
-      const oldKey = obj.Key!;
-      const newKey = oldKey.replace(sourcePrefix, destPrefix);
-      const copyCommand = new CopyObjectCommand({
-        Bucket: this.bucket,
-        CopySource: `${this.bucket}/${oldKey}`,
-        Key: newKey,
-      });
-      const response = await this.s3Client.send(copyCommand);
-      this.isStatusCodeOk(response.$metadata.httpStatusCode);
+      if (result) {
+        const oldKey = obj.Key!;
+        const newKey = oldKey.replace(sourcePrefix, destPrefix);
+        const copyCommand = new CopyObjectCommand({
+          Bucket: this.bucket,
+          CopySource: `${this.bucket}/${oldKey}`,
+          Key: newKey,
+        });
+        const response = await this.s3Client.send(copyCommand);
+        result = this.isStatusCodeOk(response.$metadata.httpStatusCode);
+      }
     }
     return result;
   }
@@ -270,6 +272,8 @@ export class BotRepository {
 
   async renameDir(oldPath: string, newPath: string): Promise<boolean> {
     let result = await this.copyAllRecursively(oldPath, newPath);
+    console.log("result after copy=", result);
+
     if (result) result = await this.removeDirectory(oldPath);
     return result;
   }
