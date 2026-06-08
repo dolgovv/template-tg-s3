@@ -6,6 +6,7 @@ export const textTranslates = {
       "Вместе с картинкой, пожалуйста, укажите название файла в том же сообщении",
     invalidName:
       "Некорректное имя. Используйте буквы, цифры, дефис и подчёркивание. Длина — от 1 до 200 символов.",
+    nameAlreadyExists: "Папка с таким именем уже существует.",
     unknownCommand: "Неизвестная команда.",
     anonName: "Анонимный пользователь",
     langChanged: "Язык успешно изменен!",
@@ -75,6 +76,7 @@ export const textTranslates = {
     noFilename: "Please, provide a file name with the same message",
     invalidName:
       "Invalid name. Use letters, digits, hyphens and underscores. Length: 1–200 characters.",
+    nameAlreadyExists: "A folder with this name already exists.",
     unknownCommand: "Unknown command.",
     anonName: "Anonymous user",
     langChanged: "Language changed successfully!",

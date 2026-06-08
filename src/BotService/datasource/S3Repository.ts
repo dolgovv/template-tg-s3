@@ -55,6 +55,21 @@ export class BotRepository {
     }
   }
 
+  async isDirectoryExists(path: string): Promise<boolean> {
+    const prefix = path.endsWith("/") ? path : path + "/";
+    const response = await this.s3Client.send(
+      new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Prefix: prefix,
+        MaxKeys: 1,
+      }),
+    );
+    return (
+      (response.Contents?.length ?? 0) > 0 ||
+      (response.CommonPrefixes?.length ?? 0) > 0
+    );
+  }
+
   async getImagesInDir(path: string): Promise<Buffer[]> {
     const imagesList = await this.listImagesInDir(path);
     const bufferPromises = imagesList.map(

@@ -248,6 +248,10 @@ export class BotModelImpl implements IBotModel {
     await this.dialog.sendInvalidNameError(ctx);
   }
 
+  async sendNameAlreadyExistsError(ctx: BotContext) {
+    await this.dialog.sendNameAlreadyExistsError(ctx);
+  }
+
   sanitizeName(raw: string): string | null {
     const sanitized = this.dialog.sanitizeFileName(raw.trim());
     if (!sanitized || sanitized.length === 0) return null;
@@ -390,9 +394,17 @@ export class BotModelImpl implements IBotModel {
     await this.dialog.sendTextFile(reducedPath, fileContent, ctx);
   }
 
-  async renameDir(oldPath: string, newPath: string): Promise<boolean> {
-    const result = await this.repo.renameDir(oldPath, newPath);
-    return result;
+  async renameDir(
+    oldPath: string,
+    newPath: string,
+    ctx: BotContext,
+  ): Promise<boolean> {
+    const alreadyExists = await this.repo.isDirectoryExists(newPath);
+    if (alreadyExists) {
+      await this.sendNameAlreadyExistsError(ctx);
+      return false;
+    }
+    return await this.repo.renameDir(oldPath, newPath);
   }
 
   // ======================================================

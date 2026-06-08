@@ -26,6 +26,7 @@ export class TextHandler {
               await model.renameDir(
                 ctx.session.chosenPath,
                 ctx.session.currentDir + sanitized + "/",
+                ctx,
               );
               await model.navMenu(ctx);
             }
