@@ -6,7 +6,9 @@ export const textTranslates = {
       "Вместе с картинкой, пожалуйста, укажите название файла в том же сообщении",
     invalidName:
       "Некорректное имя. Используйте буквы, цифры, дефис и подчёркивание. Длина — от 1 до 200 символов.",
-    nameAlreadyExists: "Папка с таким именем уже существует.",
+    nameAlreadyExists: (isFile: boolean) => {
+      return (isFile ? "Файл " : "Папка ") + "с таким именем уже существует.";
+    },
     unknownCommand: "Неизвестная команда.",
     anonName: "Анонимный пользователь",
     langChanged: "Язык успешно изменен!",
@@ -16,11 +18,11 @@ export const textTranslates = {
     awaitingMultipleImages:
       "Пожалуйста, отправьте несколько фото и укажите названия для каждого из них в сообщении через пробел\n<i>Например, с 5 картинками нужно написать текст 'название_первой_картинки название_второй_картинки' и тд. Если названий будет меньше, чем картинок - название сгенерируется автоматически </i>",
     awaitingDirectoryName: "Укажите название директории:",
-    addImageSuccessful: "Фото успешно загружено",
+    addFileSuccessful: "Фото успешно загружено",
     chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
     addAskType: "Добавить файл или директорию?",
     askNewName: "Введите новое имя:",
-    sendDeletedSuccessfully: (isFile: boolean, path: string): string => {
+    deletedSuccessfully: (isFile: boolean, path: string): string => {
       return (
         (isFile ? "Файл " : "Папка ") + path + " удален" + (isFile ? "" : "а")
       );
@@ -76,7 +78,11 @@ export const textTranslates = {
     noFilename: "Please, provide a file name with the same message",
     invalidName:
       "Invalid name. Use letters, digits, hyphens and underscores. Length: 1–200 characters.",
-    nameAlreadyExists: "A folder with this name already exists.",
+    nameAlreadyExists: (isFile: boolean) => {
+      return (
+        "A " + (isFile ? "file " : "folder ") + "with this name already exists."
+      );
+    },
     unknownCommand: "Unknown command.",
     anonName: "Anonymous user",
     langChanged: "Language changed successfully!",
@@ -85,11 +91,11 @@ export const textTranslates = {
     awaitingMultipleImages:
       "Please send multiple photos and include titles for each in the message, separated by spaces. \n<i>For example, with 5 images, you should write the text 'title_of_the_first_image, title_of_the_second_image,' etc. If there are fewer titles than images, the title will be generated automatically.</i>",
     awaitingDirectoryName: "Name new folder:",
-    addImageSuccessful: "Image uploaded successfully",
+    addFileSuccessful: "Image uploaded successfully",
     chooseAction: "Would you like to open it or remove completely?",
     addAskType: "Add file or directory?",
     askNewName: "Enter new name:",
-    sendDeletedSuccessfully: (isFile: boolean, path: string): string => {
+    deletedSuccessfully: (isFile: boolean, path: string): string => {
       return (isFile ? "File " : "Folder ") + path + " removed successfully";
     },
     deleteAsk: (isFile: boolean) => {

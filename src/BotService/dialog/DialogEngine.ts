@@ -56,10 +56,10 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendImageUploadSuccessful(ctx: BotContext) {
+  async sendFileUploadSuccessful(ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang];
-    const reply = this.factory.text(t.addImageSuccessful);
+    const reply = this.factory.text(t.addFileSuccessful);
     await this.resolver.reply(ctx, reply);
   }
 
@@ -77,7 +77,7 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendActionsMenu(ctx: BotContext, isFile: boolean, path: string) {
+  async sendActionsMenu(isFile: boolean, path: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang].chooseAction;
     const m = menusTranslates[lang].actionsMenu(isFile, path);
@@ -86,7 +86,7 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendAsksMenu(ctx: BotContext, isFile: boolean, path: string) {
+  async sendAsksMenu(isFile: boolean, path: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = textTranslates[lang].deleteAsk(isFile);
     const m = menusTranslates[lang].deleteAskMenu(isFile, path);
@@ -101,7 +101,10 @@ export class DialogEngine {
     path: string,
   ) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang].sendDeletedSuccessfully(isFile, path);
+    const t = textTranslates[lang].deletedSuccessfully(
+      isFile,
+      this.leafInPath(path),
+    );
 
     const reply = this.factory.text(t);
     await this.resolver.reply(ctx, reply);
@@ -168,9 +171,11 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendNameAlreadyExistsError(ctx: BotContext) {
+  async sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext) {
     const lang = ctx.session.lang;
-    const reply = this.factory.text(textTranslates[lang].nameAlreadyExists);
+    const reply = this.factory.text(
+      textTranslates[lang].nameAlreadyExists(isFile),
+    );
     await this.resolver.reply(ctx, reply);
   }
 

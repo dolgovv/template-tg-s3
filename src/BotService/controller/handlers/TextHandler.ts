@@ -23,11 +23,7 @@ export class TextHandler {
             if (!sanitized) {
               await model.sendInvalidNameError(ctx);
             } else {
-              await model.renameDir(
-                ctx.session.chosenPath,
-                ctx.session.currentDir + sanitized + "/",
-                ctx,
-              );
+              await model.rename(ctx.session.chosenPath, sanitized, ctx);
               await model.navMenu(ctx);
             }
           }

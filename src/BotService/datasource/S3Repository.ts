@@ -287,10 +287,28 @@ export class BotRepository {
 
   async renameDir(oldPath: string, newPath: string): Promise<boolean> {
     let result = await this.copyAllRecursively(oldPath, newPath);
-    console.log("result after copy=", result);
-
     if (result) result = await this.removeDirectory(oldPath);
     return result;
+  }
+
+  async renameFile(oldKey: string, newKey: string): Promise<boolean> {
+    const copyResponse = await this.s3Client.send(
+      new CopyObjectCommand({
+        Bucket: this.bucket,
+        CopySource: `${this.bucket}/${oldKey}`,
+        Key: newKey,
+      }),
+    );
+    if (!this.isStatusCodeOk(copyResponse.$metadata.httpStatusCode)) {
+      return false;
+    }
+    const deleteResponse = await this.s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: this.bucket,
+        Key: oldKey,
+      }),
+    );
+    return this.isStatusCodeOk(deleteResponse.$metadata.httpStatusCode);
   }
 
   async listAllFilesHere(prefix: string = ""): Promise<string[]> {

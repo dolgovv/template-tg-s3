@@ -92,12 +92,14 @@ export class BotModelImpl implements IBotModel {
 
   async actionsMenu(ctx: BotContext, path: string) {
     const isFile = !path.endsWith("/");
-    await this.dialog.sendActionsMenu(ctx, isFile, path);
+    await this.dialog.sendActionsMenu(isFile, path, ctx);
   }
 
   async deleteAskMenu(ctx: BotContext, path: string) {
-    const isFile = path.endsWith("/");
-    await this.dialog.sendAsksMenu(ctx, isFile, path);
+    const isFile = !path.endsWith("/");
+    console.log("from delete ask menu:", path, isFile);
+
+    await this.dialog.sendAsksMenu(isFile, path, ctx);
   }
 
   // ======================================================
@@ -182,12 +184,13 @@ export class BotModelImpl implements IBotModel {
 
   private pathToType(path: string): ContentType {
     const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
+    const textExtensions = [".txt", ".pdf", ".doc", ".docx"];
 
     if (path.endsWith("/")) {
       return { type: "Directory", symbol: "📁" };
     } else if (imageExtensions.some((ext) => path.endsWith(ext))) {
       return { type: "Image", symbol: "🖼️" };
-    } else if (path.endsWith(".txt")) {
+    } else if (textExtensions.some((ext) => path.endsWith(ext))) {
       return { type: "Text", symbol: "📄" };
     } else {
       return { type: "Unknown", symbol: "?" };
@@ -248,8 +251,8 @@ export class BotModelImpl implements IBotModel {
     await this.dialog.sendInvalidNameError(ctx);
   }
 
-  async sendNameAlreadyExistsError(ctx: BotContext) {
-    await this.dialog.sendNameAlreadyExistsError(ctx);
+  async sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext) {
+    await this.dialog.sendNameAlreadyExistsError(isFile, ctx);
   }
 
   sanitizeName(raw: string): string | null {
@@ -317,7 +320,7 @@ export class BotModelImpl implements IBotModel {
     );
 
     if (result) {
-      await this.dialog.sendImageUploadSuccessful(ctx);
+      await this.dialog.sendFileUploadSuccessful(ctx);
       this.sessionReset(ctx);
       await this.navMenu(ctx);
       return true;
@@ -394,17 +397,43 @@ export class BotModelImpl implements IBotModel {
     await this.dialog.sendTextFile(reducedPath, fileContent, ctx);
   }
 
-  async renameDir(
+  async rename(
     oldPath: string,
-    newPath: string,
+    newName: string,
     ctx: BotContext,
   ): Promise<boolean> {
-    const alreadyExists = await this.repo.isDirectoryExists(newPath);
-    if (alreadyExists) {
-      await this.sendNameAlreadyExistsError(ctx);
-      return false;
+    const isFile: boolean = !oldPath.endsWith("/");
+
+    if (!isFile) {
+      // Build new path: replace last segment name, keep parent prefix and trailing slash
+      const withoutTrailing = oldPath.slice(0, -1);
+      const parentPrefix = withoutTrailing.includes("/")
+        ? withoutTrailing.slice(0, withoutTrailing.lastIndexOf("/") + 1)
+        : "";
+      const newPath = parentPrefix + newName + "/";
+
+      const alreadyExists = await this.repo.isDirectoryExists(newPath);
+      if (alreadyExists) {
+        await this.sendNameAlreadyExistsError(isFile, ctx);
+        return false;
+      }
+      return await this.repo.renameDir(oldPath, newPath);
+    } else {
+      // File: preserve extension from the original key
+      const dotIndex = oldPath.lastIndexOf(".");
+      const extension = dotIndex !== -1 ? oldPath.slice(dotIndex) : "";
+      const parentPrefix = oldPath.includes("/")
+        ? oldPath.slice(0, oldPath.lastIndexOf("/") + 1)
+        : "";
+      const newKey = parentPrefix + newName + extension;
+
+      const alreadyExists = await this.repo.isFileExists(newKey);
+      if (alreadyExists) {
+        await this.sendNameAlreadyExistsError(isFile, ctx);
+        return false;
+      }
+      return await this.repo.renameFile(oldPath, newKey);
     }
-    return await this.repo.renameDir(oldPath, newPath);
   }
 
   // ======================================================

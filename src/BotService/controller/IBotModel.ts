@@ -26,7 +26,7 @@ export interface IBotModel {
   sendAwaitingDocument(ctx: BotContext): Promise<void>;
   sendAwaitingDirectoryName(ctx: BotContext): Promise<void>;
   sendInvalidNameError(ctx: BotContext): Promise<void>;
-  sendNameAlreadyExistsError(ctx: BotContext): Promise<void>;
+  sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext): Promise<void>;
 
   // Utils
   getBiggestPhoto(ctx: BotContext): string;
@@ -44,9 +44,5 @@ export interface IBotModel {
   sendImage(ctx: BotContext, path: string): Promise<void>;
   sendAllImagesHere(ctx: BotContext): Promise<void>;
   sendTextFile(ctx: BotContext, path: string): Promise<void>;
-  renameDir(
-    oldPath: string,
-    newPath: string,
-    ctx: BotContext,
-  ): Promise<boolean>;
+  rename(oldPath: string, newName: string, ctx: BotContext): Promise<boolean>;
 }
