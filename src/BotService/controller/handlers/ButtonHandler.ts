@@ -78,6 +78,7 @@ export class ButtonHandler {
 
     this.bot.callbackQuery("cancel", async (ctx) => {
       ctx.answerCallbackQuery();
+      ctx.session.dialogStep = DialogStep.Idle;
       await model.navMenu(ctx);
     });
 

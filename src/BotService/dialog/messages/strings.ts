@@ -18,7 +18,7 @@ export const textTranslates = {
     awaitingMultipleImages:
       "Пожалуйста, отправьте несколько фото и укажите названия для каждого из них в сообщении через пробел\n<i>Например, с 5 картинками нужно написать текст 'название_первой_картинки название_второй_картинки' и тд. Если названий будет меньше, чем картинок - название сгенерируется автоматически </i>",
     awaitingDirectoryName: "Укажите название директории:",
-    addFileSuccessful: "Фото успешно загружено",
+    addFileSuccessful: "Файл успешно загружен",
     chooseAction: "Вы бы хотели открыть или удалить (безвозвратно)?",
     addAskType: "Добавить файл или директорию?",
     askNewName: "Введите новое имя:",
@@ -91,7 +91,7 @@ export const textTranslates = {
     awaitingMultipleImages:
       "Please send multiple photos and include titles for each in the message, separated by spaces. \n<i>For example, with 5 images, you should write the text 'title_of_the_first_image, title_of_the_second_image,' etc. If there are fewer titles than images, the title will be generated automatically.</i>",
     awaitingDirectoryName: "Name new folder:",
-    addFileSuccessful: "Image uploaded successfully",
+    addFileSuccessful: "File uploaded successfully",
     chooseAction: "Would you like to open it or remove completely?",
     addAskType: "Add file or directory?",
     askNewName: "Enter new name:",

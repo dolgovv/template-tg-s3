@@ -193,7 +193,7 @@ export class BotModelImpl implements IBotModel {
     } else if (textExtensions.some((ext) => path.endsWith(ext))) {
       return { type: "Text", symbol: "📄" };
     } else {
-      return { type: "Unknown", symbol: "?" };
+      return { type: "Unknown", symbol: "❓" };
     }
   }
 

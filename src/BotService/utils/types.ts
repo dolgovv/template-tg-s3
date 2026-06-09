@@ -23,7 +23,7 @@ export type ContentType =
   | { type: "Directory"; symbol: "📁" }
   | { type: "Image"; symbol: "🖼️" }
   | { type: "Text"; symbol: "📄" }
-  | { type: "Unknown"; symbol: "?" };
+  | { type: "Unknown"; symbol: "❓" };
 
 export type SessionData = {
   lang: botLanguage;
