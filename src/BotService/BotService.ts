@@ -16,15 +16,20 @@ import { BotRouter } from "./controller/BotRouter.js";
 import Logger, { FileTransport } from "zario";
 
 export class BotLogger {
-  private infoLogger = new Logger({
-    level: "info",
-    transports: [new FileTransport({ path: "./logs/info.log" })],
-  });
+  infoLogger: Logger;
+  errorLogger: Logger;
 
-  private errorLogger = new Logger({
-    level: "error",
-    transports: [new FileTransport({ path: "./logs/error.log" })],
-  });
+  constructor(private logPath: string) {
+    this.infoLogger = new Logger({
+      level: "info",
+      transports: [new FileTransport({ path: this.logPath + "/info.log" })],
+    });
+
+    this.errorLogger = new Logger({
+      level: "error",
+      transports: [new FileTransport({ path: this.logPath + "/error.log" })],
+    });
+  }
 
   getDetails(ctx: BotContext): string {
     const chat = ctx.chat;
@@ -55,7 +60,7 @@ export class BotService {
   private repo!: BotRepository;
   private model!: IBotModel;
   router!: BotRouter;
-  private logger: BotLogger = new BotLogger();
+  private logger!: BotLogger;
 
   constructor(config: BotConfigEnv) {
     this.config = config;
@@ -108,6 +113,7 @@ export class BotService {
   }
 
   private setUpSession() {
+    this.logger = new BotLogger(this.config.logPath);
     this.bot.use(
       session({
         initial: (): SessionData => ({

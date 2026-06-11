@@ -16,6 +16,7 @@ export interface BotConfigEnv {
   proxyUrl?: string;
   websiteName: string;
   adminIds: number[];
+  logPath: string;
   currentDir: string | undefined;
   lastMenuMessageId: number;
 
@@ -35,6 +36,8 @@ export function loadConfig(): BotConfigEnv {
     ...(proxyUrl && { proxyUrl }),
     websiteName: getEnv("WEBSITE_NAME", true),
     adminIds: parseAdminIds(getEnv("ADMIN_IDS", true)),
+    logPath: getEnv("LOG_PATH", true),
+
     // S3
     currentDir: getEnv("S3_ROOT_FOLDER", false),
     lastMenuMessageId: 0,
