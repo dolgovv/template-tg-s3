@@ -36,4 +36,5 @@ export type SessionData = {
 
 export type BotContext = Context & SessionFlavor<SessionData>;
 
-export type botLanguage = "ru" | "en";
+export const SUPPORTED_LANGUAGES = ["ru", "en"] as const;
+export type botLanguage = (typeof SUPPORTED_LANGUAGES)[number];

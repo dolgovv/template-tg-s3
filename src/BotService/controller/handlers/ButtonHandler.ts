@@ -1,16 +1,24 @@
 import type { Bot } from "grammy";
 import type { IBotModel } from "../../controller/IBotModel.js";
-import { DialogStep, type BotContext } from "../../utils/types.js";
+import {
+  DialogStep,
+  SUPPORTED_LANGUAGES,
+  type BotContext,
+  type botLanguage,
+} from "../../utils/types.js";
 
 export class ButtonHandler {
   constructor(
     private bot: Bot<BotContext>,
     model: IBotModel,
   ) {
-    this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
-      if (ctx.match[1]) {
-        const newLang = ctx.match[1] === "ru" ? "ru" : "en";
-        await model.changeLang(ctx, newLang);
+    this.bot.callbackQuery(/lang=(.+)/, async (ctx) => {
+      const candidate = ctx.match[1];
+      if (
+        candidate &&
+        (SUPPORTED_LANGUAGES as readonly string[]).includes(candidate)
+      ) {
+        await model.changeLang(ctx, candidate as botLanguage);
         await model.mainMenu(ctx, false);
       } else {
         model.errorCallback(ctx.match[0], ctx);
