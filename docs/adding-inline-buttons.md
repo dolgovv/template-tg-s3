@@ -23,26 +23,37 @@ ru: {
 - `text` — надпись, которую видит пользователь
 - `call` — уникальный идентификатор нажатия (латиница, без пробелов)
 
-Если массив пустой `[]` — кнопки не появятся. Бот сам решает добавлять их или нет.
+Если массив пустой `[]` — кнопки не появятся.
 
 ---
 
-## Шаг 2 — Обработать нажатие в `ButtonHandler.ts`
+## Шаг 2 — Добавить метод в `BotModelImpl.ts`
 
-Открой `src/BotService/dialog/handlers/ButtonHandler.ts`. В конструкторе зарегистрируй обработчик по значению `call`:
+Открой `src/BotService/domain/BotModelImpl.ts` и добавь метод для обработки нажатия:
 
 ```ts
-this.bot.callbackQuery("status_show", (ctx) => this.onStatusShow(ctx));
+async onStatusShow(ctx: BotContext) {
+  await this.dialog.sendStatus(ctx);
+}
 ```
 
-Добавь метод:
+Добавь сигнатуру в `src/BotService/controller/IBotModel.ts`:
 
 ```ts
-async onStatusShow(ctx: CallbackQueryContext<BotContext>) {
+onStatusShow(ctx: BotContext): Promise<void>;
+```
+
+---
+
+## Шаг 3 — Обработать нажатие в `ButtonHandler.ts`
+
+Открой `src/BotService/controller/handlers/ButtonHandler.ts`. В конструкторе зарегистрируй обработчик по значению `call`:
+
+```ts
+this.bot.callbackQuery("status_show", async (ctx) => {
   await ctx.answerCallbackQuery(); // обязательно — убирает индикатор загрузки на кнопке
-  const reply = this.dialog.buildStatus(ctx.session.lang);
-  await this.resolver.reply(ctx, reply);
-}
+  await model.onStatusShow(ctx);
+});
 ```
 
 `ctx.answerCallbackQuery()` можно вызвать с текстом — он покажется как всплывающее уведомление:

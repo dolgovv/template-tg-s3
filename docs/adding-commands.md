@@ -10,8 +10,9 @@
 | Файл                | Что в нём                                 |
 | ------------------- | ----------------------------------------- |
 | `strings.ts`        | Тексты и кнопки для каждого языка         |
-| `DialogEngine.ts`   | Сборка готового ответа из текста и кнопок |
-| `CommandHandler.ts` | Регистрация команды и вызов ответа        |
+| `DialogEngine.ts`   | Методы отправки сообщений пользователю    |
+| `BotModelImpl.ts`   | Бизнес-логика: вызывает DialogEngine      |
+| `CommandHandler.ts` | Регистрация команды и вызов метода модели |
 
 ---
 
@@ -69,42 +70,54 @@ ru: {
 }
 ```
 
-Если кнопки не нужны — оставь пустой массив `[]`. Бот сам не добавит кнопки к сообщению.
+Если кнопки не нужны — оставь пустой массив `[]`.
 
 ---
 
-## Шаг 2 — Добавить сборку ответа в `DialogEngine.ts`
+## Шаг 2 — Добавить метод отправки в `DialogEngine.ts`
 
-Открой `src/BotService/dialog/DialogEngine.ts`. Там уже есть примеры — `buildHelp`, `buildWelcome` и другие.
-Добавь новый метод по той же схеме. Обрати внимание: первым параметром всегда передаётся `lang` — язык конкретного пользователя.
+Открой `src/BotService/dialog/DialogEngine.ts`. Там уже есть примеры — `sendHelp`, `sendMainMenu` и другие.
+Добавь новый async-метод по той же схеме. Методы принимают `ctx: BotContext` и сами выполняют отправку.
 
 ```ts
-buildStatus(lang: botLanguage): BotMessage {
+async sendStatus(ctx: BotContext) {
+  const lang = ctx.session.lang;
   const t = textTranslates[lang];
   const m = menusTranslates[lang] ?? {};
-  return this.factory.text(t.status, m.status);
+  const reply = this.factory.text(t.status, m.status);
+  await this.resolver.reply(ctx, reply);
 }
 ```
 
 ---
 
-## Шаг 3 — Зарегистрировать команду в `CommandHandler.ts`
+## Шаг 3 — Добавить метод в `BotModelImpl.ts`
 
-Открой `src/BotService/dialog/handlers/CommandHandler.ts`. В конструкторе зарегистрируй новую команду:
-
-```ts
-this.bot.command("status", (ctx) => this.onStatus(ctx));
-```
-
-Затем добавь метод-обработчик. Язык берётся из `ctx.session.lang` — это язык конкретного пользователя:
+Открой `src/BotService/domain/BotModelImpl.ts` и добавь метод, который вызывает `DialogEngine`:
 
 ```ts
-async onStatus(ctx: BotContext) {
+async sendStatus(ctx: BotContext) {
   if (ctx.chat) {
-    const reply = this.dialog.buildStatus(ctx.session.lang);
-    await this.resolver.reply(ctx, reply);
+    await this.dialog.sendStatus(ctx);
   }
 }
+```
+
+Также добавь сигнатуру метода в интерфейс `src/BotService/controller/IBotModel.ts`:
+
+```ts
+sendStatus(ctx: BotContext): Promise<void>;
+```
+
+---
+
+## Шаг 4 — Зарегистрировать команду в `CommandHandler.ts`
+
+Открой `src/BotService/controller/handlers/CommandHandler.ts`. В конструкторе зарегистрируй новую команду,
+вызвав нужный метод модели:
+
+```ts
+this.bot.command("status", async (ctx) => await model.sendStatus(ctx));
 ```
 
 Готово. После перезапуска бота команда `/status` будет работать.
@@ -114,8 +127,10 @@ async onStatus(ctx: BotContext) {
 ## Итого — что нужно сделать для новой команды `/status`
 
 1. **`strings.ts`** — добавить ключ `status` с текстом в `textTranslates` (для каждого языка) и массив кнопок в `menusTranslates` (можно пустой `[]`)
-2. **`DialogEngine.ts`** — добавить метод `buildStatus(lang: botLanguage)`
-3. **`CommandHandler.ts`** — зарегистрировать `bot.command("status", ...)` и добавить метод `onStatus()`
+2. **`DialogEngine.ts`** — добавить async-метод `sendStatus(ctx: BotContext)`
+3. **`BotModelImpl.ts`** — добавить метод `sendStatus(ctx)`, делегирующий в `dialog.sendStatus`
+4. **`IBotModel.ts`** — добавить сигнатуру `sendStatus(ctx: BotContext): Promise<void>`
+5. **`CommandHandler.ts`** — зарегистрировать `bot.command("status", ...)`
 
 ---
 
@@ -130,5 +145,5 @@ TypeScript подсветит ошибку при сборке — все язы
 **Как называть `call` у кнопок?**
 Любая строка без пробелов, латиницей. Рекомендуется формат `команда_действие`, например `status_refresh`. Это значение приходит в обработчик нажатия кнопки в `ButtonHandler.ts`.
 
-**Почему в методах `DialogEngine` первым параметром идёт `lang`?**
-Язык хранится в сессии каждого пользователя (`ctx.session.lang`). `DialogEngine` не хранит состояние — он получает язык снаружи и возвращает готовое сообщение. Это позволяет разным пользователям получать ответы на своём языке независимо.
+**Почему `DialogEngine` сам отправляет сообщение, не возвращая его?**
+Все методы `DialogEngine` — async и получают `ctx` напрямую. Это упрощает код в хендлерах и модели: не нужно передавать результат через несколько слоёв.

@@ -22,6 +22,7 @@ export const textTranslates = {
     greetUser: (name: string, websiteName: string) =>
       `Hallo, ${name}!\nWillkommen im Admin-Panel von ${websiteName}`,
     yourId: (id: number) => `Deine ID: ${id}`,
+    // ... остальные ключи по аналогии с ru/en
   },
 };
 ```
@@ -29,20 +30,23 @@ export const textTranslates = {
 Затем добавь кнопки в `menusTranslates` с теми же ключами:
 
 ```ts
-export const menusTranslates: Record<string, MenuSection> = {
+export const menusTranslates = {
   ru: { ... },
   en: { ... },
   de: {
-    welcome: [],
-    notAdmin: [],
-    unknownCommand: [],
-    anonName: [],
+    welcome: [
+      { text: "Deutsch", call: "lang=de" },
+      { text: "Русский", call: "lang=ru" },
+      { text: "English", call: "lang=en" },
+      { text: "Navigation", call: "navDir:root" },
+    ],
     langChanged: [
       { text: "Deutsch", call: "lang=de" },
       { text: "Русский", call: "lang=ru" },
       { text: "English", call: "lang=en" },
     ],
     help: [],
+    // ... остальные ключи по аналогии с ru/en
   },
 };
 ```
@@ -57,16 +61,26 @@ export const menusTranslates: Record<string, MenuSection> = {
 export type botLanguage = "ru" | "en" | "de";
 ```
 
-TypeScript теперь будет проверять что все методы `DialogEngine` поддерживают новый язык.
+TypeScript теперь будет проверять что все обращения к `textTranslates[lang]` и `menusTranslates[lang]` покрывают новый язык.
 
 ---
 
-## Шаг 3 — Добавить обработчик кнопки в `ButtonHandler.ts`
+## Шаг 3 — Расширить regex в `ButtonHandler.ts`
 
-Открой `src/BotService/dialog/handlers/ButtonHandler.ts` и добавь обработчик для новой кнопки смены языка:
+Открой `src/BotService/controller/handlers/ButtonHandler.ts`. Смена языка обрабатывается одним regex-обработчиком. Добавь новый код языка в выражение:
 
 ```ts
-this.bot.callbackQuery("lang=de", (ctx) => this.onSetLang(ctx, "de"));
+// было
+this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
+  const newLang = ctx.match[1] === "ru" ? "ru" : "en";
+  // ...
+});
+
+// стало
+this.bot.callbackQuery(/lang=(ru|en|de)/, async (ctx) => {
+  const newLang = ctx.match[1] as botLanguage;
+  // ...
+});
 ```
 
 ---
@@ -76,7 +90,10 @@ this.bot.callbackQuery("lang=de", (ctx) => this.onSetLang(ctx, "de"));
 Язык по умолчанию задаётся в `BotService.ts` при инициализации сессии:
 
 ```ts
-initial: (): SessionData => ({ lang: "ru" }),  // ← поменяй на нужный
+initial: (): SessionData => ({
+  lang: "en",  // ← поменяй на нужный
+  // ...
+}),
 ```
 
-Каждый новый пользователь начнёт с этого языка. Уже существующие сессии не изменятся.
+Каждый новый пользователь начнёт с этого языка. Уже существующие сессии не изменятся — язык хранится в файлах сессий в папке `sessions/`.
