@@ -82,7 +82,7 @@ export class ButtonHandler {
 
     this.bot.callbackQuery("cancel", async (ctx) => {
       ctx.answerCallbackQuery();
-      ctx.session.dialogStep = DialogStep.Idle;
+      model.sessionReset(ctx, true);
       await model.navMenu(ctx);
     });
 
@@ -90,7 +90,6 @@ export class ButtonHandler {
       if (ctx.match[1]) {
         const isFile = ctx.match[1] === "File";
         if (isFile) {
-          ctx.session.dialogStep = DialogStep.AwaitingPhoto;
           await ctx.answerCallbackQuery();
           await model.sendAwaitingDocument(ctx);
         } else {
@@ -106,17 +105,14 @@ export class ButtonHandler {
     this.bot.callbackQuery(/rename(?:File|Dir)Ask:(.+)/, async (ctx) => {
       if (ctx.match[1]) {
         const path = ctx.match[1];
-        ctx.session.chosenPath = path ? path : "";
-        ctx.session.dialogStep = DialogStep.AwaitingNewName;
         await ctx.answerCallbackQuery();
-        await model.askNewName(ctx);
+        await model.askNewName(path, ctx);
       } else {
         model.errorCallback(ctx.match[0], ctx);
       }
     });
 
     this.bot.callbackQuery("newAsk", async (ctx) => {
-      ctx.session.dialogStep = DialogStep.AwaitingAdditionType;
       await ctx.answerCallbackQuery();
       await model.askForDocumentType(ctx);
     });

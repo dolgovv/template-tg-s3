@@ -17,7 +17,7 @@ export interface IBotModel {
     ctx: BotContext,
   ): Promise<void>;
   askForDocumentType(ctx: BotContext): Promise<void>;
-  askNewName(ctx: BotContext): Promise<void>;
+  askNewName(path: string, ctx: BotContext): Promise<void>;
   sendDeletedSuccessfully(
     ctx: BotContext,
     isFile: boolean,

@@ -140,10 +140,13 @@ export class BotModelImpl implements IBotModel {
   }
 
   async askForDocumentType(ctx: BotContext) {
+    ctx.session.dialogStep = DialogStep.AwaitingAdditionType;
     await this.dialog.addAskType(ctx);
   }
 
-  async askNewName(ctx: BotContext) {
+  async askNewName(path: string, ctx: BotContext) {
+    ctx.session.chosenPath = path ? path : "";
+    ctx.session.dialogStep = DialogStep.AwaitingNewName;
     await this.dialog.askNewName(ctx);
   }
 
@@ -251,6 +254,7 @@ export class BotModelImpl implements IBotModel {
   }
 
   async sendAwaitingDocument(ctx: BotContext) {
+    ctx.session.dialogStep = DialogStep.AwaitingPhoto;
     await this.dialog.sendAwaitingImage(ctx);
   }
 
