@@ -33,8 +33,17 @@ export class BotModelImpl implements IBotModel {
     if (!ctx.chat) return;
     const curDir = ctx.session.currentDir;
     try {
-      const dirsPaths: string[] = await this.repo.listDirectories(curDir);
-      const filesPaths: string[] = await this.repo.listAllFilesHere(curDir);
+      const dirsPaths: string[] = (
+        await this.repo.listDirectories(curDir)
+      ).filter((it) => {
+        return it !== curDir;
+      });
+
+      const filesPaths: string[] = (
+        await this.repo.listAllFilesHere(curDir)
+      ).filter((it) => {
+        return it !== curDir;
+      });
 
       let uiInstances: NavigationInstance[] = [
         {
@@ -56,6 +65,7 @@ export class BotModelImpl implements IBotModel {
       ];
 
       const content = [...dirsPaths, ...filesPaths];
+
       const contentInstances: NavigationInstance[] = content.map(
         (fullPath, i) => {
           const type = this.pathToType(fullPath);
@@ -80,11 +90,14 @@ export class BotModelImpl implements IBotModel {
           };
         },
       );
-
-      await this.dialog.sendNavigationMenu(
-        [...uiInstances, ...contentInstances],
-        ctx,
-      );
+      if (contentInstances.length) {
+        await this.dialog.sendNavigationMenu(
+          [...uiInstances, ...contentInstances],
+          ctx,
+        );
+      } else {
+        await this.dialog.sendNavigationMenu([...uiInstances], ctx);
+      }
     } catch (err) {
       await this.dialog.sendError("get directories " + err, ctx);
     }
@@ -97,8 +110,6 @@ export class BotModelImpl implements IBotModel {
 
   async deleteAskMenu(ctx: BotContext, path: string) {
     const isFile = !path.endsWith("/");
-    console.log("from delete ask menu:", path, isFile);
-
     await this.dialog.sendAsksMenu(isFile, path, ctx);
   }
 
@@ -220,10 +231,10 @@ export class BotModelImpl implements IBotModel {
   sessionReset(ctx: BotContext, hard: boolean = false): void {
     ctx.session.dialogStep = DialogStep.Idle;
     ctx.session.lastMenuMessageId = 0;
+    ctx.session.chosenPath = "";
     if (hard) {
       ctx.session.currentDir = "";
       ctx.session.lang = "en";
-      ctx.session.chosenPath = "";
     }
   }
 
@@ -350,19 +361,19 @@ export class BotModelImpl implements IBotModel {
       return true;
     } else {
       await this.sendError("Ошибка удаления файла", ctx);
-      await this.sendError(resultCode!.toString(), ctx);
+      if (resultCode) await this.sendError(resultCode.toString(), ctx);
       return false;
     }
   }
 
   async createDirectory(currentDir: string, name: string): Promise<string> {
-    // empty name → autogenerate; non-empty but invalid → return "" to signal error
     if (!name.trim()) {
       const generated = await this.getRandomName(currentDir);
       return await this.repo.createDirectory(currentDir, generated);
     }
-    const sanitized = this.sanitizeName(name);
+    let sanitized = this.sanitizeName(name);
     if (!sanitized) return "";
+    // if (!sanitized.endsWith("/")) sanitized = sanitized.concat("/");
     return await this.repo.createDirectory(currentDir, sanitized);
   }
 
@@ -405,7 +416,6 @@ export class BotModelImpl implements IBotModel {
     const isFile: boolean = !oldPath.endsWith("/");
 
     if (!isFile) {
-      // Build new path: replace last segment name, keep parent prefix and trailing slash
       const withoutTrailing = oldPath.slice(0, -1);
       const parentPrefix = withoutTrailing.includes("/")
         ? withoutTrailing.slice(0, withoutTrailing.lastIndexOf("/") + 1)
@@ -417,9 +427,10 @@ export class BotModelImpl implements IBotModel {
         await this.sendNameAlreadyExistsError(isFile, ctx);
         return false;
       }
-      return await this.repo.renameDir(oldPath, newPath);
+      const result = await this.repo.renameDir(oldPath, newPath);
+      await this.sendNameAlreadyExistsError(isFile, ctx);
+      return result;
     } else {
-      // File: preserve extension from the original key
       const dotIndex = oldPath.lastIndexOf(".");
       const extension = dotIndex !== -1 ? oldPath.slice(dotIndex) : "";
       const parentPrefix = oldPath.includes("/")

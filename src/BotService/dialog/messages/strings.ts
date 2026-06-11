@@ -14,7 +14,6 @@ export const textTranslates = {
     langChanged: "Язык успешно изменен!",
     awaitingImage:
       "Пожалуйста, отправьте фото и название для загрузки одним сообщением",
-
     awaitingMultipleImages:
       "Пожалуйста, отправьте несколько фото и укажите названия для каждого из них в сообщении через пробел\n<i>Например, с 5 картинками нужно написать текст 'название_первой_картинки название_второй_картинки' и тд. Если названий будет меньше, чем картинок - название сгенерируется автоматически </i>",
     awaitingDirectoryName: "Укажите название директории:",
@@ -57,7 +56,8 @@ export const textTranslates = {
       return `Привет, ${name}!\nДобро пожаловать в панель администратора сайта ${websiteName}`;
     },
     yourId: (id: number) => `Ваш ID: ${id}`,
-    dirListEmpty: "В текущей директории нет папок",
+    dirEmpty: "Папка пуста",
+    dirListEmpty: "Не существует такой папки",
     error: "Возникла непредвиденная ошибка: ",
     errorDeletion: (isFile: boolean, path: string) => {
       return (
@@ -130,7 +130,8 @@ export const textTranslates = {
       return `Hello, ${name}!\nWelcome to the administration panel for ${websiteName}`;
     },
     yourId: (id: number) => `Your ID: ${id}`,
-    dirListEmpty: "No folders here",
+    dirEmpty: "This folder is empty",
+    dirListEmpty: "No such folder",
     error: "An error occured: ",
     errorDeletion: (isFile: boolean, path: string) => {
       return (

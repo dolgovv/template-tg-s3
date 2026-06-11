@@ -119,7 +119,7 @@ export class DialogEngine {
     });
 
     if (content.length < 3) {
-      const reply = this.factory.menu(t.dirListEmpty, buttons);
+      const reply = this.factory.menu(t.dirEmpty, buttons);
 
       await this.resolver.reply(ctx, reply);
     } else {
@@ -206,10 +206,11 @@ export class DialogEngine {
   }
 
   sanitizeFileName(name: string): string {
-    return name
+    const res = name
       .replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]/g, "_")
       .replace(/\.{2,}/g, ".")
       .replace(/^\./, "_")
       .slice(0, 200);
+    return res.endsWith("/") ? res.slice(0, -1) : res;
   }
 }

@@ -34,8 +34,6 @@ export class ButtonHandler {
     });
 
     this.bot.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
-      console.log(ctx.match[0]);
-
       if (ctx.match[1]) {
         const type = ctx.match[1];
         const isFile = type === "File";
@@ -67,8 +65,6 @@ export class ButtonHandler {
     this.bot.callbackQuery(/^delete(?:File|Dir)Ask:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const path = ctx.match[1];
-        console.log("path from buttons:", path);
-
         await model.deleteAskMenu(ctx, path);
         await ctx.answerCallbackQuery();
       } else {

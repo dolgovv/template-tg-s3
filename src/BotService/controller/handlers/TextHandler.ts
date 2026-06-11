@@ -69,7 +69,23 @@ export class TextHandler {
           break;
 
         default:
-          await model.sendHelp(ctx);
+          if (ctx.message.text !== undefined) {
+            const raw = ctx.message.text.trim();
+            if (raw.endsWith("/")) {
+              const result = await model.createDirectory(
+                ctx.session.currentDir,
+                raw.slice(0, raw.length - 1),
+              );
+
+              if (result === "") {
+                model.sendError("Error while creating directory", ctx);
+              } else {
+                await model.navMenu(ctx);
+              }
+            } else {
+              await model.sendHelp(ctx);
+            }
+          }
           break;
       }
     });
