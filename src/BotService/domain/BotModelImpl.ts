@@ -428,7 +428,6 @@ export class BotModelImpl implements IBotModel {
         return false;
       }
       const result = await this.repo.renameDir(oldPath, newPath);
-      await this.sendNameAlreadyExistsError(isFile, ctx);
       return result;
     } else {
       const dotIndex = oldPath.lastIndexOf(".");
