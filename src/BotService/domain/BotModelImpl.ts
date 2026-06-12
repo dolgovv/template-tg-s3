@@ -1,23 +1,24 @@
 import { nanoid } from "nanoid";
 import { BotRepository } from "../datasource/S3Repository.js";
 import type { DialogEngine } from "../dialog/DialogEngine.js";
-import { getEnv } from "../utils/env_auth.js";
 import {
+  BotLogger,
   DialogStep,
   type BotContext,
   type botLanguage,
   type ContentType,
   type NavigationInstance,
-} from "../utils/types.js";
+} from "../types.js";
 import { fetch, ProxyAgent } from "undici";
-import type { BotLogger } from "../BotService.js";
-import type { IBotModel } from "../controller/IBotModel.js";
+import type { IBotModel } from "../IBotModel.js";
 
 export class BotModelImpl implements IBotModel {
   constructor(
     private repo: BotRepository,
     private dialog: DialogEngine,
     private logger: BotLogger,
+    private token: string,
+    private proxyUrl: string | undefined,
   ) {}
 
   // MENUS ================================================
@@ -284,20 +285,18 @@ export class BotModelImpl implements IBotModel {
     fileId: string,
     ctx: BotContext,
   ): Promise<{ buffer: Buffer; extension: string }> {
-    const proxyUrl: string | undefined = getEnv("PROXY_URL");
-    const proxyAgent: ProxyAgent | undefined = proxyUrl
-      ? new ProxyAgent(proxyUrl)
+    const proxyAgent: ProxyAgent | undefined = this.proxyUrl
+      ? new ProxyAgent(this.proxyUrl)
       : undefined;
 
     const file = await ctx.api.getFile(fileId);
-    const token = getEnv("BOT_TOKEN", true);
 
     // file_path looks like "photos/file_123.jpg" — grab the extension from it
     const filePath = file.file_path ?? "";
     const dotIndex = filePath.lastIndexOf(".");
     const extension = dotIndex !== -1 ? filePath.slice(dotIndex) : "";
 
-    const url = `https://api.telegram.org/file/bot${token}/${filePath}`;
+    const url = `https://api.telegram.org/file/bot${this.token}/${filePath}`;
     const loadedFile = proxyAgent
       ? await fetch(url, { dispatcher: proxyAgent })
       : await fetch(url);

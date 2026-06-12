@@ -1,41 +1,12 @@
-import { InlineKeyboard, InputFile } from "grammy";
-export type MenuSection = Record<string, MenuButton[]>;
-
-export type MenuButton = {
-  text: string;
-  call: string;
-};
-
-export type TextMessage = {
-  type: "text";
-  text: string;
-  keyboard?: InlineKeyboard;
-};
-
-export type MenuMessage = {
-  type: "menu";
-  text: string;
-  keyboard?: InlineKeyboard;
-};
-
-export type PhotoMessage = {
-  type: "photo";
-  photo: InputFile;
-  caption?: string;
-  keyboard?: InlineKeyboard;
-};
-
-export type MediaGroupMessage = {
-  type: "mediaGroup";
-  photos: InputFile[];
-  caption?: string;
-};
-
-export type BotMessage =
-  | TextMessage
-  | PhotoMessage
-  | MediaGroupMessage
-  | MenuMessage;
+import { InputFile } from "grammy/types";
+import type {
+  MediaGroupMessage,
+  MenuButton,
+  MenuMessage,
+  PhotoMessage,
+  TextMessage,
+} from "../../types.js";
+import { InlineKeyboard } from "grammy";
 
 export class MessageFactory {
   text(text: string, buttons: MenuButton[] = []): TextMessage {

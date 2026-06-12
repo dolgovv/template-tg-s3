@@ -1,7 +1,7 @@
 import type { Bot } from "grammy";
-import type { BotContext } from "../../utils/types.js";
-import type { IBotModel } from "../../controller/IBotModel.js";
-import { DialogStep } from "../../utils/types.js";
+import type { BotContext } from "../../types.js";
+import { DialogStep } from "../../types.js";
+import type { IBotModel } from "../../IBotModel.js";
 
 export class TextHandler {
   constructor(

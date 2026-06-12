@@ -1,5 +1,4 @@
-import type { BotContext } from "../utils/types.js";
-import type { BotMessage } from "./messages/MessageFactory.js";
+import type { BotContext, BotMessage } from "../types.js";
 
 export class ReplyResolver {
   constructor(private parse_mode: "HTML" | "MarkdownV2") {}

@@ -1,4 +1,4 @@
-import type { BotContext, NavigationInstance } from "../utils/types.js";
+import type { BotContext, NavigationInstance } from "../types.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
 import { textTranslates, menusTranslates } from "./messages/strings.js";
 import { ReplyResolver } from "./ReplyResolver.js";

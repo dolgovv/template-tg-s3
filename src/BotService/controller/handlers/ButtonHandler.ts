@@ -1,11 +1,11 @@
 import type { Bot } from "grammy";
-import type { IBotModel } from "../../controller/IBotModel.js";
 import {
   DialogStep,
   SUPPORTED_LANGUAGES,
   type BotContext,
   type botLanguage,
-} from "../../utils/types.js";
+} from "../../types.js";
+import type { IBotModel } from "../../IBotModel.js";
 
 export class ButtonHandler {
   constructor(

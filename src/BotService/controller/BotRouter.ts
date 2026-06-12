@@ -1,7 +1,7 @@
 import type { Bot } from "grammy";
-import type { IBotModel } from "./IBotModel.js";
-import type { BotContext } from "../utils/types.js";
+import type { BotContext } from "../types.js";
 import * as Handlers from "./handlers/handlers.js";
+import type { IBotModel } from "../IBotModel.js";
 
 export class BotRouter {
   private commands: Handlers.CommandHandler;

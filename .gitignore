@@ -4,3 +4,5 @@ dist/
 IMPROVEMENTS.md
 sessions/
 logs/
+.dependency-cruiser.cjs
+dependency-graph.svg

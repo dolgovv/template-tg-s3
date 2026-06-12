@@ -1,4 +1,4 @@
-import type { botLanguage, BotContext } from "../utils/types.js";
+import type { BotContext, botLanguage } from "./types.js";
 
 export interface IBotModel {
   // Menus

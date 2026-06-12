@@ -1,5 +1,5 @@
 import { S3Client, type S3ClientConfig } from "@aws-sdk/client-s3";
-import type { BotConfigEnv } from "../utils/env_auth.js";
+import type { BotConfigEnv } from "../../bot_config.js";
 
 export function createS3Client(
   config: Pick<

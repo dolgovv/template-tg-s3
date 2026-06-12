@@ -1,5 +1,5 @@
+import { loadConfig } from "./bot_config.js";
 import { BotService } from "./BotService/BotService.js";
-import { loadConfig } from "./BotService/utils/env_auth.js";
 
 function main() {
   const config = loadConfig();

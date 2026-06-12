@@ -3,55 +3,17 @@ import { FileAdapter } from "@grammyjs/storage-file";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { DialogEngine } from "./dialog/DialogEngine.js";
 import {
+  BotLogger,
   DialogStep,
   type BotContext,
   type SessionData,
-} from "./utils/types.js";
+} from "./types.js";
 import { BotRepository } from "./datasource/S3Repository.js";
 import { createS3Client } from "./datasource/S3Client.js";
-import type { BotConfigEnv } from "./utils/env_auth.js";
 import { BotModelImpl } from "./domain/BotModelImpl.js";
-import type { IBotModel } from "./controller/IBotModel.js";
 import { BotRouter } from "./controller/BotRouter.js";
-import Logger, { FileTransport } from "zario";
-
-export class BotLogger {
-  infoLogger: Logger;
-  errorLogger: Logger;
-
-  constructor(private logPath: string) {
-    this.infoLogger = new Logger({
-      level: "info",
-      transports: [new FileTransport({ path: this.logPath + "/info.log" })],
-    });
-
-    this.errorLogger = new Logger({
-      level: "error",
-      transports: [new FileTransport({ path: this.logPath + "/error.log" })],
-    });
-  }
-
-  getDetails(ctx: BotContext): string {
-    const chat = ctx.chat;
-    if (!chat) return "";
-    const username = chat.username;
-    const result =
-      "\nID: " + chat.id + username ? "\tLink: t.me/" + username : "";
-    return result;
-  }
-
-  info(message: string) {
-    this.infoLogger.info(message);
-  }
-
-  error(message: string) {
-    this.errorLogger.error(message);
-  }
-
-  warn(message: string) {
-    this.infoLogger.warn(message);
-  }
-}
+import type { BotConfigEnv } from "../bot_config.js";
+import type { IBotModel } from "./IBotModel.js";
 
 export class BotService {
   private config: BotConfigEnv;
@@ -108,7 +70,13 @@ export class BotService {
 
   private setUpDialog() {
     this.dialogEngine = new DialogEngine();
-    this.model = new BotModelImpl(this.repo, this.dialogEngine, this.logger);
+    this.model = new BotModelImpl(
+      this.repo,
+      this.dialogEngine,
+      this.logger,
+      this.config.botToken,
+      this.config.proxyUrl,
+    );
     this.router = new BotRouter(this.bot, this.model);
   }
 
