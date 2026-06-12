@@ -12,7 +12,7 @@ import { BotRepository } from "./datasource/S3Repository.js";
 import { createS3Client } from "./datasource/S3Client.js";
 import { BotModelImpl } from "./domain/BotModelImpl.js";
 import { BotRouter } from "./controller/BotRouter.js";
-import type { BotConfigEnv } from "../bot_config.js";
+import { loadConfig, type BotConfigEnv } from "./bot_config.js";
 import type { IBotModel } from "./IBotModel.js";
 
 export class BotService {
@@ -24,8 +24,10 @@ export class BotService {
   router!: BotRouter;
   private logger!: BotLogger;
 
-  constructor(config: BotConfigEnv) {
-    this.config = config;
+  constructor() {
+    // this.config = config;
+    this.config = loadConfig();
+
     this.setUp();
   }
 

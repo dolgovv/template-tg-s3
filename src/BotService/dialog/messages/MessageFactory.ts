@@ -1,12 +1,12 @@
 import { InputFile } from "grammy/types";
+import { InlineKeyboard } from "grammy";
 import type {
   MediaGroupMessage,
   MenuButton,
   MenuMessage,
   PhotoMessage,
   TextMessage,
-} from "../../types.js";
-import { InlineKeyboard } from "grammy";
+} from "../ReplyResolver.js";
 
 export class MessageFactory {
   text(text: string, buttons: MenuButton[] = []): TextMessage {

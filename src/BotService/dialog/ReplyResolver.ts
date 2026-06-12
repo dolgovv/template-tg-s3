@@ -1,4 +1,43 @@
-import type { BotContext, BotMessage } from "../types.js";
+import type { InlineKeyboard, InputFile } from "grammy";
+import type { BotContext } from "../types.js";
+
+export type MenuSection = Record<string, MenuButton[]>;
+
+export type MenuButton = {
+  text: string;
+  call: string;
+};
+
+export type TextMessage = {
+  type: "text";
+  text: string;
+  keyboard?: InlineKeyboard;
+};
+
+export type MenuMessage = {
+  type: "menu";
+  text: string;
+  keyboard?: InlineKeyboard;
+};
+
+export type PhotoMessage = {
+  type: "photo";
+  photo: InputFile;
+  caption?: string;
+  keyboard?: InlineKeyboard;
+};
+
+export type MediaGroupMessage = {
+  type: "mediaGroup";
+  photos: InputFile[];
+  caption?: string;
+};
+
+export type BotMessage =
+  | TextMessage
+  | PhotoMessage
+  | MediaGroupMessage
+  | MenuMessage;
 
 export class ReplyResolver {
   constructor(private parse_mode: "HTML" | "MarkdownV2") {}
