@@ -1,6 +1,6 @@
 # Добавление нового языка
 
-Все тексты и кнопки хранятся в `src/BotService/dialog/messages/strings.ts`. Добавить новый язык — значит добавить новый раздел в оба объекта и зарегистрировать его тип.
+Все тексты и кнопки хранятся в `src/core/dialog/messages/strings.ts`. Добавить новый язык — значит добавить новый раздел в оба объекта и зарегистрировать его тип.
 
 ---
 
@@ -53,47 +53,24 @@ export const menusTranslates = {
 
 ---
 
-## Шаг 2 — Зарегистрировать тип языка в `types.ts`
+## Шаг 2 — Зарегистрировать язык в `types.ts`
 
-Открой `src/BotService/utils/types.ts` и добавь новый язык в тип `botLanguage`:
-
-```ts
-export type botLanguage = "ru" | "en" | "de";
-```
-
-TypeScript теперь будет проверять что все обращения к `textTranslates[lang]` и `menusTranslates[lang]` покрывают новый язык.
-
----
-
-## Шаг 3 — Расширить regex в `ButtonHandler.ts`
-
-Открой `src/BotService/controller/handlers/ButtonHandler.ts`. Смена языка обрабатывается одним regex-обработчиком. Добавь новый код языка в выражение:
+Открой `src/core/types.ts` и добавь код языка в `SUPPORTED_LANGUAGES`:
 
 ```ts
-// было
-this.bot.callbackQuery(/lang=(ru|en)/, async (ctx) => {
-  const newLang = ctx.match[1] === "ru" ? "ru" : "en";
-  // ...
-});
-
-// стало
-this.bot.callbackQuery(/lang=(ru|en|de)/, async (ctx) => {
-  const newLang = ctx.match[1] as botLanguage;
-  // ...
-});
+export const SUPPORTED_LANGUAGES = ["ru", "en", "de"] as const;
 ```
+
+Тип `botLanguage` выводится из этого списка автоматически, а обработчик кнопок `lang=...` принимает только языки из него — больше ничего менять не нужно.
 
 ---
 
 ## Как переключить язык по умолчанию
 
-Язык по умолчанию задаётся в `BotService.ts` при инициализации сессии:
+Язык по умолчанию задаётся в `src/app/main.ts`:
 
 ```ts
-initial: (): SessionData => ({
-  lang: "en",  // ← поменяй на нужный
-  // ...
-}),
+const app = createBot({ ...config.bot, defaultLang: "ru" });
 ```
 
 Каждый новый пользователь начнёт с этого языка. Уже существующие сессии не изменятся — язык хранится в файлах сессий в папке `sessions/`.

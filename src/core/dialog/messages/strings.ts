@@ -263,3 +263,13 @@ export const menusTranslates = {
 };
 
 export const calls: string[] = ["lang=en", "lang=ru"];
+
+export type BotTexts = {
+  text: typeof textTranslates;
+  menus: typeof menusTranslates;
+};
+
+export const defaultTexts: BotTexts = {
+  text: textTranslates,
+  menus: menusTranslates,
+};

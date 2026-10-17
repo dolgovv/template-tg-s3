@@ -1,16 +1,18 @@
 import type { BotContext, NavigationInstance } from "../types.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
-import { textTranslates, menusTranslates } from "./messages/strings.js";
+import type { BotTexts } from "./messages/strings.js";
 import { ReplyResolver } from "./ReplyResolver.js";
 
 export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
   private resolver: ReplyResolver = new ReplyResolver("HTML");
 
+  constructor(private texts: BotTexts) {}
+
   async sendMainMenu(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
-    const m = menusTranslates[lang] ?? {};
+    const t = this.texts.text[lang];
+    const m = this.texts.menus[lang] ?? {};
     const reply = this.factory.menu(
       t.greetUser(ctx.chat?.first_name ?? t.anonName, ctx.session.websiteName),
       m.welcome,
@@ -30,7 +32,7 @@ export class DialogEngine {
 
   async sendTextFile(path: string, text: string, ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
+    const t = this.texts.text[lang];
     const reply = this.factory.text(
       t.fileContent(path) + "<pre>" + text + "</pre>",
     );
@@ -50,37 +52,37 @@ export class DialogEngine {
 
   async sendHelp(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
-    const m = menusTranslates[lang] ?? {};
+    const t = this.texts.text[lang];
+    const m = this.texts.menus[lang] ?? {};
     const reply = this.factory.text(t.help, m.help);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendFileUploadSuccessful(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
+    const t = this.texts.text[lang];
     const reply = this.factory.text(t.addFileSuccessful);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendAwaitingImage(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
+    const t = this.texts.text[lang];
     const reply = this.factory.text(t.awaitingImage);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendAwaitingDirectoryName(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
+    const t = this.texts.text[lang];
     const reply = this.factory.text(t.awaitingDirectoryName);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendActionsMenu(isFile: boolean, path: string, ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang].chooseAction;
-    const m = menusTranslates[lang].actionsMenu(isFile, path);
+    const t = this.texts.text[lang].chooseAction;
+    const m = this.texts.menus[lang].actionsMenu(isFile, path);
 
     const reply = this.factory.menu(t, m);
     await this.resolver.reply(ctx, reply);
@@ -88,8 +90,8 @@ export class DialogEngine {
 
   async sendAsksMenu(isFile: boolean, path: string, ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang].deleteAsk(isFile);
-    const m = menusTranslates[lang].deleteAskMenu(isFile, path);
+    const t = this.texts.text[lang].deleteAsk(isFile);
+    const m = this.texts.menus[lang].deleteAskMenu(isFile, path);
 
     const reply = this.factory.menu(t, m);
     await this.resolver.reply(ctx, reply);
@@ -101,7 +103,7 @@ export class DialogEngine {
     path: string,
   ) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang].deletedSuccessfully(
+    const t = this.texts.text[lang].deletedSuccessfully(
       isFile,
       this.leafInPath(path),
     );
@@ -112,7 +114,7 @@ export class DialogEngine {
 
   async sendNavigationMenu(content: NavigationInstance[], ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
+    const t = this.texts.text[lang];
 
     const buttons = content.map((it) => {
       return { text: it.btnText, call: it.btnCallback };
@@ -140,7 +142,7 @@ export class DialogEngine {
   async sendError(description: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const reply = this.factory.text(
-      `${textTranslates[lang].error} ${description}`,
+      `${this.texts.text[lang].error} ${description}`,
     );
     await this.resolver.reply(ctx, reply);
   }
@@ -148,49 +150,49 @@ export class DialogEngine {
   async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const reply = this.factory.text(
-      textTranslates[lang].errorDeletion(isFile, path),
+      this.texts.text[lang].errorDeletion(isFile, path),
     );
     await this.resolver.reply(ctx, reply);
   }
 
   async sendAuthError(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const reply = this.factory.text(textTranslates[lang].notAdmin);
+    const reply = this.factory.text(this.texts.text[lang].notAdmin);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendNoFileNameProvidedError(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const reply = this.factory.text(textTranslates[lang].noFilename);
+    const reply = this.factory.text(this.texts.text[lang].noFilename);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendInvalidNameError(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const reply = this.factory.text(textTranslates[lang].invalidName);
+    const reply = this.factory.text(this.texts.text[lang].invalidName);
     await this.resolver.reply(ctx, reply);
   }
 
   async sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext) {
     const lang = ctx.session.lang;
     const reply = this.factory.text(
-      textTranslates[lang].nameAlreadyExists(isFile),
+      this.texts.text[lang].nameAlreadyExists(isFile),
     );
     await this.resolver.reply(ctx, reply);
   }
 
   async addAskType(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
-    const m = menusTranslates[lang];
+    const t = this.texts.text[lang];
+    const m = this.texts.menus[lang];
     const reply = this.factory.menu(t.addAskType, m.addAskType);
     await this.resolver.reply(ctx, reply);
   }
 
   async askNewName(ctx: BotContext) {
     const lang = ctx.session.lang;
-    const t = textTranslates[lang];
-    const m = menusTranslates[lang];
+    const t = this.texts.text[lang];
+    const m = this.texts.menus[lang];
     const reply = this.factory.menu(t.askNewName, m.askNewName);
     await this.resolver.reply(ctx, reply);
   }

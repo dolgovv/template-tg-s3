@@ -28,4 +28,4 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy compiled output
 COPY --from=builder /app/dist ./dist
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/app/main.js"]

@@ -26,27 +26,76 @@
 Поддержка HTTP/HTTPS прокси через переменную окружения `PROXY_URL`. Достаточно вписать URL - бот подхватит его при старте.
 
 **📦 S3-хранилище:**
-Архитектура готова к подключению S3-совместимого хранилища (Garage, MinIO, AWS S3). Локальное хранилище легко заменяется облачным без изменения бизнес-логики.
+Работает с любым S3-совместимым хранилищем: Garage в том же docker-compose, отдельный сервер или облако (Yandex Object Storage, Selectel, AWS S3 и т.д.). Переключение — только через `.env`.
 
 ---
 
 ## Быстрый старт
 
+1. Скопируйте `.env.example` в `.env` и заполните его (подробности: [Настройка .env](docs/env-configuration.md)).
+2. Запустите одним из способов:
+
 ```bash
+# Бот + локальное S3-хранилище Garage (ключ и бакет создадутся из .env)
+docker compose --profile garage up -d
+
+# Только бот — S3 в облаке или на другом сервере
+docker compose up -d
+
+# Без Docker
 sh ./start.sh
 ```
 
 ---
 
+## Структура проекта
+
+```
+src/
+  core/        ← ядро бота. Не правьте его — так обновления из upstream приходят без конфликтов
+    index.ts   ← публичный API ядра: всё, что можно импортировать в app
+  app/         ← ваш код
+    main.ts    ← точка входа: настройки, свои команды, подключение фич
+```
+
+`app/` импортирует только из `core/index.ts`. Всё, что нужно поменять под проект, делается через параметры в `main.ts`:
+
+```ts
+const config = configFromEnv(); // всё из .env
+
+const app = createBot({ ...config.bot, defaultLang: "ru" }); // любой параметр можно переопределить
+
+app.bot.command("ping", (ctx) => ctx.reply("pong")); // свои команды — до fileManager
+
+app.use(fileManager({ storage: s3Storage(config.s3), ...config.fileManager }));
+
+await app.start();
+```
+
+### Обновление из шаблона
+
+Если проект создан клонированием этого репозитория:
+
+```bash
+git remote add upstream <url-шаблона>   # один раз
+git fetch upstream && git merge upstream/master
+```
+
+Если в `package.json` или `pnpm-lock.yaml` возник конфликт — оставьте зависимости с обеих сторон и выполните `pnpm install`.
+
+---
+
 ## Конфигурация
 
-| Что менять                 | Где                           | Гайд                                                   |
-| -------------------------- | ----------------------------- | ------------------------------------------------------ |
-| Тексты, переводы и команды | `dialog/messages/strings.ts`  | [Как добавить новую команду](docs/adding-commands.md)  |
-| Список администраторов     | `.env`                        | [Управление администраторами](docs/managing-admins.md) |
-| Название вашего сайта      | `.env`                        | -                                                      |
-| Токен бота и прокси        | `.env`                        | [Настройка .env](docs/env-configuration.md)            |
-| Inline-кнопки              | `/dialog/messages/strings.ts` | [Добавление кнопок](docs/adding-inline-buttons.md)     |
-| Языки бота                 | `/dialog/messages/strings.ts` | [Добавление языка](docs/adding-languages.md)           |
+| Что менять                 | Где                               | Гайд                                                   |
+| -------------------------- | --------------------------------- | ------------------------------------------------------ |
+| Свои команды               | `src/app/main.ts`                 | [Как добавить новую команду](docs/adding-commands.md)  |
+| Список администраторов     | `.env`                            | [Управление администраторами](docs/managing-admins.md) |
+| Название вашего сайта      | `.env`                            | -                                                      |
+| Токен бота, прокси, S3     | `.env`                            | [Настройка .env](docs/env-configuration.md)            |
+| Тексты и переводы          | `src/core/dialog/messages/strings.ts` | [Добавление языка](docs/adding-languages.md)       |
+| Inline-кнопки              | `src/core/dialog/messages/strings.ts` | [Добавление кнопок](docs/adding-inline-buttons.md) |
+
+> Тексты пока живут в ядре. Следующим шагом они переедут в `app/` с типизированными переопределениями.
 
 ---

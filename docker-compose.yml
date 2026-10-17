@@ -1,0 +1,47 @@
+# Cloud or external S3 (only the bot):
+#   docker compose up -d
+#
+# Bot + local Garage S3 (key and bucket are created from .env automatically):
+#   docker compose --profile garage up -d
+
+services:
+  bot:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - sessions:/app/sessions
+      - logs:/app/logs
+    depends_on:
+      garage:
+        condition: service_healthy
+        required: false
+
+  garage:
+    image: dxflrs/garage:v2.4.1
+    profiles: [garage]
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_DEFAULT_ACCESS_KEY: ${S3_ACCESS_KEY_ID}
+      GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_ACCESS_KEY}
+      GARAGE_DEFAULT_BUCKET: ${S3_BUCKET}
+    volumes:
+      - ./docker/garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    ports:
+      # S3 API for tools on the host (aws cli, rclone...). Not needed by the bot
+      - "127.0.0.1:3900:3900"
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  sessions:
+  logs:
+  garage-meta:
+  garage-data:

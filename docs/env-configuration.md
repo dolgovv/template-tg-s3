@@ -18,20 +18,51 @@ cp .env.example .env
 | `ADMIN_IDS`    | ✅ да        | Telegram ID администраторов через запятую                |
 | `WEBSITE_NAME` | ✅ да        | Название сайта — отображается в приветственном сообщении |
 | `PROXY_URL`    | ❌ нет       | HTTP/HTTPS прокси для обхода блокировок                  |
+| `LOG_PATH`     | ❌ нет       | Папка для логов, по умолчанию `./logs`                   |
 
 ### S3-хранилище
 
-| Переменная        | Обязательная | Описание                                              |
-| ----------------- | ------------ | ----------------------------------------------------- |
-| `S3_ENDPOINT`     | ✅ да        | URL S3-совместимого хранилища (например, MinIO)       |
-| `S3_REGION`       | ✅ да        | Регион (для MinIO обычно `us-east-1`)                 |
-| `S3_ACCESS_KEY`   | ✅ да        | Ключ доступа                                          |
-| `S3_SECRET_KEY`   | ✅ да        | Секретный ключ                                        |
-| `S3_BUCKET`       | ✅ да        | Имя бакета                                            |
-| `S3_STORAGE_NAME` | ❌ нет       | Имя хранилища (используется в конфигурации)           |
-| `S3_BOT_NAME`     | ❌ нет       | Имя пользователя бота в S3                            |
-| `S3_BOT_PASS`     | ❌ нет       | Пароль пользователя бота в S3                         |
-| `S3_ROOT_FOLDER`  | ❌ нет       | Корневая папка внутри бакета (пустая строка = корень) |
+| Переменная             | Обязательная | Описание                                                                 |
+| ---------------------- | ------------ | ------------------------------------------------------------------------ |
+| `S3_ENDPOINT`          | ❌ нет       | URL S3 API. Пусто — AWS S3                                               |
+| `S3_REGION`            | ❌ нет       | Регион, по умолчанию `us-east-1`. Для Garage — `garage`                  |
+| `S3_ACCESS_KEY_ID`     | ✅ да        | Ключ доступа (старое имя `S3_BOT_NAME` тоже поддерживается)              |
+| `S3_SECRET_ACCESS_KEY` | ✅ да        | Секретный ключ (старое имя `S3_BOT_PASS` тоже поддерживается)            |
+| `S3_BUCKET`            | ✅ да        | Имя бакета                                                               |
+| `S3_FORCE_PATH_STYLE`  | ❌ нет       | `true` (по умолчанию) — `host/bucket/key`; `false` — `bucket.host/key`   |
+| `S3_ROOT_PREFIX`       | ❌ нет       | Папка внутри бакета, с которой начинает бот (старое имя `S3_ROOT_FOLDER`) |
+| `GARAGE_RPC_SECRET`    | только с Garage | Внутренний секрет Garage из docker-compose: `openssl rand -hex 32`    |
+
+---
+
+## Типовые сценарии S3
+
+### Garage в том же docker-compose
+
+```env
+S3_ENDPOINT=http://garage:3900
+S3_REGION=garage
+S3_ACCESS_KEY_ID=GK...        # echo "GK$(openssl rand -hex 16)"
+S3_SECRET_ACCESS_KEY=...      # openssl rand -hex 32
+S3_BUCKET=tg-bot
+GARAGE_RPC_SECRET=...         # openssl rand -hex 32
+```
+
+Запуск: `docker compose --profile garage up -d`. Ключ и бакет Garage создаст сам при первом старте.
+S3 API также доступен с хоста на `http://127.0.0.1:3900` (для aws cli, rclone и т.п.).
+
+### Облачное хранилище
+
+```env
+S3_ENDPOINT=https://storage.yandexcloud.net   # endpoint вашего провайдера
+S3_REGION=ru-central1                          # регион бакета
+S3_ACCESS_KEY_ID=...
+S3_SECRET_ACCESS_KEY=...
+S3_BUCKET=my-site
+S3_FORCE_PATH_STYLE=true                       # false для AWS и провайдеров, где path style отключён
+```
+
+Запуск: `docker compose up -d` (без профиля — поднимется только бот).
 
 ---
 
