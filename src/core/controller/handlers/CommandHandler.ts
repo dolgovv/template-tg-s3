@@ -1,21 +1,21 @@
-import type { Bot } from "grammy";
+import type { Composer } from "grammy";
 import type { BotContext } from "../../types.js";
 import type { IBotModel } from "../../IBotModel.js";
 
 export class CommandHandler {
   constructor(
-    private bot: Bot<BotContext>,
+    private composer: Composer<BotContext>,
     model: IBotModel,
   ) {
-    this.bot.command("start", async (ctx) => await model.mainMenu(ctx));
+    this.composer.command("start", async (ctx) => await model.mainMenu(ctx));
 
-    this.bot.command("help", async (ctx) => await model.sendHelp(ctx));
+    this.composer.command("help", async (ctx) => await model.sendHelp(ctx));
 
-    this.bot.command(
+    this.composer.command(
       "all_imgs_here",
       async (ctx) => await model.sendAllImagesHere(ctx),
     );
-    this.bot.command("nav", async (ctx) => {
+    this.composer.command("nav", async (ctx) => {
       ctx.session.lastMenuMessageId = 0;
       await model.navMenu(ctx);
     });

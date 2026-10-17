@@ -1,7 +1,30 @@
 # Как добавить новый ответ на команду бота
 
-Этот гайд для тех, кто хочет добавить новую команду боту, не разбираясь глубоко в коде.
-Весь процесс состоит из трёх шагов и затрагивает только три файла.
+## Простой способ — в `src/app/main.ts`
+
+Свои команды регистрируются в `main.ts` на `app.bot` — это обычный бот [grammY](https://grammy.dev), доступно всё его API.
+Ядро при этом не правится, поэтому обновления шаблона приходят без конфликтов.
+
+```ts
+app.bot.command("status", (ctx) => ctx.reply("Всё работает нормально ✅"));
+
+app.bot.callbackQuery("status_refresh", async (ctx) => {
+  await ctx.answerCallbackQuery("Обновлено");
+});
+
+// fileManager подключается ПОСЛЕ своих команд:
+// на любой нераспознанный текст он отвечает справкой
+app.use(fileManager({ storage: s3Storage(config.s3), ...config.fileManager }));
+```
+
+> Высокоуровневые функции ответа (меню, переводы) для кода из `app/` появятся следующим шагом.
+> Пока для полной интеграции в диалог бота (переводы, общее меню) используйте способ ниже.
+
+---
+
+## Полная интеграция в диалог — правка ядра
+
+Этот способ меняет файлы в `src/core/`. Он затрагивает пять файлов, и такие правки могут конфликтовать с обновлениями шаблона.
 
 ---
 
@@ -18,7 +41,7 @@
 
 ## Шаг 1 — Добавить текст в `strings.ts`
 
-Открой файл `src/BotService/dialog/messages/strings.ts`. Там два объекта: `textTranslates` (тексты) и `menusTranslates` (кнопки).
+Открой файл `src/core/dialog/messages/strings.ts`. Там два объекта: `textTranslates` (тексты) и `menusTranslates` (кнопки).
 
 ### Добавить текст
 
@@ -76,7 +99,7 @@ ru: {
 
 ## Шаг 2 — Добавить метод отправки в `DialogEngine.ts`
 
-Открой `src/BotService/dialog/DialogEngine.ts`. Там уже есть примеры — `sendHelp`, `sendMainMenu` и другие.
+Открой `src/core/dialog/DialogEngine.ts`. Там уже есть примеры — `sendHelp`, `sendMainMenu` и другие.
 Добавь новый async-метод по той же схеме. Методы принимают `ctx: BotContext` и сами выполняют отправку.
 
 ```ts
@@ -93,7 +116,7 @@ async sendStatus(ctx: BotContext) {
 
 ## Шаг 3 — Добавить метод в `BotModelImpl.ts`
 
-Открой `src/BotService/domain/BotModelImpl.ts` и добавь метод, который вызывает `DialogEngine`:
+Открой `src/core/domain/BotModelImpl.ts` и добавь метод, который вызывает `DialogEngine`:
 
 ```ts
 async sendStatus(ctx: BotContext) {
@@ -103,7 +126,7 @@ async sendStatus(ctx: BotContext) {
 }
 ```
 
-Также добавь сигнатуру метода в интерфейс `src/BotService/controller/IBotModel.ts`:
+Также добавь сигнатуру метода в интерфейс `src/core/IBotModel.ts`:
 
 ```ts
 sendStatus(ctx: BotContext): Promise<void>;
@@ -113,7 +136,7 @@ sendStatus(ctx: BotContext): Promise<void>;
 
 ## Шаг 4 — Зарегистрировать команду в `CommandHandler.ts`
 
-Открой `src/BotService/controller/handlers/CommandHandler.ts`. В конструкторе зарегистрируй новую команду,
+Открой `src/core/controller/handlers/CommandHandler.ts`. В конструкторе зарегистрируй новую команду,
 вызвав нужный метод модели:
 
 ```ts

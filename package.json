@@ -2,19 +2,17 @@
   "name": "cms-tg-bot",
   "version": "1.0.0",
   "description": "",
-  "main": "./dist/index.js",
+  "main": "./dist/app/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "tsc && DEBUG=\"grammy*\" node dist/index.js"
+    "start": "tsc && DEBUG=\"grammy*\" node dist/app/main.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
-  "resolutions": {
-    "whatwg-url": "^14.0.0"
-  },
+  "packageManager": "pnpm@12.14.0",
   "devDependencies": {
     "@types/node": "^25.6.2",
     "dependency-cruiser": "^17.4.3",
@@ -24,14 +22,11 @@
     "@aws-sdk/client-s3": "3.840.0",
     "@grammyjs/storage-file": "^2.5.1",
     "dotenv": "^17.4.2",
-    "fs": "0.0.1-security",
     "grammy": "^1.42.0",
     "https-proxy-agent": "^9.0.0",
     "nanoid": "^5.1.11",
-    "path": "^0.12.7",
     "socks-proxy-agent": "^10.0.0",
     "undici": "^8.3.0",
-    "url": "^0.11.4",
     "zario": "^0.8.0"
   }
 }

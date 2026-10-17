@@ -1,6 +1,6 @@
 # Добавление inline-кнопок
 
-Кнопки добавляются через файл `src/BotService/dialog/messages/strings.ts` — никакого дополнительного кода писать не нужно. Обработка нажатий регистрируется в `ButtonHandler.ts`.
+Кнопки добавляются через файл `src/core/dialog/messages/strings.ts` — никакого дополнительного кода писать не нужно. Обработка нажатий регистрируется в `ButtonHandler.ts`.
 
 ---
 
@@ -29,7 +29,7 @@ ru: {
 
 ## Шаг 2 — Добавить метод в `BotModelImpl.ts`
 
-Открой `src/BotService/domain/BotModelImpl.ts` и добавь метод для обработки нажатия:
+Открой `src/core/domain/BotModelImpl.ts` и добавь метод для обработки нажатия:
 
 ```ts
 async onStatusShow(ctx: BotContext) {
@@ -37,7 +37,7 @@ async onStatusShow(ctx: BotContext) {
 }
 ```
 
-Добавь сигнатуру в `src/BotService/controller/IBotModel.ts`:
+Добавь сигнатуру в `src/core/IBotModel.ts`:
 
 ```ts
 onStatusShow(ctx: BotContext): Promise<void>;
@@ -47,7 +47,7 @@ onStatusShow(ctx: BotContext): Promise<void>;
 
 ## Шаг 3 — Обработать нажатие в `ButtonHandler.ts`
 
-Открой `src/BotService/controller/handlers/ButtonHandler.ts`. В конструкторе зарегистрируй обработчик по значению `call`:
+Открой `src/core/controller/handlers/ButtonHandler.ts`. В конструкторе зарегистрируй обработчик по значению `call`:
 
 ```ts
 this.bot.callbackQuery("status_show", async (ctx) => {

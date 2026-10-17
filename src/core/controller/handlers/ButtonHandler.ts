@@ -1,4 +1,4 @@
-import type { Bot } from "grammy";
+import type { Composer } from "grammy";
 import {
   DialogStep,
   SUPPORTED_LANGUAGES,
@@ -9,10 +9,10 @@ import type { IBotModel } from "../../IBotModel.js";
 
 export class ButtonHandler {
   constructor(
-    private bot: Bot<BotContext>,
+    private composer: Composer<BotContext>,
     model: IBotModel,
   ) {
-    this.bot.callbackQuery(/lang=(.+)/, async (ctx) => {
+    this.composer.callbackQuery(/lang=(.+)/, async (ctx) => {
       const candidate = ctx.match[1];
       if (
         candidate &&
@@ -25,7 +25,7 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
+    this.composer.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const dir = ctx.match[1];
 
@@ -41,7 +41,7 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
+    this.composer.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const type = ctx.match[1];
         const isFile = type === "File";
@@ -70,7 +70,7 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/^delete(?:File|Dir)Ask:(.+)$/, async (ctx) => {
+    this.composer.callbackQuery(/^delete(?:File|Dir)Ask:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const path = ctx.match[1];
         await model.deleteAskMenu(ctx, path);
@@ -80,13 +80,13 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery("cancel", async (ctx) => {
+    this.composer.callbackQuery("cancel", async (ctx) => {
       ctx.answerCallbackQuery();
       model.sessionReset(ctx, true);
       await model.navMenu(ctx);
     });
 
-    this.bot.callbackQuery(/new(File|Dir)/, async (ctx) => {
+    this.composer.callbackQuery(/new(File|Dir)/, async (ctx) => {
       if (ctx.match[1]) {
         const isFile = ctx.match[1] === "File";
         if (isFile) {
@@ -102,7 +102,7 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/rename(?:File|Dir)Ask:(.+)/, async (ctx) => {
+    this.composer.callbackQuery(/rename(?:File|Dir)Ask:(.+)/, async (ctx) => {
       if (ctx.match[1]) {
         const path = ctx.match[1];
         await ctx.answerCallbackQuery();
@@ -112,12 +112,12 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery("newAsk", async (ctx) => {
+    this.composer.callbackQuery("newAsk", async (ctx) => {
       await ctx.answerCallbackQuery();
       await model.askForDocumentType(ctx);
     });
 
-    this.bot.callbackQuery(/^(?:dir|file)Actions:(.+)$/, async (ctx) => {
+    this.composer.callbackQuery(/^(?:dir|file)Actions:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const path = ctx.match[1];
         await model.actionsMenu(ctx, path);
@@ -126,7 +126,7 @@ export class ButtonHandler {
       }
     });
 
-    this.bot.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
+    this.composer.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const path = ctx.match[1];
 
