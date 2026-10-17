@@ -13,29 +13,29 @@ import {
 
 export interface BotOptions {
   token: string;
-  /** Telegram IDs allowed to use the bot */
+  /** telegram ids allowed to use the bot */
   admins: number[];
-  /** Shown in the welcome message */
+  /** shown in the welcome message */
   websiteName: string;
-  /** HTTP/HTTPS proxy: http://user:password@host:port */
+  /** http/https proxy just like this: http://user:password@host:port */
   proxyUrl?: string | undefined;
-  /** Default: "logs" */
+  /** "logs" by default */
   logPath?: string | undefined;
-  /** Default: "sessions" */
+  /** "sessions" by default */
   sessionsDir?: string | undefined;
-  /** Default: "en" */
+  /** "en" by default */
   defaultLang?: botLanguage | undefined;
-  /** Default: built-in ru/en texts */
+  /** built-in ru/en texts by default */
   texts?: BotTexts | undefined;
 }
 
-/** Shared services a feature gets when it is installed with `app.use()` */
+/** shared services every feature gets from app.use() */
 export interface BotKit {
   readonly bot: Bot<BotContext>;
   readonly options: Readonly<BotOptions>;
   readonly dialog: DialogEngine;
   readonly logger: BotLogger;
-  /** Features put their initial session values here at install time */
+  /** here features can put their initial session values at install time */
   readonly sessionDefaults: Partial<SessionData>;
   resetSession(ctx: BotContext): void;
 }
@@ -43,17 +43,15 @@ export interface BotKit {
 export type Feature = (kit: BotKit) => Middleware<BotContext>;
 
 export interface BotApp {
-  /** grammY bot instance: register your own commands and middleware on it */
+  /** grammY bot itself: here you can register your own commands and middleware */
   readonly bot: Bot<BotContext>;
   use(feature: Feature): BotApp;
-  /** Starts long polling; resolves when the bot stops */
+  /** starts long polling, resolves when the bot stops */
   start(): Promise<void>;
 }
 
-/**
- * Creates a bot with session, admin-only access and error handling.
- * Nothing is answered until features are installed with `app.use()`.
- */
+// creates a bot with session, admin-only access and error handling
+// !!! it answers nothing until you add features with app.use()
 export function createBot(options: BotOptions): BotApp {
   const logger = new BotLogger(options.logPath ?? "logs");
   const dialog = new DialogEngine(options.texts ?? defaultTexts);
@@ -63,8 +61,8 @@ export function createBot(options: BotOptions): BotApp {
   );
 
   const sessionDefaults: Partial<SessionData> = {};
-  // Called lazily on the first update of each chat, so it sees
-  // the defaults of features installed after createBot()
+  // called lazily on the first update of each chat,
+  // so it sees the defaults of features added after createBot()
   const initialSession = (): SessionData => ({
     lang: options.defaultLang ?? "en",
     dialogStep: DialogStep.Idle,
@@ -121,7 +119,7 @@ export function createBot(options: BotOptions): BotApp {
       return app;
     },
     start() {
-      // Lets `docker stop` shut the bot down gracefully instead of killing it
+      // lets `docker stop` shut the bot down gracefully instead of killing it
       process.once("SIGINT", () => bot.stop());
       process.once("SIGTERM", () => bot.stop());
       return bot.start();

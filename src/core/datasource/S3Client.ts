@@ -2,7 +2,7 @@ import { S3Client, type S3ClientConfig } from "@aws-sdk/client-s3";
 import { BotRepository } from "./S3Repository.js";
 
 export interface S3StorageOptions {
-  /** S3 API URL. Leave empty for AWS S3 */
+  /** S3 API url. leave it empty for AWS S3 */
   endpoint?: string | undefined;
   region: string;
   accessKeyId: string;
@@ -11,7 +11,7 @@ export interface S3StorageOptions {
   /**
    * true:  http://host/bucket/key (Garage, MinIO and most self-hosted storages)
    * false: http://bucket.host/key (AWS and providers requiring virtual-hosted style)
-   * Default: true
+   * true by default
    */
   forcePathStyle?: boolean | undefined;
 }

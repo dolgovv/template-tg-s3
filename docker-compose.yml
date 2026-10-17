@@ -1,8 +1,8 @@
-# Cloud or external S3 (only the bot):
-#   docker compose up -d
+# here you can run only the bot (cloud or external S3) just like this:
+# ---  docker compose up -d
 #
-# Bot + local Garage S3 (key and bucket are created from .env automatically):
-#   docker compose --profile garage up -d
+# or the bot with local Garage S3 (key and bucket are created from .env automatically):
+# ---  docker compose --profile garage up -d
 
 services:
   bot:
@@ -32,7 +32,7 @@ services:
       - garage-meta:/var/lib/garage/meta
       - garage-data:/var/lib/garage/data
     ports:
-      # S3 API for tools on the host (aws cli, rclone...). Not needed by the bot
+      # S3 API for tools on the host (aws cli, rclone...), the bot doesn't need it
       - "127.0.0.1:3900:3900"
     healthcheck:
       test: ["CMD", "/garage", "status"]

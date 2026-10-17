@@ -7,15 +7,12 @@ import type { BotContext } from "../types.js";
 
 export interface FileManagerOptions {
   storage: S3Storage;
-  /** Folder inside the bucket to start from, e.g. "site/". Default: bucket root */
+  /** folder inside the bucket to start from just like this: "site/". bucket root by default */
   root?: string | undefined;
 }
 
-/**
- * Main menu, language switch and S3 browser: navigation, upload,
- * rename and delete. Answers any unrecognized text with help,
- * so register your own handlers before installing it.
- */
+// main menu, language switch and S3 browser: navigation, upload, rename and delete
+// !!! it answers any unrecognized text with help, so add your own handlers strictly before it
 export function fileManager(options: FileManagerOptions): Feature {
   return (kit) => {
     kit.sessionDefaults.currentDir = normalizeRoot(options.root);

@@ -1,4 +1,5 @@
-// Public API of the core. App code imports only from this file.
+// public API of the core
+// !!! app code imports strictly from this file
 
 export {
   createBot,

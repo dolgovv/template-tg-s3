@@ -1,0 +1,7 @@
+# pnpm settings
+# !!! pnpm 11+ reads them strictly from this file, not from package.json
+
+overrides:
+  # grammy -> node-fetch@2 pulls whatwg-url@5, which triggers
+  # the "punycode module is deprecated" warning on Node 21+
+  whatwg-url: ^14.0.0
