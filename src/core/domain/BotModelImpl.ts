@@ -11,6 +11,7 @@ import {
 } from "../types.js";
 import { fetch, ProxyAgent } from "undici";
 import type { IBotModel } from "../IBotModel.js";
+import { buildPathRefs, pathRef } from "./pathRefs.js";
 
 export class BotModelImpl implements IBotModel {
   constructor(
@@ -19,6 +20,8 @@ export class BotModelImpl implements IBotModel {
     private logger: BotLogger,
     private token: string,
     private proxyUrl: string | undefined,
+    // normalized: "" or "some/folder/"
+    private root: string,
   ) {}
 
   // MENUS ================================================
@@ -66,6 +69,7 @@ export class BotModelImpl implements IBotModel {
       ];
 
       const content = [...dirsPaths, ...filesPaths];
+      ctx.session.pathRefs = buildPathRefs(content);
 
       const contentInstances: NavigationInstance[] = content.map(
         (fullPath, i) => {
@@ -79,8 +83,8 @@ export class BotModelImpl implements IBotModel {
           );
           const callback =
             type.type === "Directory"
-              ? "dirActions:" + fullPath
-              : "fileActions:" + fullPath;
+              ? "dirActions:" + pathRef(fullPath)
+              : "fileActions:" + pathRef(fullPath);
           return {
             type: type,
             msgText: msgText,
@@ -106,12 +110,17 @@ export class BotModelImpl implements IBotModel {
 
   async actionsMenu(ctx: BotContext, path: string) {
     const isFile = !path.endsWith("/");
-    await this.dialog.sendActionsMenu(isFile, path, ctx);
+    await this.dialog.sendActionsMenu(isFile, pathRef(path), ctx);
   }
 
   async deleteAskMenu(ctx: BotContext, path: string) {
     const isFile = !path.endsWith("/");
-    await this.dialog.sendAsksMenu(isFile, path, ctx);
+    await this.dialog.sendAsksMenu(isFile, pathRef(path), ctx);
+  }
+
+  async menuOutdated(ctx: BotContext) {
+    await this.dialog.answerMenuOutdated(ctx);
+    await this.navMenu(ctx);
   }
 
   // ======================================================
@@ -217,12 +226,26 @@ export class BotModelImpl implements IBotModel {
     const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
 
     const lastSlashIndex = normalizedPath.lastIndexOf("/");
+    const parent =
+      lastSlashIndex === -1 ? "" : normalizedPath.slice(0, lastSlashIndex + 1);
 
-    if (lastSlashIndex === -1) {
-      ctx.session.currentDir = "";
-    } else {
-      ctx.session.currentDir = normalizedPath.slice(0, lastSlashIndex + 1);
-    }
+    // !!! never go above the root folder
+    ctx.session.currentDir = parent.startsWith(this.root) ? parent : this.root;
+  }
+
+  isAtRoot(ctx: BotContext): boolean {
+    return ctx.session.currentDir === this.root;
+  }
+
+  // the root itself is not "within": it can't be deleted or renamed
+  private isWithinRoot(path: string): boolean {
+    return path.startsWith(this.root) && path !== this.root;
+  }
+
+  // a button ref -> the S3 path it was made for, undefined for outdated menus
+  resolvePath(ctx: BotContext, ref: string): string | undefined {
+    const path = ctx.session.pathRefs?.[ref];
+    return path && this.isWithinRoot(path) ? path : undefined;
   }
 
   async changeLang(ctx: BotContext, newLang: botLanguage) {
@@ -232,25 +255,22 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  sessionReset(ctx: BotContext, hard: boolean = false): void {
+  sessionReset(ctx: BotContext): void {
     ctx.session.dialogStep = DialogStep.Idle;
     ctx.session.lastMenuMessageId = 0;
     ctx.session.chosenPath = "";
-    if (hard) {
-      ctx.session.currentDir = "";
-      ctx.session.lang = "en";
-    }
   }
 
+  // dir: "..", "root" or a directory path within the root
   async navigateTo(ctx: BotContext, dir: string) {
-    if (dir) {
-      if (dir === "..") {
-        this.navigateBack(ctx);
-      } else {
-        ctx.session.currentDir = dir;
-      }
+    if (dir === "..") {
+      this.navigateBack(ctx);
+    } else if (dir === "root") {
+      ctx.session.currentDir = this.root;
+    } else if (dir.endsWith("/") && this.isWithinRoot(dir)) {
+      ctx.session.currentDir = dir;
     } else {
-      await this.dialog.sendError("callback nav error: no such location", ctx);
+      await this.sendError("callback nav error: no such location", ctx);
     }
   }
 
@@ -381,8 +401,8 @@ export class BotModelImpl implements IBotModel {
   }
 
   async removeDirectory(path: string) {
-    const result = await this.repo.removeDirectory(path);
-    return result;
+    if (!this.isWithinRoot(path)) return false;
+    return await this.repo.removeDirectory(path);
   }
 
   async sendImage(ctx: BotContext, path: string) {

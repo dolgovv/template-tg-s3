@@ -71,6 +71,7 @@ export const textTranslates = {
       );
     },
     buttonEchoReply: "Вот твоя кнопка:",
+    menuOutdated: "Это меню устарело, вот актуальное",
   },
   en: {
     welcome: "Welcome! Bot is running.",
@@ -143,6 +144,7 @@ export const textTranslates = {
       );
     },
     buttonEchoReply: "Here's your button:",
+    menuOutdated: "This menu is outdated, here is the current one",
   },
   // here you can add more languages
 };
@@ -159,19 +161,19 @@ export const menusTranslates = {
         call: "cancel",
       },
     ],
-    actionsMenu: (isFile: boolean, path: string) => {
+    actionsMenu: (isFile: boolean, ref: string) => {
       return [
         {
           text: "Открыть",
-          call: isFile ? "openFile:" + path : "navDir:" + path,
+          call: isFile ? "openFile:" + ref : "navDir:" + ref,
         },
         {
           text: "Удалить",
-          call: isFile ? "deleteFileAsk:" + path : "deleteDirAsk:" + path,
+          call: isFile ? "deleteFileAsk:" + ref : "deleteDirAsk:" + ref,
         },
         {
           text: "Переименовать",
-          call: isFile ? "renameFileAsk:" + path : "renameDirAsk:" + path,
+          call: isFile ? "renameFileAsk:" + ref : "renameDirAsk:" + ref,
         },
         {
           text: "⬅️",
@@ -179,11 +181,11 @@ export const menusTranslates = {
         },
       ];
     },
-    deleteAskMenu: (isFile: boolean, path: string) => {
+    deleteAskMenu: (isFile: boolean, ref: string) => {
       return [
         {
           text: "Да",
-          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+          call: isFile ? "deleteFile:" + ref : "deleteDir:" + ref,
         },
         {
           text: "Нет",
@@ -216,16 +218,16 @@ export const menusTranslates = {
         call: "cancel",
       },
     ],
-    actionsMenu: (isFile: boolean, path: string) => {
+    actionsMenu: (isFile: boolean, ref: string) => {
       return [
-        { text: "Open", call: isFile ? "openFile:" + path : "navDir:" + path },
+        { text: "Open", call: isFile ? "openFile:" + ref : "navDir:" + ref },
         {
           text: "Delete",
-          call: isFile ? "deleteFileAsk:" + path : "deleteDirAsk:" + path,
+          call: isFile ? "deleteFileAsk:" + ref : "deleteDirAsk:" + ref,
         },
         {
           text: "Rename",
-          call: isFile ? "renameFileAsk:" + path : "renameDirAsk:" + path,
+          call: isFile ? "renameFileAsk:" + ref : "renameDirAsk:" + ref,
         },
         {
           text: "⬅️",
@@ -233,11 +235,11 @@ export const menusTranslates = {
         },
       ];
     },
-    deleteAskMenu: (isFile: boolean, path: string) => {
+    deleteAskMenu: (isFile: boolean, ref: string) => {
       return [
         {
           text: "Yes",
-          call: isFile ? "deleteFile:" + path : "deleteDir:" + path,
+          call: isFile ? "deleteFile:" + ref : "deleteDir:" + ref,
         },
         {
           text: "No",

@@ -167,7 +167,7 @@ export class BotRepository {
         const newKey = oldKey.replace(sourcePrefix, destPrefix);
         const copyCommand = new CopyObjectCommand({
           Bucket: this.bucket,
-          CopySource: `${this.bucket}/${oldKey}`,
+          CopySource: this.copySource(oldKey),
           Key: newKey,
         });
         const response = await this.s3Client.send(copyCommand);
@@ -178,26 +178,36 @@ export class BotRepository {
   }
 
   async removeDirectory(path: string): Promise<boolean> {
-    let result = false;
-    const tempObjectsToDelete: _Object[] = await this.getEverythingFrom(path);
+    // !!! an empty prefix means the whole bucket
+    if (!path.endsWith("/")) {
+      throw new Error(`Refusing to remove "${path}": not a directory`);
+    }
 
-    const objectsToDelete = (tempObjectsToDelete ?? [])
-      .map((obj) => ({ Key: obj.Key! }))
-      .filter((obj) => obj.Key);
+    const keys = (await this.getEverythingFrom(path))
+      .map((obj) => obj.Key)
+      .filter((key): key is string => !!key);
+    if (keys.length === 0) return false;
 
-    if (objectsToDelete.length > 0) {
+    // DeleteObjects accepts strictly up to 1000 keys per request
+    for (let i = 0; i < keys.length; i += 1000) {
       const response = await this.s3Client.send(
         new DeleteObjectsCommand({
           Bucket: this.bucket,
           Delete: {
-            Objects: objectsToDelete,
-            Quiet: false,
+            Objects: keys.slice(i, i + 1000).map((key) => ({ Key: key })),
+            Quiet: true,
           },
         }),
       );
-      result = this.isStatusCodeOk(response.$metadata.httpStatusCode);
+      // S3 answers 200 even when some objects were not deleted
+      if (
+        !this.isStatusCodeOk(response.$metadata.httpStatusCode) ||
+        response.Errors?.length
+      ) {
+        return false;
+      }
     }
-    return result;
+    return true;
   }
 
   async deleteFile(key: string) {
@@ -250,6 +260,11 @@ export class BotRepository {
   }
 
   // UTILS FUNCTIONS
+  // CopySource is sent as an http header, so the key must be url-encoded
+  private copySource(key: string): string {
+    return `${this.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
+  }
+
   private async streamToBuffer(stream: Readable): Promise<Buffer> {
     const chunks: Buffer[] = [];
     for await (const chunk of stream) {
@@ -295,7 +310,7 @@ export class BotRepository {
     const copyResponse = await this.s3Client.send(
       new CopyObjectCommand({
         Bucket: this.bucket,
-        CopySource: `${this.bucket}/${oldKey}`,
+        CopySource: this.copySource(oldKey),
         Key: newKey,
       }),
     );

@@ -25,30 +25,32 @@ export class ButtonHandler {
       }
     });
 
+    // navDir:.. | navDir:root | navDir:<ref>
     this.composer.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
-      if (ctx.match[1]) {
-        const dir = ctx.match[1];
+      const target = ctx.match[1]!;
 
-        if (ctx.session.currentDir === "" && dir === "..") {
-          await ctx.answerCallbackQuery();
-        } else {
-          await model.navigateTo(ctx, dir === "root" ? ".." : dir);
-          await ctx.answerCallbackQuery();
-          await model.navMenu(ctx);
-        }
-      } else {
-        model.errorCallback(ctx.match[0], ctx);
+      if (target === ".." && model.isAtRoot(ctx)) {
+        await ctx.answerCallbackQuery();
+        return;
       }
+
+      const dir =
+        target === ".." || target === "root"
+          ? target
+          : model.resolvePath(ctx, target);
+      if (!dir) return await model.menuOutdated(ctx);
+
+      await model.navigateTo(ctx, dir);
+      await ctx.answerCallbackQuery();
+      await model.navMenu(ctx);
     });
 
     this.composer.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const type = ctx.match[1];
         const isFile = type === "File";
-        const path = ctx.match[2]!;
-        if (!path) {
-          await model.sendDeletionError(isFile, path, ctx);
-        }
+        const path = model.resolvePath(ctx, ctx.match[2]!);
+        if (!path) return await model.menuOutdated(ctx);
 
         if (type === "File") {
           const result = await model.deleteFile(ctx, path);
@@ -72,7 +74,8 @@ export class ButtonHandler {
 
     this.composer.callbackQuery(/^delete(?:File|Dir)Ask:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
-        const path = ctx.match[1];
+        const path = model.resolvePath(ctx, ctx.match[1]);
+        if (!path) return await model.menuOutdated(ctx);
         await model.deleteAskMenu(ctx, path);
         await ctx.answerCallbackQuery();
       } else {
@@ -81,8 +84,8 @@ export class ButtonHandler {
     });
 
     this.composer.callbackQuery("cancel", async (ctx) => {
-      ctx.answerCallbackQuery();
-      model.sessionReset(ctx, true);
+      await ctx.answerCallbackQuery();
+      model.sessionReset(ctx);
       await model.navMenu(ctx);
     });
 
@@ -104,7 +107,8 @@ export class ButtonHandler {
 
     this.composer.callbackQuery(/rename(?:File|Dir)Ask:(.+)/, async (ctx) => {
       if (ctx.match[1]) {
-        const path = ctx.match[1];
+        const path = model.resolvePath(ctx, ctx.match[1]);
+        if (!path) return await model.menuOutdated(ctx);
         await ctx.answerCallbackQuery();
         await model.askNewName(path, ctx);
       } else {
@@ -119,7 +123,9 @@ export class ButtonHandler {
 
     this.composer.callbackQuery(/^(?:dir|file)Actions:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
-        const path = ctx.match[1];
+        const path = model.resolvePath(ctx, ctx.match[1]);
+        if (!path) return await model.menuOutdated(ctx);
+        await ctx.answerCallbackQuery();
         await model.actionsMenu(ctx, path);
       } else {
         model.errorCallback(ctx.match[0], ctx);
@@ -128,37 +134,34 @@ export class ButtonHandler {
 
     this.composer.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
-        const path = ctx.match[1];
+        const path = model.resolvePath(ctx, ctx.match[1]);
+        if (!path) return await model.menuOutdated(ctx);
 
-        if (ctx.session.currentDir === "" && path === "..") {
-          await ctx.answerCallbackQuery();
-        } else {
-          const extensionIndex: number = path.lastIndexOf(".");
-          const fileExtension = path.slice(extensionIndex);
+        const extensionIndex: number = path.lastIndexOf(".");
+        const fileExtension = path.slice(extensionIndex);
 
-          switch (fileExtension) {
-            case ".jpg":
-            case ".png":
-              await model.sendImage(ctx, path);
-              await model.navMenu(ctx);
-              break;
+        switch (fileExtension) {
+          case ".jpg":
+          case ".png":
+            await model.sendImage(ctx, path);
+            await model.navMenu(ctx);
+            break;
 
-            case ".txt":
-              await model.sendTextFile(ctx, path);
-              await model.navMenu(ctx);
-              break;
+          case ".txt":
+            await model.sendTextFile(ctx, path);
+            await model.navMenu(ctx);
+            break;
 
-            default:
-              await model.sendError(
-                "Unsupported (yet) file extension: " + path,
-                ctx,
-              );
+          default:
+            await model.sendError(
+              "Unsupported (yet) file extension: " + path,
+              ctx,
+            );
 
-              break;
-          }
-
-          await ctx.answerCallbackQuery();
+            break;
         }
+
+        await ctx.answerCallbackQuery();
       } else {
         model.errorCallback(ctx.match[0], ctx);
       }

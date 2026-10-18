@@ -15,7 +15,8 @@ export interface FileManagerOptions {
 // !!! it answers any unrecognized text with help, so add your own handlers strictly before it
 export function fileManager(options: FileManagerOptions): Feature {
   return (kit) => {
-    kit.sessionDefaults.currentDir = normalizeRoot(options.root);
+    const root = normalizeRoot(options.root);
+    kit.sessionDefaults.currentDir = root;
 
     const model = new BotModelImpl(
       options.storage,
@@ -23,8 +24,20 @@ export function fileManager(options: FileManagerOptions): Feature {
       kit.logger,
       kit.options.token,
       kit.options.proxyUrl,
+      root,
     );
     const composer = new Composer<BotContext>();
+
+    // sessions from older versions or made before the root was changed
+    // may point outside the root, so bring them back into it
+    composer.use((ctx, next) => {
+      if (!ctx.session.currentDir?.startsWith(root)) {
+        ctx.session.currentDir = root;
+      }
+      ctx.session.pathRefs ??= {};
+      return next();
+    });
+
     new BotRouter(composer, model);
     return composer;
   };

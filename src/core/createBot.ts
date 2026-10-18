@@ -70,6 +70,7 @@ export function createBot(options: BotOptions): BotApp {
     currentDir: "",
     chosenPath: "",
     lastMenuMessageId: 0,
+    pathRefs: {},
     ...sessionDefaults,
   });
 

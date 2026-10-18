@@ -6,6 +6,7 @@ export interface IBotModel {
   navMenu(ctx: BotContext): Promise<void>;
   actionsMenu(ctx: BotContext, path: string): Promise<void>;
   deleteAskMenu(ctx: BotContext, path: string): Promise<void>;
+  menuOutdated(ctx: BotContext): Promise<void>;
 
   // Replies
   sendError(message: string, ctx: BotContext): Promise<void>;
@@ -32,8 +33,10 @@ export interface IBotModel {
   getBiggestPhoto(ctx: BotContext): string;
   getFileId(ctx: BotContext): string | undefined;
   changeLang(ctx: BotContext, newLang: botLanguage): Promise<void>;
-  sessionReset(ctx: BotContext, hard: boolean): void;
+  sessionReset(ctx: BotContext): void;
   navigateTo(ctx: BotContext, dir: string): Promise<void>;
+  isAtRoot(ctx: BotContext): boolean;
+  resolvePath(ctx: BotContext, ref: string): string | undefined;
   sanitizeName(name: string): string | null;
 
   // File management

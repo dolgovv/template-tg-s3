@@ -79,19 +79,19 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendActionsMenu(isFile: boolean, path: string, ctx: BotContext) {
+  async sendActionsMenu(isFile: boolean, ref: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = this.texts.text[lang].chooseAction;
-    const m = this.texts.menus[lang].actionsMenu(isFile, path);
+    const m = this.texts.menus[lang].actionsMenu(isFile, ref);
 
     const reply = this.factory.menu(t, m);
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendAsksMenu(isFile: boolean, path: string, ctx: BotContext) {
+  async sendAsksMenu(isFile: boolean, ref: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = this.texts.text[lang].deleteAsk(isFile);
-    const m = this.texts.menus[lang].deleteAskMenu(isFile, path);
+    const m = this.texts.menus[lang].deleteAskMenu(isFile, ref);
 
     const reply = this.factory.menu(t, m);
     await this.resolver.reply(ctx, reply);
@@ -137,6 +137,11 @@ export class DialogEngine {
 
       await this.resolver.reply(ctx, reply);
     }
+  }
+
+  async answerMenuOutdated(ctx: BotContext) {
+    const lang = ctx.session.lang;
+    await ctx.answerCallbackQuery({ text: this.texts.text[lang].menuOutdated });
   }
 
   async sendError(description: string, ctx: BotContext) {

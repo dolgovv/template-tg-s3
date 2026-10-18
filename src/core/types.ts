@@ -33,6 +33,8 @@ export type SessionData = {
   currentDir: string;
   chosenPath: string;
   lastMenuMessageId: number;
+  // short button refs -> full S3 paths of the current menu (see pathRefs.ts)
+  pathRefs: Record<string, string>;
 };
 
 export type BotContext = Context & SessionFlavor<SessionData>;
