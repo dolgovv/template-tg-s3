@@ -78,6 +78,26 @@ export function createBot(options: BotOptions): BotApp {
     Object.assign(ctx.session, initialSession());
   };
 
+  // !!! access is checked strictly before the session,
+  // so strangers don't get session files
+  bot.use(async (ctx, next) => {
+    // !!! the admin panel works strictly in private chats:
+    // in groups every member would see the files the bot shows
+    if (ctx.chat?.type !== "private") return;
+
+    const userId = ctx.from?.id;
+    if (userId === undefined) return;
+
+    // the user, not the chat: it's the person who is checked
+    if (!options.admins.includes(userId)) {
+      if (ctx.chat) await dialog.sendAuthError(ctx, options.defaultLang ?? "en");
+      logger.error("Log in attempt failed" + logger.getDetails(ctx));
+      return;
+    }
+
+    await next();
+  });
+
   bot.use(
     session({
       initial: initialSession,
@@ -90,18 +110,17 @@ export function createBot(options: BotOptions): BotApp {
       logger.error("Session error");
       return;
     }
-    if (!ctx.chatId || !options.admins.includes(ctx.chatId)) {
-      await dialog.sendAuthError(ctx);
-      logger.error("Log in attempt failed" + logger.getDetails(ctx));
-      return;
-    }
-
     await next();
   });
 
   bot.catch(async (err) => {
     logger.error(err.message + logger.getDetails(err.ctx));
-    resetSession(err.ctx);
+    // the error may happen before the session or while answering,
+    // so the user is notified strictly on a best-effort basis
+    try {
+      resetSession(err.ctx);
+      await dialog.sendUnexpectedError(err.ctx);
+    } catch {}
   });
 
   const kit: BotKit = {

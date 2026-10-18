@@ -58,13 +58,12 @@ export class BotLogger {
     });
   }
 
-  getDetails(ctx: BotContext): string {
-    const chat = ctx.chat;
-    if (!chat) return "";
-    const username = chat.username;
-    const result =
-      "\nID: " + chat.id + username ? "\tLink: t.me/" + username : "";
-    return result;
+  // who made the request: the user, not the chat (they differ in groups)
+  getDetails(ctx: Context): string {
+    const user = ctx.from;
+    if (!user) return "";
+    const link = user.username ? "\tLink: t.me/" + user.username : "";
+    return "\nID: " + user.id + link;
   }
 
   info(message: string) {

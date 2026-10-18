@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { BotRepository } from "../datasource/S3Repository.js";
 import type { DialogEngine } from "../dialog/DialogEngine.js";
+import { escapeHtml } from "../dialog/html.js";
 import {
   BotLogger,
   DialogStep,
@@ -74,12 +75,13 @@ export class BotModelImpl implements IBotModel {
       const contentInstances: NavigationInstance[] = content.map(
         (fullPath, i) => {
           const type = this.pathToType(fullPath);
-          const msgText =
-            type.type === "Directory"
-              ? "<b>" + this.dialog.shrinkPath(fullPath) + "</b>"
-              : this.dialog.shrinkPath(fullPath);
+          const isDir = type.type === "Directory";
+          const shortName = escapeHtml(this.dialog.shrinkPath(fullPath));
+          const msgText = isDir ? "<b>" + shortName + "</b>" : shortName;
+          // just the name: no parent folders, trailing slash or extension
+          const leaf = this.dialog.leafInPath(fullPath).replace(/\/$/, "");
           const btnText = this.dialog.shrinkPath(
-            fullPath.slice(0, fullPath.indexOf(".")),
+            isDir ? leaf : splitExtension(leaf).name,
           );
           const callback =
             type.type === "Directory"
@@ -176,16 +178,6 @@ export class BotModelImpl implements IBotModel {
   // ======================================================
 
   // UTILS ================================================
-
-  getBiggestPhoto(ctx: BotContext): string {
-    const msg = ctx.message;
-    if (!msg) return "";
-    const photo = msg.photo;
-    if (!photo) return "";
-    const bestPhoto = photo[photo.length - 1];
-    if (!bestPhoto) return "";
-    return bestPhoto?.file_id;
-  }
 
   getFileId(ctx: BotContext): string | undefined {
     const msg = ctx.message;
@@ -343,10 +335,13 @@ export class BotModelImpl implements IBotModel {
       finalName = sanitized;
     } else {
       // no name or empty string → autogenerate
-      finalName = await this.getRandomName(ctx.session.currentDir);
+      const dir = ctx.session.currentDir;
+      finalName = await this.getRandomName((name) =>
+        this.repo.isFileExists(dir + name + extension),
+      );
     }
 
-    const result = await this.repo.putImage(
+    const result = await this.repo.putFile(
       buffer,
       ctx.session.currentDir,
       finalName,
@@ -363,35 +358,27 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  async getRandomName(
-    prefix: string,
-    length: number = 8,
-    retries: number = 3,
+  // exists() gets a candidate name and checks the full key it would make
+  private async getRandomName(
+    exists: (name: string) => Promise<boolean>,
   ): Promise<string> {
-    let name = nanoid(length);
-    while ((await this.repo.isFileExists(prefix + name)) && retries--) {
-      name = nanoid(length);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const name = nanoid(8);
+      if (!(await exists(name))) return name;
     }
-
-    return retries ? name : "";
+    throw new Error("Could not generate a free name in 3 attempts");
   }
 
-  async deleteFile(ctx: BotContext, path: string): Promise<boolean> {
-    const result = await this.repo.deleteFile(path);
-    const resultCode = result.$metadata.httpStatusCode;
-    if (resultCode && resultCode - 200 < 100 && resultCode - 200 > 0) {
-      await this.navMenu(ctx);
-      return true;
-    } else {
-      await this.sendError("Ошибка удаления файла", ctx);
-      if (resultCode) await this.sendError(resultCode.toString(), ctx);
-      return false;
-    }
+  async deleteFile(path: string): Promise<boolean> {
+    if (!this.isWithinRoot(path)) return false;
+    return await this.repo.deleteFile(path);
   }
 
   async createDirectory(currentDir: string, name: string): Promise<string> {
     if (!name.trim()) {
-      const generated = await this.getRandomName(currentDir);
+      const generated = await this.getRandomName((name) =>
+        this.repo.isDirectoryExists(currentDir + name + "/"),
+      );
       return await this.repo.createDirectory(currentDir, generated);
     }
     let sanitized = this.sanitizeName(name);
@@ -451,13 +438,13 @@ export class BotModelImpl implements IBotModel {
         return false;
       }
       const result = await this.repo.renameDir(oldPath, newPath);
+      if (!result) await this.renameFailed(oldPath, ctx);
       return result;
     } else {
-      const dotIndex = oldPath.lastIndexOf(".");
-      const extension = dotIndex !== -1 ? oldPath.slice(dotIndex) : "";
       const parentPrefix = oldPath.includes("/")
         ? oldPath.slice(0, oldPath.lastIndexOf("/") + 1)
         : "";
+      const { extension } = splitExtension(oldPath.slice(parentPrefix.length));
       const newKey = parentPrefix + newName + extension;
 
       const alreadyExists = await this.repo.isFileExists(newKey);
@@ -465,9 +452,27 @@ export class BotModelImpl implements IBotModel {
         await this.sendNameAlreadyExistsError(isFile, ctx);
         return false;
       }
-      return await this.repo.renameFile(oldPath, newKey);
+      const result = await this.repo.renameFile(oldPath, newKey);
+      if (!result) await this.renameFailed(oldPath, ctx);
+      return result;
     }
   }
 
+  private async renameFailed(path: string, ctx: BotContext) {
+    this.logger.error("Rename error: " + path + this.logger.getDetails(ctx));
+    await this.dialog.sendRenameError(ctx);
+  }
+
   // ======================================================
+}
+
+// "photo.jpg" -> { name: "photo", extension: ".jpg" }, "README" -> no extension,
+// ".env" is a name, not an extension
+function splitExtension(fileName: string): { name: string; extension: string } {
+  const dotIndex = fileName.lastIndexOf(".");
+  if (dotIndex <= 0) return { name: fileName, extension: "" };
+  return {
+    name: fileName.slice(0, dotIndex),
+    extension: fileName.slice(dotIndex),
+  };
 }

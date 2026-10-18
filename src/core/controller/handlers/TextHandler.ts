@@ -30,12 +30,10 @@ export class TextHandler {
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 
+        // files are handled by MediaHandler, a text here means the user
+        // didn't get what to send, so remind them
         case DialogStep.AwaitingPhoto:
-          const bestPhoto = model.getBiggestPhoto(ctx);
-          if (bestPhoto) {
-            const result = await model.addFile(bestPhoto, ctx);
-            if (result) ctx.session.dialogStep = DialogStep.Idle;
-          }
+          await model.sendAwaitingDocument(ctx);
           break;
 
         case DialogStep.AwaitingDirectoryName:
@@ -47,7 +45,7 @@ export class TextHandler {
                 "",
               );
               if (result === "") {
-                model.sendError("Error while creating directory", ctx);
+                await model.sendError("Error while creating directory", ctx);
               }
             } else {
               const sanitized = model.sanitizeName(raw);
@@ -59,7 +57,7 @@ export class TextHandler {
                   sanitized,
                 );
                 if (result === "") {
-                  model.sendError("Error while creating directory", ctx);
+                  await model.sendError("Error while creating directory", ctx);
                 }
               }
             }
@@ -78,7 +76,7 @@ export class TextHandler {
               );
 
               if (result === "") {
-                model.sendError("Error while creating directory", ctx);
+                await model.sendError("Error while creating directory", ctx);
               } else {
                 await model.navMenu(ctx);
               }

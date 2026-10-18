@@ -11,6 +11,10 @@ import {
 } from "@aws-sdk/client-s3";
 import type { _Object, S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
+import { contentTypeFor } from "./contentTypes.js";
+
+// telegram sends strictly these formats as photos, others break the whole album
+const PHOTO_EXTENSIONS = [".jpg", ".jpeg", ".png"];
 
 export class BotRepository {
   private bucket: string;
@@ -210,29 +214,17 @@ export class BotRepository {
     return true;
   }
 
-  async deleteFile(key: string) {
-    return await this.s3Client.send(
+  async deleteFile(key: string): Promise<boolean> {
+    const response = await this.s3Client.send(
       new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: key,
       }),
     );
+    return this.isStatusCodeOk(response.$metadata.httpStatusCode);
   }
 
-  async putImages(
-    imagesBuffers: Buffer<ArrayBufferLike>[],
-    path: string,
-    fileNames: string[],
-  ) {
-    const putPromises = imagesBuffers.map((buffer, i) => {
-      if (fileNames[i]) {
-        this.putImage(buffer, path, fileNames[i], ".jpg");
-      }
-    });
-    return Promise.all(putPromises);
-  }
-
-  async putImage(
+  async putFile(
     buffer: Buffer,
     dir: string,
     name: string,
@@ -243,20 +235,15 @@ export class BotRepository {
         Bucket: this.bucket,
         Key: dir + name + extension,
         Body: buffer,
+        ContentType: contentTypeFor(extension),
       }),
     );
     return this.isStatusCodeOk(response.$metadata.httpStatusCode);
   }
 
+  // any 2xx
   isStatusCodeOk(httpStatusCode: number | undefined): boolean {
-    let result = true;
-    if (!httpStatusCode) {
-      result = false;
-    } else {
-      const temp = httpStatusCode - 200;
-      if (temp > 100 || temp < 0) result = false;
-    }
-    return result;
+    return !!httpStatusCode && httpStatusCode >= 200 && httpStatusCode < 300;
   }
 
   // UTILS FUNCTIONS
@@ -294,16 +281,27 @@ export class BotRepository {
       return [];
     }
 
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
     return response.Contents.map((obj) => obj.Key!).filter((key) => {
-      return imageExtensions.some((ext) => key.endsWith(ext));
+      const lowerKey = key.toLowerCase();
+      return PHOTO_EXTENSIONS.some((ext) => lowerKey.endsWith(ext));
     });
   }
 
+  // !!! newPath must not exist yet: a failed copy is rolled back by removing it
   async renameDir(oldPath: string, newPath: string): Promise<boolean> {
-    let result = await this.copyAllRecursively(oldPath, newPath);
-    if (result) result = await this.removeDirectory(oldPath);
-    return result;
+    let copied = false;
+    try {
+      copied = await this.copyAllRecursively(oldPath, newPath);
+    } catch {
+      copied = false;
+    }
+
+    if (!copied) {
+      // the old folder is untouched, so removing the partial copy restores everything
+      await this.removeDirectory(newPath).catch(() => false);
+      return false;
+    }
+    return await this.removeDirectory(oldPath);
   }
 
   async renameFile(oldKey: string, newKey: string): Promise<boolean> {

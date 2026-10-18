@@ -1,4 +1,4 @@
-import type { InlineKeyboard, InputFile } from "grammy";
+import { GrammyError, type InlineKeyboard, type InputFile } from "grammy";
 import type { BotContext } from "../types.js";
 
 export type MenuSection = Record<string, MenuButton[]>;
@@ -51,7 +51,8 @@ export class ReplyResolver {
         });
         break;
 
-      case "menu":
+      case "menu": {
+        // the menu lives in one message: edit it, or send a new one if it's gone
         if (ctx.session.lastMenuMessageId > 0) {
           try {
             await ctx.api.editMessageText(
@@ -65,18 +66,25 @@ export class ReplyResolver {
                   : undefined),
               },
             );
+            break;
           } catch (error) {
-            ctx.session.lastMenuMessageId = 0;
+            // the menu already looks exactly like this
+            if (
+              error instanceof GrammyError &&
+              error.description.includes("message is not modified")
+            ) {
+              break;
+            }
+            // deleted, too old to edit, etc: fall through and send a new one
           }
-          // }
-        } else {
-          const menuSent = await ctx.reply(reply.text, {
-            parse_mode: this.parse_mode,
-            ...(reply.keyboard && { reply_markup: reply.keyboard }),
-          });
-          ctx.session.lastMenuMessageId = menuSent.message_id;
         }
+        const menuSent = await ctx.reply(reply.text, {
+          parse_mode: this.parse_mode,
+          ...(reply.keyboard && { reply_markup: reply.keyboard }),
+        });
+        ctx.session.lastMenuMessageId = menuSent.message_id;
         break;
+      }
 
       case "photo":
         await ctx.replyWithPhoto(reply.photo, {

@@ -1,7 +1,14 @@
-import type { BotContext, NavigationInstance } from "../types.js";
+import type { BotContext, botLanguage, NavigationInstance } from "../types.js";
+import { escapeHtml } from "./html.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
 import type { BotTexts } from "./messages/strings.js";
 import { ReplyResolver } from "./ReplyResolver.js";
+
+// telegram limits a message strictly to 4096 characters,
+// the rest of the limit is left for the file name and the note
+const MAX_FILE_PREVIEW = 3500;
+// telegram accepts strictly 2-10 items in one album
+const MAX_ALBUM_SIZE = 10;
 
 export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
@@ -14,7 +21,10 @@ export class DialogEngine {
     const t = this.texts.text[lang];
     const m = this.texts.menus[lang] ?? {};
     const reply = this.factory.menu(
-      t.greetUser(ctx.chat?.first_name ?? t.anonName, ctx.session.websiteName),
+      t.greetUser(
+        escapeHtml(ctx.chat?.first_name ?? t.anonName),
+        escapeHtml(ctx.session.websiteName),
+      ),
       m.welcome,
     );
     await this.resolver.reply(ctx, reply);
@@ -25,16 +35,37 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendImgs(images: Buffer[], ctx: BotContext, caption?: string) {
-    const reply = this.factory.mediaGroup(images, caption);
-    await this.resolver.reply(ctx, reply);
+  async sendImgs(images: Buffer[], ctx: BotContext) {
+    if (images.length === 0) {
+      const t = this.texts.text[ctx.session.lang];
+      await this.resolver.reply(ctx, this.factory.text(t.noImages));
+      return;
+    }
+
+    for (let i = 0; i < images.length; i += MAX_ALBUM_SIZE) {
+      const chunk = images.slice(i, i + MAX_ALBUM_SIZE);
+      const reply =
+        chunk.length === 1
+          ? this.factory.photo(chunk[0]!)
+          : this.factory.mediaGroup(chunk);
+      await this.resolver.reply(ctx, reply);
+    }
   }
 
   async sendTextFile(path: string, text: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const t = this.texts.text[lang];
+    const preview = text.slice(0, MAX_FILE_PREVIEW);
+    const note =
+      text.length > MAX_FILE_PREVIEW
+        ? t.fileTruncated(MAX_FILE_PREVIEW, text.length)
+        : "";
     const reply = this.factory.text(
-      t.fileContent(path) + "<pre>" + text + "</pre>",
+      t.fileContent(escapeHtml(path)) +
+        "<pre>" +
+        escapeHtml(preview) +
+        "</pre>" +
+        note,
     );
     await this.resolver.reply(ctx, reply);
   }
@@ -105,7 +136,7 @@ export class DialogEngine {
     const lang = ctx.session.lang;
     const t = this.texts.text[lang].deletedSuccessfully(
       isFile,
-      this.leafInPath(path),
+      escapeHtml(this.leafInPath(path)),
     );
 
     const reply = this.factory.text(t);
@@ -147,21 +178,31 @@ export class DialogEngine {
   async sendError(description: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const reply = this.factory.text(
-      `${this.texts.text[lang].error} ${description}`,
+      `${this.texts.text[lang].error} ${escapeHtml(description)}`,
     );
     await this.resolver.reply(ctx, reply);
+  }
+
+  async sendUnexpectedError(ctx: BotContext) {
+    const t = this.texts.text[ctx.session.lang];
+    await this.resolver.reply(ctx, this.factory.text(t.unexpectedError));
+  }
+
+  async sendRenameError(ctx: BotContext) {
+    const t = this.texts.text[ctx.session.lang];
+    await this.resolver.reply(ctx, this.factory.text(t.renameError));
   }
 
   async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
     const lang = ctx.session.lang;
     const reply = this.factory.text(
-      this.texts.text[lang].errorDeletion(isFile, path),
+      this.texts.text[lang].errorDeletion(isFile, escapeHtml(path)),
     );
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendAuthError(ctx: BotContext) {
-    const lang = ctx.session.lang;
+  // strangers have no session, so the language is passed explicitly
+  async sendAuthError(ctx: BotContext, lang: botLanguage) {
     const reply = this.factory.text(this.texts.text[lang].notAdmin);
     await this.resolver.reply(ctx, reply);
   }

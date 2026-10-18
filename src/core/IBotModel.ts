@@ -30,7 +30,6 @@ export interface IBotModel {
   sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext): Promise<void>;
 
   // Utils
-  getBiggestPhoto(ctx: BotContext): string;
   getFileId(ctx: BotContext): string | undefined;
   changeLang(ctx: BotContext, newLang: botLanguage): Promise<void>;
   sessionReset(ctx: BotContext): void;
@@ -41,7 +40,7 @@ export interface IBotModel {
 
   // File management
   addFile(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
-  deleteFile(ctx: BotContext, path: string): Promise<boolean>;
+  deleteFile(path: string): Promise<boolean>;
   createDirectory(currentDir: string, name: string): Promise<string>;
   removeDirectory(path: string): Promise<unknown>;
   sendImage(ctx: BotContext, path: string): Promise<void>;

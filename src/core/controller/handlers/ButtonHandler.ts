@@ -12,7 +12,7 @@ export class ButtonHandler {
     private composer: Composer<BotContext>,
     model: IBotModel,
   ) {
-    this.composer.callbackQuery(/lang=(.+)/, async (ctx) => {
+    this.composer.callbackQuery(/^lang=(.+)$/, async (ctx) => {
       const candidate = ctx.match[1];
       if (
         candidate &&
@@ -21,7 +21,7 @@ export class ButtonHandler {
         await model.changeLang(ctx, candidate as botLanguage);
         await model.mainMenu(ctx, false);
       } else {
-        model.errorCallback(ctx.match[0], ctx);
+        await model.errorCallback(ctx.match[0], ctx);
       }
     });
 
@@ -53,7 +53,7 @@ export class ButtonHandler {
         if (!path) return await model.menuOutdated(ctx);
 
         if (type === "File") {
-          const result = await model.deleteFile(ctx, path);
+          const result = await model.deleteFile(path);
 
           result
             ? await model.sendDeletedSuccessfully(ctx, isFile, path)
@@ -68,7 +68,7 @@ export class ButtonHandler {
         await ctx.answerCallbackQuery();
         await model.navMenu(ctx);
       } else {
-        model.errorCallback(ctx.match[0], ctx);
+        await model.errorCallback(ctx.match[0], ctx);
       }
     });
 
@@ -79,7 +79,7 @@ export class ButtonHandler {
         await model.deleteAskMenu(ctx, path);
         await ctx.answerCallbackQuery();
       } else {
-        model.errorCallback(ctx.match[0], ctx);
+        await model.errorCallback(ctx.match[0], ctx);
       }
     });
 
@@ -89,7 +89,7 @@ export class ButtonHandler {
       await model.navMenu(ctx);
     });
 
-    this.composer.callbackQuery(/new(File|Dir)/, async (ctx) => {
+    this.composer.callbackQuery(/^new(File|Directory)$/, async (ctx) => {
       if (ctx.match[1]) {
         const isFile = ctx.match[1] === "File";
         if (isFile) {
@@ -101,18 +101,18 @@ export class ButtonHandler {
           await model.sendAwaitingDirectoryName(ctx);
         }
       } else {
-        model.errorCallback(ctx.match[0], ctx);
+        await model.errorCallback(ctx.match[0], ctx);
       }
     });
 
-    this.composer.callbackQuery(/rename(?:File|Dir)Ask:(.+)/, async (ctx) => {
+    this.composer.callbackQuery(/^rename(?:File|Dir)Ask:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const path = model.resolvePath(ctx, ctx.match[1]);
         if (!path) return await model.menuOutdated(ctx);
         await ctx.answerCallbackQuery();
         await model.askNewName(path, ctx);
       } else {
-        model.errorCallback(ctx.match[0], ctx);
+        await model.errorCallback(ctx.match[0], ctx);
       }
     });
 
@@ -128,7 +128,7 @@ export class ButtonHandler {
         await ctx.answerCallbackQuery();
         await model.actionsMenu(ctx, path);
       } else {
-        model.errorCallback(ctx.match[0], ctx);
+        await model.errorCallback(ctx.match[0], ctx);
       }
     });
 
@@ -163,7 +163,7 @@ export class ButtonHandler {
 
         await ctx.answerCallbackQuery();
       } else {
-        model.errorCallback(ctx.match[0], ctx);
+        await model.errorCallback(ctx.match[0], ctx);
       }
     });
   }

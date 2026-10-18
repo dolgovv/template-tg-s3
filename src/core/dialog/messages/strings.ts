@@ -72,6 +72,11 @@ export const textTranslates = {
     },
     buttonEchoReply: "Вот твоя кнопка:",
     menuOutdated: "Это меню устарело, вот актуальное",
+    noImages: "В этой папке нет картинок",
+    fileTruncated: (shown: number, total: number) =>
+      `\n<i>Показаны первые ${shown} из ${total} символов</i>`,
+    renameError: "Не удалось переименовать. Изменения отменены",
+    unexpectedError: "Что-то пошло не так, попробуйте ещё раз",
   },
   en: {
     welcome: "Welcome! Bot is running.",
@@ -145,6 +150,11 @@ export const textTranslates = {
     },
     buttonEchoReply: "Here's your button:",
     menuOutdated: "This menu is outdated, here is the current one",
+    noImages: "There are no images in this folder",
+    fileTruncated: (shown: number, total: number) =>
+      `\n<i>Showing the first ${shown} of ${total} characters</i>`,
+    renameError: "Could not rename. Changes were rolled back",
+    unexpectedError: "Something went wrong, please try again",
   },
   // here you can add more languages
 };
