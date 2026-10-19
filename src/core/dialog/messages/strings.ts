@@ -32,7 +32,7 @@ export const textTranslates = {
       );
     },
     help:
-      "<b>Чтобы добавить файлы в текущую директорию - просто отправьте их в этот чат с указанием названий через пробел. <i>Недостающие названия будут сгенерированы автоматически</i></b>" +
+      "<b>Чтобы добавить файлы в текущую директорию - просто отправьте их в этот чат. Названия укажите в подписи: для одного файла — название целиком, для нескольких — через пробел или запятую в том же порядке. <i>Недостающие названия будут сгенерированы автоматически</i></b>" +
       "\n" +
       "\n" +
       "Доступные команды:" +
@@ -45,6 +45,9 @@ export const textTranslates = {
       "\n" +
       "/all_imgs_here " +
       "посмотреть все картинки в текущей директории" +
+      "\n" +
+      "/list_all " +
+      "дерево текущей папки (до 5 уровней вложенности)" +
       "\n" +
       "/help " +
       "\n",
@@ -77,6 +80,20 @@ export const textTranslates = {
       `\n<i>Показаны первые ${shown} из ${total} символов</i>`,
     renameError: "Не удалось переименовать. Изменения отменены",
     unexpectedError: "Что-то пошло не так, попробуйте ещё раз",
+    treeSummary: (dirs: number, files: number) =>
+      `Папок: ${dirs}, файлов: ${files}`,
+    treeDepthLimited: (depth: number) =>
+      `\n<i>Глубже ${depth} уровней папки свёрнуты: …</i>`,
+    treeTruncated: (limit: number) =>
+      `\n<i>Папка слишком большая, показаны первые ${limit} объектов</i>`,
+    treeAsFile: "Дерево не помещается в сообщение, поэтому отправлено файлом",
+    albumUploaded: (names: string[]) =>
+      `Загружено файлов: ${names.length}` +
+      (names.length ? "\n" + names.join("\n") : ""),
+    albumFailed: (names: string[]) =>
+      `\nНе удалось загрузить: ${names.join(", ")}`,
+    albumExtraNames: (names: string[]) =>
+      `\n<i>Лишние названия не использованы: ${names.join(", ")}</i>`,
   },
   en: {
     welcome: "Welcome! Bot is running.",
@@ -112,7 +129,7 @@ export const textTranslates = {
       );
     },
     help:
-      "<b>To add files to the current directory, just send them to this chat with the names separated by a space. <i>Missing titles will be generated automatically</i></b>" +
+      "<b>To add files to the current directory, just send them to this chat. Put the names in the caption: the whole caption for one file, names separated by spaces or commas in the same order for several. <i>Missing titles will be generated automatically</i></b>" +
       "\n" +
       "\n" +
       "All available commands:" +
@@ -125,6 +142,9 @@ export const textTranslates = {
       "\n" +
       "/all_imgs_here " +
       "to get all .jpg/.png files in current directory" +
+      "\n" +
+      "/list_all " +
+      "to get the tree of the current directory (up to 5 levels deep)" +
       "\n" +
       "/help " +
       "\n",
@@ -155,6 +175,19 @@ export const textTranslates = {
       `\n<i>Showing the first ${shown} of ${total} characters</i>`,
     renameError: "Could not rename. Changes were rolled back",
     unexpectedError: "Something went wrong, please try again",
+    treeSummary: (dirs: number, files: number) =>
+      `Directories: ${dirs}, files: ${files}`,
+    treeDepthLimited: (depth: number) =>
+      `\n<i>Folders deeper than ${depth} levels are collapsed: …</i>`,
+    treeTruncated: (limit: number) =>
+      `\n<i>The folder is too big, showing the first ${limit} objects</i>`,
+    treeAsFile: "The tree doesn't fit in a message, so it is sent as a file",
+    albumUploaded: (names: string[]) =>
+      `Files uploaded: ${names.length}` +
+      (names.length ? "\n" + names.join("\n") : ""),
+    albumFailed: (names: string[]) => `\nCould not upload: ${names.join(", ")}`,
+    albumExtraNames: (names: string[]) =>
+      `\n<i>Extra names were not used: ${names.join(", ")}</i>`,
   },
   // here you can add more languages
 };

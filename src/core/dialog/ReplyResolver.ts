@@ -27,6 +27,12 @@ export type PhotoMessage = {
   keyboard?: InlineKeyboard;
 };
 
+export type DocumentMessage = {
+  type: "document";
+  document: InputFile;
+  caption?: string;
+};
+
 export type MediaGroupMessage = {
   type: "mediaGroup";
   photos: InputFile[];
@@ -37,6 +43,7 @@ export type BotMessage =
   | TextMessage
   | PhotoMessage
   | MediaGroupMessage
+  | DocumentMessage
   | MenuMessage;
 
 export class ReplyResolver {
@@ -91,6 +98,13 @@ export class ReplyResolver {
           parse_mode: this.parse_mode,
           ...(reply.caption && { caption: reply.caption }),
           ...(reply.keyboard && { reply_markup: reply.keyboard }),
+        });
+        break;
+
+      case "document":
+        await ctx.replyWithDocument(reply.document, {
+          parse_mode: this.parse_mode,
+          ...(reply.caption && { caption: reply.caption }),
         });
         break;
 

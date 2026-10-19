@@ -136,6 +136,9 @@ export class ButtonHandler {
       if (ctx.match[1]) {
         const path = model.resolvePath(ctx, ctx.match[1]);
         if (!path) return await model.menuOutdated(ctx);
+        // answer right away: loading and sending a big file takes a while,
+        // and a late answer fails as "query is too old"
+        await ctx.answerCallbackQuery();
 
         const extensionIndex: number = path.lastIndexOf(".");
         const fileExtension = path.slice(extensionIndex);
@@ -160,8 +163,6 @@ export class ButtonHandler {
 
             break;
         }
-
-        await ctx.answerCallbackQuery();
       } else {
         await model.errorCallback(ctx.match[0], ctx);
       }

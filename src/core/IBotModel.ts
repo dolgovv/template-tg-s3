@@ -1,4 +1,5 @@
 import type { BotContext, botLanguage } from "./types.js";
+import type { AlbumItem } from "./domain/albums.js";
 
 export interface IBotModel {
   // Menus
@@ -40,11 +41,14 @@ export interface IBotModel {
 
   // File management
   addFile(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
+  addAlbumItem(ctx: BotContext, fileId: string): void;
+  addAlbum(ctx: BotContext, items: AlbumItem[]): Promise<void>;
   deleteFile(path: string): Promise<boolean>;
   createDirectory(currentDir: string, name: string): Promise<string>;
   removeDirectory(path: string): Promise<unknown>;
   sendImage(ctx: BotContext, path: string): Promise<void>;
   sendAllImagesHere(ctx: BotContext): Promise<void>;
+  sendTree(ctx: BotContext): Promise<void>;
   sendTextFile(ctx: BotContext, path: string): Promise<void>;
   rename(oldPath: string, newName: string, ctx: BotContext): Promise<boolean>;
 }

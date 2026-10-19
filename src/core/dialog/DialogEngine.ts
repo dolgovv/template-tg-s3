@@ -1,4 +1,5 @@
 import type { BotContext, botLanguage, NavigationInstance } from "../types.js";
+import type { DrawnTree } from "../domain/tree.js";
 import { escapeHtml } from "./html.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
 import type { BotTexts } from "./messages/strings.js";
@@ -9,6 +10,8 @@ import { ReplyResolver } from "./ReplyResolver.js";
 const MAX_FILE_PREVIEW = 3500;
 // telegram accepts strictly 2-10 items in one album
 const MAX_ALBUM_SIZE = 10;
+// a longer tree is sent as a file instead of a message (4096 limit)
+const MAX_TREE_MESSAGE = 3800;
 
 export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
@@ -70,6 +73,33 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async sendTree(
+    tree: DrawnTree,
+    limits: { depth: number; objects: number; truncated: boolean },
+    ctx: BotContext,
+  ) {
+    const t = this.texts.text[ctx.session.lang];
+    if (tree.dirs + tree.files === 0) {
+      await this.resolver.reply(ctx, this.factory.text(t.dirEmpty));
+      return;
+    }
+
+    const notes =
+      t.treeSummary(tree.dirs, tree.files) +
+      (tree.depthLimited ? t.treeDepthLimited(limits.depth) : "") +
+      (limits.truncated ? t.treeTruncated(limits.objects) : "");
+
+    const reply =
+      tree.text.length <= MAX_TREE_MESSAGE
+        ? this.factory.text("<pre>" + escapeHtml(tree.text) + "</pre>\n" + notes)
+        : this.factory.document(
+            Buffer.from(tree.text, "utf-8"),
+            "tree.txt",
+            t.treeAsFile + "\n" + notes,
+          );
+    await this.resolver.reply(ctx, reply);
+  }
+
   leafInPath(path: string) {
     const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
     const lastSlashIndex = normalizedPath.lastIndexOf("/");
@@ -94,6 +124,21 @@ export class DialogEngine {
     const t = this.texts.text[lang];
     const reply = this.factory.text(t.addFileSuccessful);
     await this.resolver.reply(ctx, reply);
+  }
+
+  async sendAlbumResult(
+    ctx: BotContext,
+    result: { uploaded: string[]; failed: string[]; extraNames: string[] },
+  ) {
+    const t = this.texts.text[ctx.session.lang];
+    const escape = (names: string[]) => names.map(escapeHtml);
+    const text =
+      t.albumUploaded(escape(result.uploaded)) +
+      (result.failed.length ? t.albumFailed(escape(result.failed)) : "") +
+      (result.extraNames.length
+        ? t.albumExtraNames(escape(result.extraNames))
+        : "");
+    await this.resolver.reply(ctx, this.factory.text(text));
   }
 
   async sendAwaitingImage(ctx: BotContext) {

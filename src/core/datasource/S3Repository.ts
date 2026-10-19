@@ -137,6 +137,32 @@ export class BotRepository {
     }
   }
 
+  // every key under the prefix at any depth, strictly up to `limit` keys
+  async listKeysRecursive(
+    prefix: string,
+    limit: number,
+  ): Promise<{ keys: string[]; truncated: boolean }> {
+    const keys: string[] = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const response = await this.s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      for (const obj of response.Contents ?? []) {
+        if (keys.length >= limit) return { keys, truncated: true };
+        if (obj.Key) keys.push(obj.Key);
+      }
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
+
+    return { keys, truncated: false };
+  }
+
   private async getEverythingFrom(prefix: string) {
     let continuationToken: string | undefined;
     let result: _Object[] = [];

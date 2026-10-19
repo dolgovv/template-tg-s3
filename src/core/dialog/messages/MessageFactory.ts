@@ -1,6 +1,7 @@
 import { InputFile } from "grammy/types";
 import { InlineKeyboard } from "grammy";
 import type {
+  DocumentMessage,
   MediaGroupMessage,
   MenuButton,
   MenuMessage,
@@ -32,6 +33,15 @@ export class MessageFactory {
     const msg: PhotoMessage = { type: "photo", photo: new InputFile(buffer) };
     if (caption) msg.caption = caption;
     if (keyboard) msg.keyboard = keyboard;
+    return msg;
+  }
+
+  document(buffer: Buffer, fileName: string, caption?: string): DocumentMessage {
+    const msg: DocumentMessage = {
+      type: "document",
+      document: new InputFile(buffer, fileName),
+    };
+    if (caption) msg.caption = caption;
     return msg;
   }
 

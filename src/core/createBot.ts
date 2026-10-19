@@ -78,6 +78,26 @@ export function createBot(options: BotOptions): BotApp {
     Object.assign(ctx.session, initialSession());
   };
 
+  // !!! every button press must be answered, otherwise telegram shows
+  // a spinner on the button until timeout. handlers answer themselves,
+  // this answers the rest: errors, denied access, forgotten answers
+  bot.use(async (ctx, next) => {
+    if (!ctx.callbackQuery) return next();
+
+    let answered = false;
+    const answer = ctx.answerCallbackQuery.bind(ctx);
+    ctx.answerCallbackQuery = (...args: Parameters<typeof answer>) => {
+      answered = true;
+      return answer(...args);
+    };
+
+    try {
+      await next();
+    } finally {
+      if (!answered) await answer().catch(() => {});
+    }
+  });
+
   // !!! access is checked strictly before the session,
   // so strangers don't get session files
   bot.use(async (ctx, next) => {

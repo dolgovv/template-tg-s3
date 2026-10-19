@@ -15,6 +15,8 @@ export class CommandHandler {
       "all_imgs_here",
       async (ctx) => await model.sendAllImagesHere(ctx),
     );
+    this.composer.command("list_all", async (ctx) => await model.sendTree(ctx));
+
     this.composer.command("nav", async (ctx) => {
       ctx.session.lastMenuMessageId = 0;
       await model.navMenu(ctx);

@@ -13,6 +13,16 @@ import {
 import { fetch, ProxyAgent } from "undici";
 import type { IBotModel } from "../IBotModel.js";
 import { buildPathRefs, pathRef } from "./pathRefs.js";
+import { drawTree } from "./tree.js";
+import {
+  assignAlbumNames,
+  type AlbumCollector,
+  type AlbumItem,
+} from "./albums.js";
+
+// /list_all: how deep the tree goes and how many S3 objects it reads at most
+const TREE_DEPTH = 5;
+const TREE_MAX_OBJECTS = 10000;
 
 export class BotModelImpl implements IBotModel {
   constructor(
@@ -23,6 +33,7 @@ export class BotModelImpl implements IBotModel {
     private proxyUrl: string | undefined,
     // normalized: "" or "some/folder/"
     private root: string,
+    private albums: AlbumCollector,
   ) {}
 
   // MENUS ================================================
@@ -322,40 +333,73 @@ export class BotModelImpl implements IBotModel {
     ctx: BotContext,
     name?: string,
   ): Promise<boolean> {
-    const { buffer, extension } = await this.fetchFileFromTelegram(fileId, ctx);
-
-    let finalName: string;
-    if (name !== undefined && name.trim() !== "") {
-      // user provided a name — validate it
-      const sanitized = this.sanitizeName(name);
-      if (!sanitized) {
-        await this.sendInvalidNameError(ctx);
-        return false;
-      }
-      finalName = sanitized;
-    } else {
-      // no name or empty string → autogenerate
-      const dir = ctx.session.currentDir;
-      finalName = await this.getRandomName((name) =>
-        this.repo.isFileExists(dir + name + extension),
-      );
-    }
-
-    const result = await this.repo.putFile(
-      buffer,
-      ctx.session.currentDir,
-      finalName,
-      extension,
-    );
-
-    if (result) {
-      await this.dialog.sendFileUploadSuccessful(ctx);
-      this.sessionReset(ctx);
-      await this.navMenu(ctx);
-      return true;
-    } else {
+    if (name !== undefined && name.trim() !== "" && !this.sanitizeName(name)) {
+      await this.sendInvalidNameError(ctx);
       return false;
     }
+
+    const fileName = await this.uploadFile(fileId, ctx, name);
+    if (!fileName) return false;
+
+    await this.dialog.sendFileUploadSuccessful(ctx);
+    this.sessionReset(ctx);
+    await this.navMenu(ctx);
+    return true;
+  }
+
+  // album items are collected first, the whole album is handled by addAlbum
+  addAlbumItem(ctx: BotContext, fileId: string) {
+    const msg = ctx.message!;
+    this.albums.add(
+      msg.chat.id + "_" + msg.media_group_id,
+      { messageId: msg.message_id, fileId, caption: msg.caption },
+      ctx.update,
+    );
+  }
+
+  async addAlbum(ctx: BotContext, items: AlbumItem[]) {
+    const ordered = [...items].sort((a, b) => a.messageId - b.messageId);
+    const { names, extraNames } = assignAlbumNames(ordered);
+    const uploaded: string[] = [];
+    const failed: string[] = [];
+
+    for (const [i, item] of ordered.entries()) {
+      try {
+        const fileName = await this.uploadFile(item.fileId, ctx, names[i]);
+        if (fileName) uploaded.push(fileName);
+        else failed.push(names[i] ?? "#" + (i + 1));
+      } catch (err) {
+        this.logger.error(
+          "Album upload error: " + err + this.logger.getDetails(ctx),
+        );
+        failed.push(names[i] ?? "#" + (i + 1));
+      }
+    }
+
+    await this.dialog.sendAlbumResult(ctx, { uploaded, failed, extraNames });
+    this.sessionReset(ctx);
+    await this.navMenu(ctx);
+  }
+
+  // downloads a file from telegram and puts it into the current folder,
+  // returns the stored file name or null if it was not stored
+  private async uploadFile(
+    fileId: string,
+    ctx: BotContext,
+    name?: string,
+  ): Promise<string | null> {
+    const { buffer, extension } = await this.fetchFileFromTelegram(fileId, ctx);
+    const dir = ctx.session.currentDir;
+
+    // no name or an unusable one -> autogenerate
+    const finalName =
+      (name && this.sanitizeName(name)) ||
+      (await this.getRandomName((candidate) =>
+        this.repo.isFileExists(dir + candidate + extension),
+      ));
+
+    const stored = await this.repo.putFile(buffer, dir, finalName, extension);
+    return stored ? finalName + extension : null;
   }
 
   // exists() gets a candidate name and checks the full key it would make
@@ -404,6 +448,20 @@ export class BotModelImpl implements IBotModel {
         ctx,
       );
     }
+  }
+
+  async sendTree(ctx: BotContext) {
+    const base = ctx.session.currentDir;
+    const { keys, truncated } = await this.repo.listKeysRecursive(
+      base,
+      TREE_MAX_OBJECTS,
+    );
+    const tree = drawTree(base || "/", keys, base, TREE_DEPTH);
+    await this.dialog.sendTree(
+      tree,
+      { depth: TREE_DEPTH, objects: TREE_MAX_OBJECTS, truncated },
+      ctx,
+    );
   }
 
   async sendAllImagesHere(ctx: BotContext) {
