@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "tsc && DEBUG=\"grammy*\" node dist/app/main.js"
+    "start": "tsc && DEBUG=\"grammy*\" node dist/app/main.js",
+    "graph": "./make_graph.sh",
+    "deps:check": "depcruise src"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +17,7 @@
   "packageManager": "pnpm@12.14.0",
   "devDependencies": {
     "@types/node": "^25.6.2",
+    "@viz-js/viz": "3.31.0",
     "dependency-cruiser": "^17.4.3",
     "typescript": "^6.0.3"
   },

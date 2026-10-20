@@ -200,6 +200,9 @@ importers:
       '@types/node':
         specifier: ^25.6.2
         version: 25.6.2
+      '@viz-js/viz':
+        specifier: 3.31.0
+        version: 3.31.0
       dependency-cruiser:
         specifier: ^17.4.3
         version: 17.4.3
@@ -540,6 +543,9 @@ packages:
 
   '@types/uuid@9.0.8':
     resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
+
+  '@viz-js/viz@3.31.0':
+    resolution: {integrity: sha512-r7zlQdRvcwvIpjHGgs+KNWHeE/P5/Dq7k8ZAKaMCbZqomxCBJV78gVuQYaHzFVca+kB0mX0fMW9UFevCOBG50A==}
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -1517,6 +1523,8 @@ snapshots:
       undici-types: 7.19.2
 
   '@types/uuid@9.0.8': {}
+
+  '@viz-js/viz@3.31.0': {}
 
   abort-controller@3.0.0:
     dependencies:
