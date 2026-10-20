@@ -1,4 +1,7 @@
 import { GrammyError, type InlineKeyboard, type InputFile } from "grammy";
+
+// how a file is sent: a document, or with the player of telegram
+export type SendAs = "document" | "audio" | "video";
 import type { BotContext } from "../types.js";
 
 export type MenuButton = {
@@ -32,9 +35,9 @@ export type PhotoMessage = {
   keyboard?: InlineKeyboard;
 };
 
-export type DocumentMessage = {
-  type: "document";
-  document: InputFile;
+export type FileMessage = {
+  type: SendAs;
+  file: InputFile;
   caption?: string;
 };
 
@@ -48,7 +51,7 @@ export type BotMessage =
   | TextMessage
   | PhotoMessage
   | MediaGroupMessage
-  | DocumentMessage
+  | FileMessage
   | MenuMessage
   | EditMessage;
 
@@ -90,8 +93,24 @@ export class ReplyResolver {
         break;
 
       case "document":
-        await ctx.replyWithDocument(reply.document, {
+        await ctx.replyWithDocument(reply.file, {
           parse_mode: this.parse_mode,
+          ...(reply.caption && { caption: reply.caption }),
+        });
+        break;
+
+      case "audio":
+        await ctx.replyWithAudio(reply.file, {
+          parse_mode: this.parse_mode,
+          ...(reply.caption && { caption: reply.caption }),
+        });
+        break;
+
+      case "video":
+        await ctx.replyWithVideo(reply.file, {
+          parse_mode: this.parse_mode,
+          // plays while loading, without waiting for the whole file
+          supports_streaming: true,
           ...(reply.caption && { caption: reply.caption }),
         });
         break;

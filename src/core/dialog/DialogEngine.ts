@@ -5,7 +5,12 @@ import { list } from "../texts/format.js";
 import { escapeHtml } from "./html.js";
 import { splitPages } from "./pages.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
-import { ReplyResolver, type MenuButton } from "./ReplyResolver.js";
+import { GrammyError } from "grammy";
+import {
+  ReplyResolver,
+  type MenuButton,
+  type SendAs,
+} from "./ReplyResolver.js";
 
 // telegram limits a message strictly to 4096 characters (counted without HTML tags),
 // the rest of the limit is left for the file name and the page number
@@ -81,8 +86,20 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
-  async sendFile(ctx: BotContext, file: Buffer, name: string) {
-    await this.resolver.reply(ctx, this.factory.document(file, name));
+  async sendFile(
+    ctx: BotContext,
+    file: Buffer,
+    name: string,
+    as: SendAs = "document",
+  ) {
+    try {
+      await this.resolver.reply(ctx, this.factory.file(as, file, name));
+    } catch (error) {
+      // telegram may refuse to play it (a broken file, an odd codec):
+      // then it goes as a document, which telegram always accepts
+      if (as === "document" || !(error instanceof GrammyError)) throw error;
+      await this.resolver.reply(ctx, this.factory.document(file, name));
+    }
   }
 
   async sendImgs(images: Buffer[], ctx: BotContext) {

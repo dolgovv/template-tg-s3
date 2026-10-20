@@ -1,13 +1,14 @@
 import { InputFile } from "grammy/types";
 import { InlineKeyboard } from "grammy";
 import type {
-  DocumentMessage,
+  FileMessage,
   EditMessage,
   MediaGroupMessage,
   MenuButton,
   MenuMessage,
   PhotoMessage,
   TextMessage,
+  SendAs,
 } from "../ReplyResolver.js";
 
 export class MessageFactory {
@@ -44,11 +45,18 @@ export class MessageFactory {
     return msg;
   }
 
-  document(buffer: Buffer, fileName: string, caption?: string): DocumentMessage {
-    const msg: DocumentMessage = {
-      type: "document",
-      document: new InputFile(buffer, fileName),
-    };
+  document(buffer: Buffer, fileName: string, caption?: string): FileMessage {
+    return this.file("document", buffer, fileName, caption);
+  }
+
+  // the name is kept: telegram shows it on the document and the player
+  file(
+    as: SendAs,
+    buffer: Buffer,
+    fileName: string,
+    caption?: string,
+  ): FileMessage {
+    const msg: FileMessage = { type: as, file: new InputFile(buffer, fileName) };
     if (caption) msg.caption = caption;
     return msg;
   }

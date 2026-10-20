@@ -6,12 +6,14 @@ type FileType = {
   // without a Content-Type S3 serves files as application/octet-stream,
   // so browsers download images instead of showing them
   mime: string;
-  // 🖼️ / 📄 / ❓ in navigation
-  icon: "image" | "document" | "other";
-  // photo: as a photo, text: its content page by page, file: as a document
+  // 🖼️ / 📄 / 🎵 / 🎬 / ❓ in navigation
+  icon: "image" | "document" | "audio" | "video" | "other";
+  // photo: as a photo, text: its content page by page,
+  // audio / video: with the player of telegram, file: as a document
   // !!! photo strictly for jpg/jpeg/png: telegram sends strictly these formats
-  // as photos, others break the whole album
-  open: "photo" | "text" | "file";
+  // as photos, others break the whole album.
+  // the player strictly for mp3/m4a (audio) and mp4 (video), the rest is a document
+  open: "photo" | "text" | "audio" | "video" | "file";
 };
 
 const image = (mime: string, open: FileType["open"] = "file"): FileType => ({
@@ -21,6 +23,16 @@ const image = (mime: string, open: FileType["open"] = "file"): FileType => ({
 });
 const text = (mime: string): FileType => ({ mime, icon: "document", open: "text" });
 const document = (mime: string): FileType => ({ mime, icon: "document", open: "file" });
+const audio = (mime: string, open: FileType["open"] = "file"): FileType => ({
+  mime,
+  icon: "audio",
+  open,
+});
+const video = (mime: string, open: FileType["open"] = "file"): FileType => ({
+  mime,
+  icon: "video",
+  open,
+});
 const other = (mime: string): FileType => ({ mime, icon: "other", open: "file" });
 
 const FILE_TYPES: Record<string, FileType> = {
@@ -55,14 +67,20 @@ const FILE_TYPES: Record<string, FileType> = {
   ".xlsx": other(
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ),
-  ".mp4": other("video/mp4"),
-  ".webm": other("video/webm"),
-  ".mov": other("video/quicktime"),
-  ".mp3": other("audio/mpeg"),
-  ".m4a": other("audio/mp4"),
-  ".ogg": other("audio/ogg"),
-  ".oga": other("audio/ogg"),
-  ".wav": other("audio/wav"),
+
+  ".mp3": audio("audio/mpeg", "audio"),
+  ".m4a": audio("audio/mp4", "audio"),
+  ".ogg": audio("audio/ogg"),
+  ".oga": audio("audio/ogg"),
+  ".wav": audio("audio/wav"),
+  ".flac": audio("audio/flac"),
+  ".aac": audio("audio/aac"),
+
+  ".mp4": video("video/mp4", "video"),
+  ".webm": video("video/webm"),
+  ".mov": video("video/quicktime"),
+  ".mkv": video("video/x-matroska"),
+  ".avi": video("video/x-msvideo"),
 };
 
 // anything else is sent as a document

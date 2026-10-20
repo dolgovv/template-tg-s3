@@ -25,6 +25,8 @@ export type ContentType =
   | { type: "Directory"; symbol: "📁" }
   | { type: "Image"; symbol: "🖼️" }
   | { type: "Document"; symbol: "📄" }
+  | { type: "Audio"; symbol: "🎵" }
+  | { type: "Video"; symbol: "🎬" }
   | { type: "Unknown"; symbol: "❓" };
 
 export type SessionData = {

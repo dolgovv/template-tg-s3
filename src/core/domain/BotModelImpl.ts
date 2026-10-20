@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { BotRepository } from "../datasource/S3Repository.js";
 import type { DialogEngine } from "../dialog/DialogEngine.js";
+import type { SendAs } from "../dialog/ReplyResolver.js";
 import { escapeHtml } from "../dialog/html.js";
 import {
   BotLogger,
@@ -219,6 +220,10 @@ export class BotModelImpl implements IBotModel {
         return { type: "Image", symbol: "🖼️" };
       case "document":
         return { type: "Document", symbol: "📄" };
+      case "audio":
+        return { type: "Audio", symbol: "🎵" };
+      case "video":
+        return { type: "Video", symbol: "🎬" };
       case "other":
         return { type: "Unknown", symbol: "❓" };
     }
@@ -454,20 +459,26 @@ export class BotModelImpl implements IBotModel {
       case "text":
         await this.sendTextFile(ctx, path);
         break;
+      case "audio":
+        await this.sendFile(ctx, path, "audio");
+        break;
+      case "video":
+        await this.sendFile(ctx, path, "video");
+        break;
       case "file":
-        await this.sendFile(ctx, path);
+        await this.sendFile(ctx, path, "document");
         break;
     }
     await this.navMenu(ctx);
   }
 
-  // as a document with its own name
-  async sendFile(ctx: BotContext, path: string) {
+  // with its own name: as a document or with the player of telegram
+  async sendFile(ctx: BotContext, path: string, as: SendAs) {
     const name = this.dialog.leafInPath(path);
     const file = await this.repo.getFile(path);
 
     if (file) {
-      await this.dialog.sendFile(ctx, file, name);
+      await this.dialog.sendFile(ctx, file, name, as);
     } else {
       await this.sendError(
         "File not found: " + path,
