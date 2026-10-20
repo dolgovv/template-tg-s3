@@ -3,6 +3,8 @@ import type { Update } from "grammy/types";
 export type AlbumItem = {
   messageId: number;
   fileId: string;
+  // its own name, see IncomingFile
+  fileName: string | undefined;
   caption: string | undefined;
 };
 

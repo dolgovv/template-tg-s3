@@ -7,6 +7,7 @@ import {
   BotLogger,
   DialogStep,
   type BotContext,
+  type IncomingFile,
   type ContentType,
   type NavigationInstance,
 } from "../types.js";
@@ -194,23 +195,27 @@ export class BotModelImpl implements IBotModel {
 
   // UTILS ================================================
 
-  getFileId(ctx: BotContext): string | undefined {
+  incomingFile(ctx: BotContext): IncomingFile | undefined {
     const msg = ctx.message;
     if (!msg) return undefined;
 
-    if (msg.photo?.length) {
-      const lastPhoto = msg.photo[msg.photo.length - 1];
-      if (lastPhoto) return lastPhoto.file_id;
-    }
-    if (msg.document) return msg.document.file_id;
-    if (msg.video) return msg.video.file_id;
-    if (msg.audio) return msg.audio.file_id;
-    if (msg.voice) return msg.voice.file_id;
-    if (msg.video_note) return msg.video_note.file_id;
-    if (msg.sticker) return msg.sticker.file_id;
-    if (msg.animation) return msg.animation.file_id;
+    // the largest size of the photo is the last one
+    const photo = msg.photo?.[msg.photo.length - 1];
+    // !!! animation before document: a gif comes with both
+    const file =
+      photo ??
+      msg.animation ??
+      msg.document ??
+      msg.video ??
+      msg.audio ??
+      msg.voice ??
+      msg.video_note ??
+      msg.sticker;
+    if (!file) return undefined;
 
-    return undefined;
+    const fileName =
+      "file_name" in file && file.file_name ? file.file_name : undefined;
+    return { fileId: file.file_id, fileName };
   }
 
   private pathToType(path: string): ContentType {
@@ -338,7 +343,7 @@ export class BotModelImpl implements IBotModel {
   }
 
   async addFile(
-    fileId: string,
+    file: IncomingFile,
     ctx: BotContext,
     name?: string,
   ): Promise<boolean> {
@@ -347,21 +352,21 @@ export class BotModelImpl implements IBotModel {
       return false;
     }
 
-    const fileName = await this.uploadFile(fileId, ctx, name);
+    const fileName = await this.uploadFile(file, ctx, name);
     if (!fileName) return false;
 
-    await this.dialog.text(ctx, ctx.t.files.uploaded);
+    await this.dialog.text(ctx, ctx.t.files.uploaded({ name: fileName }));
     this.sessionReset(ctx);
     await this.navMenu(ctx);
     return true;
   }
 
   // album items are collected first, the whole album is handled by addAlbum
-  addAlbumItem(ctx: BotContext, fileId: string) {
+  addAlbumItem(ctx: BotContext, file: IncomingFile) {
     const msg = ctx.message!;
     this.albums.add(
       msg.chat.id + "_" + msg.media_group_id,
-      { messageId: msg.message_id, fileId, caption: msg.caption },
+      { messageId: msg.message_id, ...file, caption: msg.caption },
       ctx.update,
     );
   }
@@ -374,14 +379,14 @@ export class BotModelImpl implements IBotModel {
 
     for (const [i, item] of ordered.entries()) {
       try {
-        const fileName = await this.uploadFile(item.fileId, ctx, names[i]);
+        const fileName = await this.uploadFile(item, ctx, names[i]);
         if (fileName) uploaded.push(fileName);
-        else failed.push(names[i] ?? "#" + (i + 1));
+        else failed.push(names[i] ?? item.fileName ?? "#" + (i + 1));
       } catch (err) {
         this.logger.error(
           "Album upload error: " + err + this.logger.getDetails(ctx),
         );
-        failed.push(names[i] ?? "#" + (i + 1));
+        failed.push(names[i] ?? item.fileName ?? "#" + (i + 1));
       }
     }
 
@@ -391,25 +396,49 @@ export class BotModelImpl implements IBotModel {
   }
 
   // downloads a file from telegram and puts it into the current folder,
-  // returns the stored file name or null if it was not stored
+  // returns the stored file name or null if it was not stored.
+  // the name: from the caption, else its own name, else a generated one
+  // !!! a taken name gets a number: an existing file is never replaced
   private async uploadFile(
-    fileId: string,
+    file: IncomingFile,
     ctx: BotContext,
     name?: string,
   ): Promise<string | null> {
-    const { buffer, extension } = await this.fetchFileFromTelegram(fileId, ctx);
+    const fetched = await this.fetchFileFromTelegram(file.fileId, ctx);
+    const { buffer } = fetched;
     const dir = ctx.session.currentDir;
 
-    // no name or an unusable one -> autogenerate
-    const finalName =
+    // "Report Q3.pdf" -> "Report_Q3" + ".pdf"
+    const own = file.fileName ? splitExtension(file.fileName) : undefined;
+    const extension = own?.extension || fetched.extension;
+    const wanted =
       (name && this.sanitizeName(name)) ||
-      (await this.getRandomName((candidate) =>
-        this.repo.isFileExists(dir + candidate + extension),
-      ));
+      (own && this.sanitizeName(own.name));
+
+    const finalName = wanted
+      ? await this.freeName(dir, wanted, extension)
+      : await this.getRandomName((candidate) =>
+          this.repo.isFileExists(dir + candidate + extension),
+        );
 
     this.changes.add(ctx, { keys: [dir + finalName + extension] });
     const stored = await this.repo.putFile(buffer, dir, finalName, extension);
     return stored ? finalName + extension : null;
+  }
+
+  // "scan" if it is free in the folder, else "scan_2", "scan_3"...
+  private async freeName(
+    dir: string,
+    name: string,
+    extension: string,
+  ): Promise<string> {
+    const taken = (candidate: string) =>
+      this.repo.isFileExists(dir + candidate + extension);
+    if (!(await taken(name))) return name;
+    for (let n = 2; n <= 100; n++) {
+      if (!(await taken(`${name}_${n}`))) return `${name}_${n}`;
+    }
+    return `${name}_${nanoid(8)}`;
   }
 
   // exists() gets a candidate name and checks the full key it would make

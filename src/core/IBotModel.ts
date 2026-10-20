@@ -1,4 +1,4 @@
-import type { BotContext } from "./types.js";
+import type { BotContext, IncomingFile } from "./types.js";
 import type { AlbumItem } from "./domain/albums.js";
 
 export interface IBotModel {
@@ -32,7 +32,7 @@ export interface IBotModel {
   sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext): Promise<void>;
 
   // Utils
-  getFileId(ctx: BotContext): string | undefined;
+  incomingFile(ctx: BotContext): IncomingFile | undefined;
   // false if there are no texts for this language
   changeLang(ctx: BotContext, newLang: string): Promise<boolean>;
   sessionReset(ctx: BotContext): void;
@@ -42,8 +42,8 @@ export interface IBotModel {
   sanitizeName(name: string): string | null;
 
   // File management
-  addFile(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
-  addAlbumItem(ctx: BotContext, fileId: string): void;
+  addFile(file: IncomingFile, ctx: BotContext, name?: string): Promise<boolean>;
+  addAlbumItem(ctx: BotContext, file: IncomingFile): void;
   addAlbum(ctx: BotContext, items: AlbumItem[]): Promise<void>;
   // writes: each one is recorded for the cache reset, see fileManager
   deleteFile(ctx: BotContext, path: string): Promise<boolean>;

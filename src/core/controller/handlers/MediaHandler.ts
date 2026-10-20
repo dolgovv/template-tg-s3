@@ -8,15 +8,15 @@ export class MediaHandler {
     model: IBotModel,
   ) {
     this.composer.on(":file", async (ctx: BotContext) => {
-      const fileId = model.getFileId(ctx);
-      if (!fileId) return;
+      const file = model.incomingFile(ctx);
+      if (!file) return;
 
       // an album comes as several messages: collect them and name together
       if (ctx.message?.media_group_id) {
-        model.addAlbumItem(ctx, fileId);
+        model.addAlbumItem(ctx, file);
         return;
       }
-      await model.addFile(fileId, ctx, ctx.message?.caption);
+      await model.addFile(file, ctx, ctx.message?.caption);
     });
   }
 }

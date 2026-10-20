@@ -31,7 +31,7 @@ export const en = {
 
   help: {
     upload:
-      "<b>To add files to the current directory, just send them to this chat. Put the names in the caption: the whole caption for one file, names separated by spaces or commas in the same order for several. <i>Missing titles will be generated automatically</i></b>",
+      "<b>To add files to the current directory, just send them to this chat. Put the names in the caption: the whole caption for one file, names separated by spaces or commas in the same order for several. <i>Without a caption a file keeps its own name, photos and videos without one get a generated name. A taken name gets a number: an existing file is never replaced</i></b>",
     commandsTitle: "All available commands:",
   },
 
@@ -57,7 +57,7 @@ export const en = {
     awaitingFile:
       "Please, send a file and its name together in the single message",
     awaitingFolderName: "Name new folder:",
-    uploaded: "File uploaded successfully",
+    uploaded: "File {name} uploaded",
     invalidName:
       "Invalid name. Use letters, digits, hyphens and underscores. Length: 1–200 characters.",
     nameExists: {

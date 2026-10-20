@@ -11,6 +11,14 @@ export enum DialogStep {
   AwaitingNewName = "AwaitingNewName",
 }
 
+// a file sent to the bot. fileName is its own name if telegram has one:
+// documents and music almost always, videos and gifs sometimes,
+// photos, voice messages, round videos and stickers never
+export type IncomingFile = {
+  fileId: string;
+  fileName: string | undefined;
+};
+
 export type NavigationInstance = {
   type: ContentType;
   msgText: string | undefined;
