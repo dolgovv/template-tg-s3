@@ -19,6 +19,7 @@ import {
   type AlbumCollector,
   type AlbumItem,
 } from "./albums.js";
+import type { ChangeLog } from "../features/cacheInvalidation.js";
 
 // /list_all: how deep the tree goes and how many S3 objects it reads at most
 const TREE_DEPTH = 5;
@@ -34,6 +35,8 @@ export class BotModelImpl implements IBotModel {
     // normalized: "" or "some/folder/"
     private root: string,
     private albums: AlbumCollector,
+    // every write to the storage is recorded here, see fileManager
+    private changes: ChangeLog,
   ) {}
 
   // MENUS ================================================
@@ -399,6 +402,7 @@ export class BotModelImpl implements IBotModel {
         this.repo.isFileExists(dir + candidate + extension),
       ));
 
+    this.changes.add(ctx, { keys: [dir + finalName + extension] });
     const stored = await this.repo.putFile(buffer, dir, finalName, extension);
     return stored ? finalName + extension : null;
   }
@@ -414,26 +418,30 @@ export class BotModelImpl implements IBotModel {
     throw new Error("Could not generate a free name in 3 attempts");
   }
 
-  async deleteFile(path: string): Promise<boolean> {
+  async deleteFile(ctx: BotContext, path: string): Promise<boolean> {
     if (!this.isWithinRoot(path)) return false;
+    this.changes.add(ctx, { keys: [path] });
     return await this.repo.deleteFile(path);
   }
 
-  async createDirectory(currentDir: string, name: string): Promise<string> {
-    if (!name.trim()) {
-      const generated = await this.getRandomName((name) =>
-        this.repo.isDirectoryExists(currentDir + name + "/"),
-      );
-      return await this.repo.createDirectory(currentDir, generated);
-    }
-    let sanitized = this.sanitizeName(name);
-    if (!sanitized) return "";
-    // if (!sanitized.endsWith("/")) sanitized = sanitized.concat("/");
-    return await this.repo.createDirectory(currentDir, sanitized);
+  async createDirectory(
+    ctx: BotContext,
+    currentDir: string,
+    name: string,
+  ): Promise<string> {
+    const finalName = name.trim()
+      ? this.sanitizeName(name)
+      : await this.getRandomName((candidate) =>
+          this.repo.isDirectoryExists(currentDir + candidate + "/"),
+        );
+    if (!finalName) return "";
+    this.changes.add(ctx, { prefixes: [currentDir + finalName + "/"] });
+    return await this.repo.createDirectory(currentDir, finalName);
   }
 
-  async removeDirectory(path: string) {
+  async removeDirectory(ctx: BotContext, path: string) {
     if (!this.isWithinRoot(path)) return false;
+    this.changes.add(ctx, { prefixes: [path] });
     return await this.repo.removeDirectory(path);
   }
 
@@ -548,6 +556,7 @@ export class BotModelImpl implements IBotModel {
         await this.sendNameAlreadyExistsError(isFile, ctx);
         return false;
       }
+      this.changes.add(ctx, { prefixes: [oldPath, newPath] });
       const result = await this.repo.renameDir(oldPath, newPath);
       if (!result) await this.renameFailed(oldPath, ctx);
       return result;
@@ -563,6 +572,7 @@ export class BotModelImpl implements IBotModel {
         await this.sendNameAlreadyExistsError(isFile, ctx);
         return false;
       }
+      this.changes.add(ctx, { keys: [oldPath, newKey] });
       const result = await this.repo.renameFile(oldPath, newKey);
       if (!result) await this.renameFailed(oldPath, ctx);
       return result;

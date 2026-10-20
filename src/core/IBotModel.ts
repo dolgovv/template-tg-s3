@@ -45,9 +45,14 @@ export interface IBotModel {
   addFile(fileId: string, ctx: BotContext, name?: string): Promise<boolean>;
   addAlbumItem(ctx: BotContext, fileId: string): void;
   addAlbum(ctx: BotContext, items: AlbumItem[]): Promise<void>;
-  deleteFile(path: string): Promise<boolean>;
-  createDirectory(currentDir: string, name: string): Promise<string>;
-  removeDirectory(path: string): Promise<unknown>;
+  // writes: each one is recorded for the cache reset, see fileManager
+  deleteFile(ctx: BotContext, path: string): Promise<boolean>;
+  createDirectory(
+    ctx: BotContext,
+    currentDir: string,
+    name: string,
+  ): Promise<string>;
+  removeDirectory(ctx: BotContext, path: string): Promise<unknown>;
   // as a photo, page by page or as a document: see fileTypes.ts
   openFile(ctx: BotContext, path: string): Promise<void>;
   sendImage(ctx: BotContext, path: string): Promise<void>;

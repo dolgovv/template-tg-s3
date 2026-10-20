@@ -41,6 +41,7 @@ export class TextHandler {
             const raw = ctx.message.text.trim();
             if (raw === "") {
               const result = await model.createDirectory(
+                ctx,
                 ctx.session.currentDir,
                 "",
               );
@@ -57,6 +58,7 @@ export class TextHandler {
                 await model.sendInvalidNameError(ctx);
               } else {
                 const result = await model.createDirectory(
+                  ctx,
                   ctx.session.currentDir,
                   sanitized,
                 );
@@ -79,6 +81,7 @@ export class TextHandler {
             const raw = ctx.message.text.trim();
             if (raw.endsWith("/")) {
               const result = await model.createDirectory(
+                ctx,
                 ctx.session.currentDir,
                 raw.slice(0, raw.length - 1),
               );

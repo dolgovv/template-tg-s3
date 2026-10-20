@@ -1,4 +1,5 @@
-# here you can run only the bot (cloud or external S3) just like this:
+# the easiest way: ./start.sh picks the services from .env by itself.
+# by hand, only the bot (cloud or external S3) just like this:
 # ---  docker compose up -d
 #
 # or the bot with local Garage S3 (key and bucket are created from .env automatically):
@@ -7,6 +8,9 @@
 services:
   bot:
     build: .
+    # rebuilt from the sources on every `up`, so changes in src/ are never lost.
+    # fast: dependencies are cached, strictly tsc runs again
+    pull_policy: build
     env_file: .env
     restart: unless-stopped
     volumes:

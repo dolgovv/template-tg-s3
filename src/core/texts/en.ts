@@ -100,6 +100,11 @@ export const en = {
     asFile: "The tree doesn't fit in a message, so it is sent as a file",
   },
 
+  cache: {
+    // plain text without HTML
+    failed: "Changes are saved, but the site cache was not reset",
+  },
+
   errors: {
     accessDenied: "Access denied.",
     unexpected: "Something went wrong, please try again",

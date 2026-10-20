@@ -1,6 +1,7 @@
 import type { BotOptions } from "./createBot.js";
 import type { S3StorageOptions } from "./datasource/S3Client.js";
 import type { FileManagerOptions } from "./features/fileManager.js";
+import { cacheWebhook } from "./features/cacheInvalidation.js";
 
 export interface EnvConfig {
   bot: BotOptions;
@@ -26,6 +27,8 @@ export function configFromEnv(env: Env = process.env): EnvConfig {
     return value;
   };
 
+  const cacheUrl = read("CACHE_INVALIDATE_URL");
+
   return {
     bot: {
       token: required("BOT_TOKEN"),
@@ -44,6 +47,12 @@ export function configFromEnv(env: Env = process.env): EnvConfig {
     },
     fileManager: {
       root: read("S3_ROOT_PREFIX", "S3_ROOT_FOLDER"),
+      onChange: cacheUrl
+        ? cacheWebhook({
+            url: cacheUrl,
+            token: read("CACHE_INVALIDATE_TOKEN"),
+          })
+        : undefined,
     },
   };
 }

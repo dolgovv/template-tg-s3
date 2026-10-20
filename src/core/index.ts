@@ -18,6 +18,12 @@ export {
   type S3StorageOptions,
 } from "./datasource/S3Client.js";
 export { configFromEnv, type EnvConfig } from "./config.js";
+export {
+  cacheWebhook,
+  type CacheWebhookOptions,
+  type OnStorageChange,
+  type StorageChange,
+} from "./features/cacheInvalidation.js";
 export { raw, list, type Raw, type Param } from "./texts/format.js";
 export type {
   Texts,

@@ -43,13 +43,13 @@ export class ButtonHandler {
         if (!path) return await model.menuOutdated(ctx);
 
         if (type === "File") {
-          const result = await model.deleteFile(path);
+          const result = await model.deleteFile(ctx, path);
 
           result
             ? await model.sendDeletedSuccessfully(ctx, isFile, path)
             : await model.sendDeletionError(isFile, path, ctx);
         } else if (type === "Dir") {
-          const result = await model.removeDirectory(path);
+          const result = await model.removeDirectory(ctx, path);
 
           result
             ? await model.sendDeletedSuccessfully(ctx, isFile, path)

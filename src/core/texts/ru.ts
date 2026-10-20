@@ -99,6 +99,11 @@ export const ru: LocaleSource = {
     asFile: "Дерево не помещается в сообщение, поэтому отправлено файлом",
   },
 
+  cache: {
+    // plain text without HTML
+    failed: "Изменения сохранены, но кэш сайта не сброшен",
+  },
+
   errors: {
     accessDenied: "У вас нет доступа.",
     unexpected: "Что-то пошло не так, попробуйте ещё раз",
