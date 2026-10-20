@@ -122,6 +122,14 @@ export class ButtonHandler {
       }
     });
 
+    // filePage:<ref>:<page> — the next/previous page of a text file
+    this.composer.callbackQuery(/^filePage:(.+):(\d+)$/, async (ctx) => {
+      const path = model.resolvePath(ctx, ctx.match[1]!);
+      if (!path) return await model.menuOutdated(ctx);
+      await ctx.answerCallbackQuery();
+      await model.turnTextFilePage(ctx, path, Number(ctx.match[2]));
+    });
+
     this.composer.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
       if (ctx.match[1]) {
         const path = model.resolvePath(ctx, ctx.match[1]);
@@ -141,6 +149,12 @@ export class ButtonHandler {
             break;
 
           case ".txt":
+          case ".md":
+          case ".sh":
+          case ".json":
+          case ".yml":
+          case ".yaml":
+          case ".toml":
             await model.sendTextFile(ctx, path);
             await model.navMenu(ctx);
             break;

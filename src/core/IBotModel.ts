@@ -52,5 +52,7 @@ export interface IBotModel {
   sendAllImagesHere(ctx: BotContext): Promise<void>;
   sendTree(ctx: BotContext): Promise<void>;
   sendTextFile(ctx: BotContext, path: string): Promise<void>;
+  // edits the message with the file to show another page
+  turnTextFilePage(ctx: BotContext, path: string, page: number): Promise<void>;
   rename(oldPath: string, newName: string, ctx: BotContext): Promise<boolean>;
 }

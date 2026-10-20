@@ -23,6 +23,8 @@ export const ru: LocaleSource = {
     no: "Нет",
     file: "Файл",
     folder: "Папку",
+    prevPage: "◀️",
+    nextPage: "▶️",
   },
 
   help: {
@@ -76,7 +78,7 @@ export const ru: LocaleSource = {
     notFound: "Файла {name} не существует",
     unsupported: "Файлы вроде {name} пока нельзя открыть",
     content: "Содержание файла {name}:",
-    truncated: "<i>Показаны первые {shown} из {total} символов</i>",
+    page: "<i>Страница {page} из {pages}</i>",
     noImages: "В этой папке нет картинок",
   },
 

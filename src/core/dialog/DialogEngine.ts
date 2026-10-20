@@ -3,12 +3,13 @@ import type { DrawnTree } from "../domain/tree.js";
 import type { Locales } from "../texts/locales.js";
 import { list } from "../texts/format.js";
 import { escapeHtml } from "./html.js";
+import { splitPages } from "./pages.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
 import { ReplyResolver, type MenuButton } from "./ReplyResolver.js";
 
-// telegram limits a message strictly to 4096 characters,
-// the rest of the limit is left for the file name and the note
-const MAX_FILE_PREVIEW = 3500;
+// telegram limits a message strictly to 4096 characters (counted without HTML tags),
+// the rest of the limit is left for the file name and the page number
+const MAX_FILE_PAGE = 3500;
 // telegram accepts strictly 2-10 items in one album
 const MAX_ALBUM_SIZE = 10;
 // a longer tree is sent as a file instead of a message (4096 limit)
@@ -35,6 +36,11 @@ export class DialogEngine {
   // a new message
   async text(ctx: BotContext, text: string, rows: MenuButton[][] = []) {
     await this.resolver.reply(ctx, this.factory.text(text, rows));
+  }
+
+  // replaces the message whose button was pressed
+  async edit(ctx: BotContext, text: string, rows: MenuButton[][] = []) {
+    await this.resolver.reply(ctx, this.factory.edit(text, rows));
   }
 
   // the menu message: edited in place, see ReplyResolver
@@ -91,18 +97,33 @@ export class DialogEngine {
     }
   }
 
-  async sendTextFile(path: string, text: string, ctx: BotContext) {
+  // a long file is shown page by page: ◀️ ▶️ edit the same message
+  async sendTextFile(
+    ctx: BotContext,
+    file: { name: string; text: string; ref: string; page: number; edit: boolean },
+  ) {
     const t = ctx.t.files;
-    const preview = text.slice(0, MAX_FILE_PREVIEW);
-    await this.text(
-      ctx,
-      lines(
-        t.content({ name: path }),
-        "<pre>" + escapeHtml(preview) + "</pre>",
-        text.length > MAX_FILE_PREVIEW &&
-          t.truncated({ shown: MAX_FILE_PREVIEW, total: text.length }),
-      ),
+    const pages = splitPages(file.text, MAX_FILE_PAGE);
+    // the file may have become shorter since the button was made
+    const page = Math.min(Math.max(file.page, 1), pages.length);
+
+    const text = lines(
+      t.content({ name: file.name }),
+      "<pre>" + escapeHtml(pages[page - 1]!) + "</pre>",
+      pages.length > 1 && t.page({ page, pages: pages.length }),
     );
+
+    const b = ctx.t.buttons;
+    const turn: MenuButton[] = [];
+    if (page > 1) {
+      turn.push({ text: b.prevPage, call: `filePage:${file.ref}:${page - 1}` });
+    }
+    if (page < pages.length) {
+      turn.push({ text: b.nextPage, call: `filePage:${file.ref}:${page + 1}` });
+    }
+
+    if (file.edit) await this.edit(ctx, text, [turn]);
+    else await this.text(ctx, text, [turn]);
   }
 
   async sendTree(

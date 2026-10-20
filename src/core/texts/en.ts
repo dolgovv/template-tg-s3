@@ -25,6 +25,8 @@ export const en = {
     no: "No",
     file: "File",
     folder: "Folder",
+    prevPage: "◀️",
+    nextPage: "▶️",
   },
 
   help: {
@@ -79,7 +81,7 @@ export const en = {
     notFound: "File {name} does not exist",
     unsupported: "Files like {name} can't be opened yet",
     content: "{name} file content:",
-    truncated: "<i>Showing the first {shown} of {total} characters</i>",
+    page: "<i>Page {page} of {pages}</i>",
     noImages: "There are no images in this folder",
   },
 

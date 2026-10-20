@@ -18,6 +18,13 @@ export type MenuMessage = {
   keyboard?: InlineKeyboard;
 };
 
+// replaces the message whose button was pressed
+export type EditMessage = {
+  type: "edit";
+  text: string;
+  keyboard?: InlineKeyboard;
+};
+
 export type PhotoMessage = {
   type: "photo";
   photo: InputFile;
@@ -42,7 +49,8 @@ export type BotMessage =
   | PhotoMessage
   | MediaGroupMessage
   | DocumentMessage
-  | MenuMessage;
+  | MenuMessage
+  | EditMessage;
 
 export class ReplyResolver {
   constructor(private parse_mode: "HTML" | "MarkdownV2") {}
@@ -56,40 +64,22 @@ export class ReplyResolver {
         });
         break;
 
-      case "menu": {
+      case "menu":
         // the menu lives in one message: edit it, or send a new one if it's gone
-        if (ctx.session.lastMenuMessageId > 0) {
-          try {
-            await ctx.api.editMessageText(
-              ctx.chatId!,
-              ctx.session.lastMenuMessageId,
-              reply.text,
-              {
-                parse_mode: this.parse_mode,
-                ...(reply.keyboard
-                  ? { reply_markup: reply.keyboard }
-                  : undefined),
-              },
-            );
-            break;
-          } catch (error) {
-            // the menu already looks exactly like this
-            if (
-              error instanceof GrammyError &&
-              error.description.includes("message is not modified")
-            ) {
-              break;
-            }
-            // deleted, too old to edit, etc: fall through and send a new one
-          }
-        }
-        const menuSent = await ctx.reply(reply.text, {
-          parse_mode: this.parse_mode,
-          ...(reply.keyboard && { reply_markup: reply.keyboard }),
-        });
-        ctx.session.lastMenuMessageId = menuSent.message_id;
+        ctx.session.lastMenuMessageId = await this.editOrReply(
+          ctx,
+          ctx.session.lastMenuMessageId,
+          reply,
+        );
         break;
-      }
+
+      case "edit":
+        await this.editOrReply(
+          ctx,
+          ctx.callbackQuery?.message?.message_id ?? 0,
+          reply,
+        );
+        break;
 
       case "photo":
         await ctx.replyWithPhoto(reply.photo, {
@@ -118,5 +108,36 @@ export class ReplyResolver {
         await ctx.replyWithMediaGroup(media);
         break;
     }
+  }
+
+  // edits the message, or sends a new one if there is none to edit:
+  // deleted, too old, etc. returns the id of the message that shows the text
+  private async editOrReply(
+    ctx: BotContext,
+    messageId: number,
+    reply: { text: string; keyboard?: InlineKeyboard },
+  ): Promise<number> {
+    if (messageId > 0) {
+      try {
+        await ctx.api.editMessageText(ctx.chatId!, messageId, reply.text, {
+          parse_mode: this.parse_mode,
+          ...(reply.keyboard && { reply_markup: reply.keyboard }),
+        });
+        return messageId;
+      } catch (error) {
+        // the message already looks exactly like this
+        if (
+          error instanceof GrammyError &&
+          error.description.includes("message is not modified")
+        ) {
+          return messageId;
+        }
+      }
+    }
+    const sent = await ctx.reply(reply.text, {
+      parse_mode: this.parse_mode,
+      ...(reply.keyboard && { reply_markup: reply.keyboard }),
+    });
+    return sent.message_id;
   }
 }

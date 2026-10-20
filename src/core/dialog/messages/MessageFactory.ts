@@ -2,6 +2,7 @@ import { InputFile } from "grammy/types";
 import { InlineKeyboard } from "grammy";
 import type {
   DocumentMessage,
+  EditMessage,
   MediaGroupMessage,
   MenuButton,
   MenuMessage,
@@ -20,6 +21,13 @@ export class MessageFactory {
   menu(text: string, rows: MenuButton[][] = []): MenuMessage {
     const keyboard = this.buildKeyboard(rows);
     const msg: MenuMessage = { type: "menu", text: text };
+    if (keyboard) msg.keyboard = keyboard;
+    return msg;
+  }
+
+  edit(text: string, rows: MenuButton[][] = []): EditMessage {
+    const keyboard = this.buildKeyboard(rows);
+    const msg: EditMessage = { type: "edit", text: text };
     if (keyboard) msg.keyboard = keyboard;
     return msg;
   }

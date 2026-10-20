@@ -475,9 +475,28 @@ export class BotModelImpl implements IBotModel {
   }
 
   async sendTextFile(ctx: BotContext, path: string) {
+    await this.showTextFile(ctx, path, 1, false);
+  }
+
+  async turnTextFilePage(ctx: BotContext, path: string, page: number) {
+    await this.showTextFile(ctx, path, page, true);
+  }
+
+  // the file is read again for every page: no cache, nothing in the session
+  private async showTextFile(
+    ctx: BotContext,
+    path: string,
+    page: number,
+    edit: boolean,
+  ) {
     const fileContent: string = await this.repo.getTextFileContent(path);
-    const reducedPath: string = this.dialog.leafInPath(path);
-    await this.dialog.sendTextFile(reducedPath, fileContent, ctx);
+    await this.dialog.sendTextFile(ctx, {
+      name: this.dialog.leafInPath(path),
+      text: fileContent,
+      ref: pathRef(path),
+      page,
+      edit,
+    });
   }
 
   async rename(
