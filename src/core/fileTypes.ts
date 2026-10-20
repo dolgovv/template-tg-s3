@@ -83,6 +83,9 @@ const FILE_TYPES: Record<string, FileType> = {
   ".avi": video("video/x-msvideo"),
 };
 
+// what the "Create file" button offers: the content is typed in a message
+export const CREATABLE_EXTENSIONS = [".txt", ".md", ".json"];
+
 // anything else is sent as a document
 const UNKNOWN: FileType = other("application/octet-stream");
 

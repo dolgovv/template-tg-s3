@@ -23,6 +23,8 @@ export const ru: LocaleSource = {
     no: "Нет",
     file: "Файл",
     folder: "Папку",
+    createFile: "📝 Создать файл",
+    skip: "Пропустить",
     prevPage: "◀️",
     nextPage: "▶️",
   },
@@ -54,6 +56,12 @@ export const ru: LocaleSource = {
       "Пожалуйста, отправьте файл и название для загрузки одним сообщением",
     awaitingFolderName: "Укажите название директории:",
     uploaded: "Файл {name} загружен",
+    chooseExtension: "Выберите тип нового файла:",
+    askFileName:
+      "Введите имя для файла {extension} или нажмите «Пропустить», чтобы оно сгенерировалось:",
+    askContent: "Отправьте содержимое нового файла {extension} следующим сообщением",
+    invalidJson: "Это не JSON: {error}\nИсправьте и отправьте ещё раз",
+    created: "Файл {name} создан",
     invalidName:
       "Некорректное имя. Используйте буквы, цифры, дефис и подчёркивание. Длина — от 1 до 200 символов.",
     nameExists: {

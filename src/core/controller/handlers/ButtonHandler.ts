@@ -106,6 +106,22 @@ export class ButtonHandler {
       }
     });
 
+    // "Create file": createTextFile -> createTextFile:<ext> -> name or skip
+    this.composer.callbackQuery("createTextFile", async (ctx) => {
+      await ctx.answerCallbackQuery();
+      await model.askTextFileType(ctx);
+    });
+
+    this.composer.callbackQuery(/^createTextFile:(\w+)$/, async (ctx) => {
+      await ctx.answerCallbackQuery();
+      await model.askTextFileName(ctx, "." + ctx.match[1]);
+    });
+
+    this.composer.callbackQuery("skipTextFileName", async (ctx) => {
+      await ctx.answerCallbackQuery();
+      await model.askTextFileContent(ctx, undefined, true);
+    });
+
     this.composer.callbackQuery("newAsk", async (ctx) => {
       await ctx.answerCallbackQuery();
       await model.askForDocumentType(ctx);

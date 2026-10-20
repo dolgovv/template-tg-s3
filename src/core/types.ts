@@ -9,6 +9,8 @@ export enum DialogStep {
   AwaitingAdditionType = "AwaitingDocumentType",
   AwaitingDirectoryName = "AwaitingDirectoryName",
   AwaitingNewName = "AwaitingNewName",
+  AwaitingTextFileName = "AwaitingTextFileName",
+  AwaitingTextFileContent = "AwaitingTextFileContent",
 }
 
 // a file sent to the bot. fileName is its own name if telegram has one:
@@ -43,6 +45,8 @@ export type SessionData = {
   dialogStep: DialogStep;
   currentDir: string;
   chosenPath: string;
+  // the file being created with "Create file": name undefined = generated
+  textFile?: { extension: string; name?: string | undefined } | undefined;
   lastMenuMessageId: number;
   // short button refs -> full S3 paths of the current menu (see pathRefs.ts)
   pathRefs: Record<string, string>;

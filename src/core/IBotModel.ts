@@ -27,6 +27,16 @@ export interface IBotModel {
     path: string,
   ): Promise<void>;
   sendAwaitingDocument(ctx: BotContext): Promise<void>;
+  // "Create file": extension -> name -> content
+  askTextFileType(ctx: BotContext): Promise<void>;
+  askTextFileName(ctx: BotContext, extension: string): Promise<void>;
+  askTextFileContent(
+    ctx: BotContext,
+    name?: string,
+    edit?: boolean,
+  ): Promise<void>;
+  setTextFileName(ctx: BotContext, raw: string): Promise<void>;
+  createTextFile(ctx: BotContext, content: string): Promise<void>;
   sendAwaitingDirectoryName(ctx: BotContext): Promise<void>;
   sendInvalidNameError(ctx: BotContext): Promise<void>;
   sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext): Promise<void>;

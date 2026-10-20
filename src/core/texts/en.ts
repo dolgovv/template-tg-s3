@@ -25,6 +25,8 @@ export const en = {
     no: "No",
     file: "File",
     folder: "Folder",
+    createFile: "📝 Create file",
+    skip: "Skip",
     prevPage: "◀️",
     nextPage: "▶️",
   },
@@ -58,6 +60,12 @@ export const en = {
       "Please, send a file and its name together in the single message",
     awaitingFolderName: "Name new folder:",
     uploaded: "File {name} uploaded",
+    chooseExtension: "Choose the type of the new file:",
+    askFileName:
+      "Enter a name for the {extension} file, or press «Skip» to get a generated one:",
+    askContent: "Send the content of the new {extension} file in the next message",
+    invalidJson: "This is not valid JSON: {error}\nFix it and send it again",
+    created: "File {name} created",
     invalidName:
       "Invalid name. Use letters, digits, hyphens and underscores. Length: 1–200 characters.",
     nameExists: {

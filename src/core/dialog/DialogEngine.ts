@@ -286,6 +286,38 @@ export class DialogEngine {
     await this.text(ctx, ctx.t.files.nameExists[kindOf(isFile)]);
   }
 
+  async sendAwaitingFile(ctx: BotContext) {
+    await this.text(ctx, ctx.t.files.awaitingFile, [
+      [{ text: ctx.t.buttons.createFile, call: "createTextFile" }],
+    ]);
+  }
+
+  // the steps of "Create file" replace the message with the pressed button
+  async askTextFileType(ctx: BotContext, extensions: string[]) {
+    await this.edit(ctx, ctx.t.files.chooseExtension, [
+      extensions.map((ext) => ({
+        text: ext,
+        call: "createTextFile:" + ext.slice(1),
+      })),
+      [{ text: ctx.t.buttons.back, call: "cancel" }],
+    ]);
+  }
+
+  async askTextFileName(ctx: BotContext, extension: string) {
+    const b = ctx.t.buttons;
+    await this.edit(ctx, ctx.t.files.askFileName({ extension }), [
+      [{ text: b.skip, call: "skipTextFileName" }],
+      [{ text: b.back, call: "cancel" }],
+    ]);
+  }
+
+  async askTextFileContent(ctx: BotContext, extension: string, edit: boolean) {
+    const text = ctx.t.files.askContent({ extension });
+    const rows = [[{ text: ctx.t.buttons.back, call: "cancel" }]];
+    if (edit) await this.edit(ctx, text, rows);
+    else await this.text(ctx, text, rows);
+  }
+
   async addAskType(ctx: BotContext) {
     const b = ctx.t.buttons;
     await this.menu(ctx, ctx.t.nav.addAskType, [

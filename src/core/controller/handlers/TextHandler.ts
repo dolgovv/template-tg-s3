@@ -30,6 +30,15 @@ export class TextHandler {
           ctx.session.dialogStep = DialogStep.Idle;
           break;
 
+        case DialogStep.AwaitingTextFileName:
+          await model.setTextFileName(ctx, ctx.message.text);
+          break;
+
+        // the whole message is the content of the file
+        case DialogStep.AwaitingTextFileContent:
+          await model.createTextFile(ctx, ctx.message.text);
+          break;
+
         // files are handled by MediaHandler, a text here means the user
         // didn't get what to send, so remind them
         case DialogStep.AwaitingPhoto:

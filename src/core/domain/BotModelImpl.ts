@@ -15,7 +15,11 @@ import { fetch, ProxyAgent } from "undici";
 import type { IBotModel } from "../IBotModel.js";
 import { buildPathRefs, pathRef } from "./pathRefs.js";
 import { drawTree } from "./tree.js";
-import { fileType, splitExtension } from "../fileTypes.js";
+import {
+  CREATABLE_EXTENSIONS,
+  fileType,
+  splitExtension,
+} from "../fileTypes.js";
 import {
   assignAlbumNames,
   type AlbumCollector,
@@ -272,6 +276,7 @@ export class BotModelImpl implements IBotModel {
     ctx.session.dialogStep = DialogStep.Idle;
     ctx.session.lastMenuMessageId = 0;
     ctx.session.chosenPath = "";
+    ctx.session.textFile = undefined;
   }
 
   // dir: "..", "root" or a directory path within the root
@@ -293,7 +298,67 @@ export class BotModelImpl implements IBotModel {
 
   async sendAwaitingDocument(ctx: BotContext) {
     ctx.session.dialogStep = DialogStep.AwaitingPhoto;
-    await this.dialog.text(ctx, ctx.t.files.awaitingFile);
+    await this.dialog.sendAwaitingFile(ctx);
+  }
+
+  // "Create file": extension -> name (or skip) -> content from the next message
+  async askTextFileType(ctx: BotContext) {
+    await this.dialog.askTextFileType(ctx, CREATABLE_EXTENSIONS);
+  }
+
+  async askTextFileName(ctx: BotContext, extension: string) {
+    if (!CREATABLE_EXTENSIONS.includes(extension)) {
+      return await this.errorCallback("createTextFile" + extension, ctx);
+    }
+    ctx.session.textFile = { extension };
+    ctx.session.dialogStep = DialogStep.AwaitingTextFileName;
+    await this.dialog.askTextFileName(ctx, extension);
+  }
+
+  // undefined name = generated. edit: the prompt replaces the message with the button
+  async askTextFileContent(ctx: BotContext, name?: string, edit = false) {
+    const textFile = ctx.session.textFile;
+    if (!textFile) return await this.menuOutdated(ctx);
+    textFile.name = name;
+    ctx.session.dialogStep = DialogStep.AwaitingTextFileContent;
+    await this.dialog.askTextFileContent(ctx, textFile.extension, edit);
+  }
+
+  async setTextFileName(ctx: BotContext, raw: string) {
+    const name = this.sanitizeName(raw);
+    // the step stays: the user just sends another name
+    if (!name) return await this.sendInvalidNameError(ctx);
+    await this.askTextFileContent(ctx, name);
+  }
+
+  async createTextFile(ctx: BotContext, content: string) {
+    const textFile = ctx.session.textFile;
+    if (!textFile) return await this.sendError("No text file in session", ctx);
+
+    if (textFile.extension === ".json") {
+      try {
+        JSON.parse(content);
+      } catch (err) {
+        // the step stays: the user sends the fixed content
+        return await this.dialog.text(
+          ctx,
+          ctx.t.files.invalidJson({ error: (err as Error).message }),
+        );
+      }
+    }
+
+    const fileName = await this.storeFile(
+      ctx,
+      Buffer.from(content, "utf-8"),
+      textFile.name,
+      textFile.extension,
+    );
+    if (!fileName) {
+      return await this.sendError("Text file was not stored", ctx);
+    }
+    await this.dialog.text(ctx, ctx.t.files.created({ name: fileName }));
+    this.sessionReset(ctx);
+    await this.navMenu(ctx);
   }
 
   async sendAwaitingDirectoryName(ctx: BotContext) {
@@ -405,18 +470,29 @@ export class BotModelImpl implements IBotModel {
     name?: string,
   ): Promise<string | null> {
     const fetched = await this.fetchFileFromTelegram(file.fileId, ctx);
-    const { buffer } = fetched;
-    const dir = ctx.session.currentDir;
 
     // "Report Q3.pdf" -> "Report_Q3" + ".pdf"
     const own = file.fileName ? splitExtension(file.fileName) : undefined;
     const extension = own?.extension || fetched.extension;
     const wanted =
       (name && this.sanitizeName(name)) ||
-      (own && this.sanitizeName(own.name));
+      (own && this.sanitizeName(own.name)) ||
+      undefined;
 
-    const finalName = wanted
-      ? await this.freeName(dir, wanted, extension)
+    return await this.storeFile(ctx, fetched.buffer, wanted, extension);
+  }
+
+  // puts a file into the current folder, returns its name or null if not stored:
+  // a taken name gets a number, no name -> generated
+  private async storeFile(
+    ctx: BotContext,
+    buffer: Buffer,
+    name: string | undefined,
+    extension: string,
+  ): Promise<string | null> {
+    const dir = ctx.session.currentDir;
+    const finalName = name
+      ? await this.freeName(dir, name, extension)
       : await this.getRandomName((candidate) =>
           this.repo.isFileExists(dir + candidate + extension),
         );
