@@ -31,7 +31,7 @@ cp .env.example .env
 | `S3_BUCKET`            | ✅ да        | Имя бакета                                                               |
 | `S3_FORCE_PATH_STYLE`  | ❌ нет       | `true` (по умолчанию) — `host/bucket/key`; `false` — `bucket.host/key`   |
 | `S3_ROOT_PREFIX`       | ❌ нет       | Папка внутри бакета, с которой начинает бот (старое имя `S3_ROOT_FOLDER`) |
-| `GARAGE_RPC_SECRET`    | только с Garage | Внутренний секрет Garage из docker-compose: `openssl rand -hex 32`    |
+| `GARAGE_RPC_SECRET`    | только с Garage | Внутренний секрет Garage из docker-compose: `openssl rand -hex 32`. Пустой — сгенерирует `./start.sh` |
 
 ### Сброс кэша сайта
 
@@ -49,11 +49,13 @@ cp .env.example .env
 ```env
 S3_ENDPOINT=http://garage:3900
 S3_REGION=garage
-S3_ACCESS_KEY_ID=GK...        # echo "GK$(openssl rand -hex 16)"
+S3_ACCESS_KEY_ID=GK...        # echo "GK$(openssl rand -hex 12)"
 S3_SECRET_ACCESS_KEY=...      # openssl rand -hex 32
 S3_BUCKET=tg-bot
 GARAGE_RPC_SECRET=...         # openssl rand -hex 32
 ```
+
+Три ключа выше можно оставить пустыми: `./start.sh` сгенерирует их и запишет в `.env`. Заполненные значения он не трогает, только проверяет формат.
 
 Запуск: `./start.sh` — скрипт увидит `http://garage:3900` и поднимет Garage вместе с ботом. Ключ и бакет Garage создаст сам при первом старте.
 S3 API также доступен с хоста на `http://127.0.0.1:3900` (для aws cli, rclone и т.п.).

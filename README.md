@@ -70,15 +70,15 @@ WEBSITE_NAME=Мои файлы            # название в приветст
 
 **Что сделать:**
 
-1. Добавьте в `.env` (ключи генерируются командами в комментариях):
+1. Добавьте в `.env` (ключи можно оставить пустыми: `./start.sh` сгенерирует их сам, заполненные не трогает):
 
 ```env
 S3_ENDPOINT=http://garage:3900
 S3_REGION=garage
-S3_ACCESS_KEY_ID=GK...            # echo "GK$(openssl rand -hex 16)"
-S3_SECRET_ACCESS_KEY=...          # openssl rand -hex 32
+S3_ACCESS_KEY_ID=                 # пусто: сгенерирует start.sh
+S3_SECRET_ACCESS_KEY=             # пусто: сгенерирует start.sh
 S3_BUCKET=tg-bot
-GARAGE_RPC_SECRET=...             # openssl rand -hex 32
+GARAGE_RPC_SECRET=                # пусто: сгенерирует start.sh
 CACHE_INVALIDATE_URL=             # пусто: хук не нужен
 ```
 

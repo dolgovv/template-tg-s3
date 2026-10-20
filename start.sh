@@ -98,8 +98,40 @@ check_format() {
   fi
 }
 
+# random hex of $1 bytes: openssl if present, /dev/urandom otherwise
+rand_hex() {
+  if command -v openssl &>/dev/null; then
+    openssl rand -hex "$1"
+  else
+    od -An -N "$1" -tx1 /dev/urandom | tr -d ' \n'
+  fi
+}
+
+# an empty key gets the generated value $2, a filled one is never touched
+fill_key() {
+  [ -n "$(env_value "$1")" ] && return 0
+  local last tmp
+  last=$(grep -nE "^[[:space:]]*$1=" .env | tail -n 1 | cut -d ':' -f 1) || true
+  if [ -n "$last" ]; then
+    # the last assignment is the one that counts, see env_value.
+    # cat > .env keeps the file's owner and permissions
+    tmp=$(mktemp)
+    awk -v line="$last" -v pair="$1=$2" 'NR == line { print pair; next } { print }' .env >"$tmp"
+    cat "$tmp" >.env
+    rm -f "$tmp"
+  else
+    [ -n "$(tail -c 1 .env)" ] && echo >>.env
+    echo "$1=$2" >>.env
+  fi
+  info "$1 was empty in .env — generated"
+}
+
 if [ "$GARAGE" = true ]; then
-  check_format S3_ACCESS_KEY_ID '^GK[0-9a-f]{24}$' 'echo "GK$(openssl rand -hex 16)"'
+  fill_key S3_ACCESS_KEY_ID "GK$(rand_hex 12)"
+  fill_key S3_SECRET_ACCESS_KEY "$(rand_hex 32)"
+  fill_key GARAGE_RPC_SECRET "$(rand_hex 32)"
+
+  check_format S3_ACCESS_KEY_ID '^GK[0-9a-f]{24}$' 'echo "GK$(openssl rand -hex 12)"'
   check_format S3_SECRET_ACCESS_KEY '^[0-9a-f]{64}$' 'openssl rand -hex 32'
   check_format GARAGE_RPC_SECRET '^[0-9a-f]{64}$' 'openssl rand -hex 32'
 else
