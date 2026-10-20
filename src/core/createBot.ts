@@ -2,12 +2,12 @@ import { Bot, session, type BotConfig, type Middleware } from "grammy";
 import { FileAdapter } from "@grammyjs/storage-file";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { DialogEngine } from "./dialog/DialogEngine.js";
-import { defaultTexts, type BotTexts } from "./dialog/messages/strings.js";
+import { Locales } from "./texts/locales.js";
+import type { TextsOverrides } from "./texts/schema.js";
 import {
   BotLogger,
   DialogStep,
   type BotContext,
-  type botLanguage,
   type SessionData,
 } from "./types.js";
 
@@ -23,10 +23,10 @@ export interface BotOptions {
   logPath?: string | undefined;
   /** "sessions" by default */
   sessionsDir?: string | undefined;
-  /** "en" by default */
-  defaultLang?: botLanguage | undefined;
-  /** built-in ru/en texts by default */
-  texts?: BotTexts | undefined;
+  /** the language of new users and of missing texts, "en" by default */
+  defaultLang?: string | undefined;
+  /** strictly the texts that differ from the built-in ru/en, or a new language */
+  texts?: TextsOverrides | undefined;
 }
 
 /** shared services every feature gets from app.use() */
@@ -34,6 +34,7 @@ export interface BotKit {
   readonly bot: Bot<BotContext>;
   readonly options: Readonly<BotOptions>;
   readonly dialog: DialogEngine;
+  readonly locales: Locales;
   readonly logger: BotLogger;
   /** here features can put their initial session values at install time */
   readonly sessionDefaults: Partial<SessionData>;
@@ -54,7 +55,13 @@ export interface BotApp {
 // !!! it answers nothing until you add features with app.use()
 export function createBot(options: BotOptions): BotApp {
   const logger = new BotLogger(options.logPath ?? "logs");
-  const dialog = new DialogEngine(options.texts ?? defaultTexts);
+  const defaultLang = options.defaultLang ?? "en";
+  const locales = new Locales({
+    fallback: defaultLang,
+    overrides: options.texts,
+    warn: (message) => logger.warn(message),
+  });
+  const dialog = new DialogEngine(locales, options.websiteName);
   const bot = new Bot<BotContext>(
     options.token,
     buildBotProxyConfig(options.proxyUrl),
@@ -64,9 +71,8 @@ export function createBot(options: BotOptions): BotApp {
   // called lazily on the first update of each chat,
   // so it sees the defaults of features added after createBot()
   const initialSession = (): SessionData => ({
-    lang: options.defaultLang ?? "en",
+    lang: defaultLang,
     dialogStep: DialogStep.Idle,
-    websiteName: options.websiteName,
     currentDir: "",
     chosenPath: "",
     lastMenuMessageId: 0,
@@ -77,6 +83,16 @@ export function createBot(options: BotOptions): BotApp {
   const resetSession = (ctx: BotContext) => {
     Object.assign(ctx.session, initialSession());
   };
+
+  // ctx.t follows ctx.session.lang, so a language change applies at once.
+  // strangers and errors before the session get the default language
+  bot.use((ctx, next) => {
+    Object.defineProperty(ctx, "t", {
+      get: () => locales.get(sessionLang(ctx)),
+      configurable: true,
+    });
+    return next();
+  });
 
   // !!! every button press must be answered, otherwise telegram shows
   // a spinner on the button until timeout. handlers answer themselves,
@@ -110,7 +126,7 @@ export function createBot(options: BotOptions): BotApp {
 
     // the user, not the chat: it's the person who is checked
     if (!options.admins.includes(userId)) {
-      if (ctx.chat) await dialog.sendAuthError(ctx, options.defaultLang ?? "en");
+      if (ctx.chat) await dialog.text(ctx, ctx.t.errors.accessDenied);
       logger.error("Log in attempt failed" + logger.getDetails(ctx));
       return;
     }
@@ -139,7 +155,7 @@ export function createBot(options: BotOptions): BotApp {
     // so the user is notified strictly on a best-effort basis
     try {
       resetSession(err.ctx);
-      await dialog.sendUnexpectedError(err.ctx);
+      await dialog.text(err.ctx, err.ctx.t.errors.unexpected);
     } catch {}
   });
 
@@ -147,6 +163,7 @@ export function createBot(options: BotOptions): BotApp {
     bot,
     options,
     dialog,
+    locales,
     logger,
     sessionDefaults,
     resetSession,
@@ -167,6 +184,15 @@ export function createBot(options: BotOptions): BotApp {
   };
 
   return app;
+}
+
+// the session doesn't exist before its middleware and may throw after it
+function sessionLang(ctx: BotContext): string | undefined {
+  try {
+    return ctx.session?.lang;
+  } catch {
+    return undefined;
+  }
 }
 
 function buildBotProxyConfig(

@@ -1,47 +1,56 @@
 # Добавление inline-кнопок
 
-Кнопки добавляются через файл `src/core/dialog/messages/strings.ts` — никакого дополнительного кода писать не нужно. Обработка нажатий регистрируется в `ButtonHandler.ts`.
+Надпись на кнопке — это текст, он переводится. Действие (`call`) и раскладка по рядам — это код, они одни на все языки.
 
 ---
 
-## Шаг 1 — Добавить кнопки в `strings.ts`
+## Шаг 1 — Добавить надписи
 
-Открой `menusTranslates` и добавь кнопки к нужному ключу. Кнопки добавляются для каждого языка отдельно:
+В `src/core/texts/en.ts` и `ru.ts`, например, в раздел `buttons`:
 
 ```ts
-ru: {
-  welcome: [
-    { text: "📋 Статус", call: "status_show" },
-    { text: "⚙️ Настройки", call: "settings_open" },
-  ],
+// en.ts
+buttons: {
   // ...
+  status: "📋 Status",
+  settings: "⚙️ Settings",
+},
+
+// ru.ts
+buttons: {
+  // ...
+  status: "📋 Статус",
+  settings: "⚙️ Настройки",
+},
+```
+
+---
+
+## Шаг 2 — Показать кнопки
+
+Кнопки передаются в `this.dialog.text` или `this.dialog.menu` массивом рядов: каждый вложенный массив — один ряд.
+
+```ts
+async sendSettings(ctx: BotContext) {
+  const b = ctx.t.buttons;
+  await this.dialog.menu(ctx, ctx.t.settings.title, [
+    [
+      { text: b.status, call: "status_show" },     // два в одном ряду
+      { text: b.settings, call: "settings_open" },
+    ],
+    [{ text: b.back, call: "cancel" }],            // одна во втором ряду
+  ]);
 }
 ```
 
 Каждая кнопка — объект с двумя полями:
 
-- `text` — надпись, которую видит пользователь
-- `call` — уникальный идентификатор нажатия (латиница, без пробелов)
+- `text` — надпись из `ctx.t`
+- `call` — идентификатор нажатия (латиница, без пробелов, до 64 байт)
 
-Если массив пустой `[]` — кнопки не появятся.
+`dialog.menu` редактирует сообщение с меню на месте, `dialog.text` отправляет новое.
 
----
-
-## Шаг 2 — Добавить метод в `BotModelImpl.ts`
-
-Открой `src/core/domain/BotModelImpl.ts` и добавь метод для обработки нажатия:
-
-```ts
-async onStatusShow(ctx: BotContext) {
-  await this.dialog.sendStatus(ctx);
-}
-```
-
-Добавь сигнатуру в `src/core/IBotModel.ts`:
-
-```ts
-onStatusShow(ctx: BotContext): Promise<void>;
-```
+Чтобы добавить кнопку в главное меню, правится `sendMainMenu` в `src/core/dialog/DialogEngine.ts`.
 
 ---
 
@@ -50,22 +59,22 @@ onStatusShow(ctx: BotContext): Promise<void>;
 Открой `src/core/controller/handlers/ButtonHandler.ts`. В конструкторе зарегистрируй обработчик по значению `call`:
 
 ```ts
-this.bot.callbackQuery("status_show", async (ctx) => {
-  await ctx.answerCallbackQuery(); // обязательно — убирает индикатор загрузки на кнопке
+this.composer.callbackQuery("status_show", async (ctx) => {
+  await ctx.answerCallbackQuery(); // убирает индикатор загрузки на кнопке
   await model.onStatusShow(ctx);
 });
 ```
 
-`ctx.answerCallbackQuery()` можно вызвать с текстом — он покажется как всплывающее уведомление:
+`ctx.answerCallbackQuery()` можно вызвать с текстом — он покажется как всплывающее уведомление (простой текст, без HTML):
 
 ```ts
-await ctx.answerCallbackQuery("Готово!");
+await ctx.answerCallbackQuery(ctx.t.nav.outdated);
 ```
 
----
+Если обработчик забудет ответить, ядро ответит за него, но лучше отвечать сразу.
 
-## Кнопки в несколько рядов
+Сигнатуру нового метода модели добавь в `src/core/IBotModel.ts`:
 
-> 🚧 Будет описано позже
-
-Сейчас все кнопки добавляются в один ряд. Поддержка нескольких рядов через `InlineKeyboard.row()` будет добавлена в `MessageFactory`.
+```ts
+onStatusShow(ctx: BotContext): Promise<void>;
+```

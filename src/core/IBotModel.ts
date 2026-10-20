@@ -1,4 +1,4 @@
-import type { BotContext, botLanguage } from "./types.js";
+import type { BotContext } from "./types.js";
 import type { AlbumItem } from "./domain/albums.js";
 
 export interface IBotModel {
@@ -10,7 +10,8 @@ export interface IBotModel {
   menuOutdated(ctx: BotContext): Promise<void>;
 
   // Replies
-  sendError(message: string, ctx: BotContext): Promise<void>;
+  // the message goes to the log, the user gets `text` or a generic error
+  sendError(message: string, ctx: BotContext, text?: string): Promise<void>;
   errorCallback(callback: string, ctx: BotContext): Promise<void>;
   sendHelp(ctx: BotContext): Promise<void>;
   sendDeletionError(
@@ -32,7 +33,8 @@ export interface IBotModel {
 
   // Utils
   getFileId(ctx: BotContext): string | undefined;
-  changeLang(ctx: BotContext, newLang: botLanguage): Promise<void>;
+  // false if there are no texts for this language
+  changeLang(ctx: BotContext, newLang: string): Promise<boolean>;
   sessionReset(ctx: BotContext): void;
   navigateTo(ctx: BotContext, dir: string): Promise<void>;
   isAtRoot(ctx: BotContext): boolean;

@@ -1,9 +1,10 @@
-import type { BotContext, botLanguage, NavigationInstance } from "../types.js";
+import type { BotContext, NavigationInstance } from "../types.js";
 import type { DrawnTree } from "../domain/tree.js";
+import type { Locales } from "../texts/locales.js";
+import { list } from "../texts/format.js";
 import { escapeHtml } from "./html.js";
 import { MessageFactory } from "./messages/MessageFactory.js";
-import type { BotTexts } from "./messages/strings.js";
-import { ReplyResolver } from "./ReplyResolver.js";
+import { ReplyResolver, type MenuButton } from "./ReplyResolver.js";
 
 // telegram limits a message strictly to 4096 characters,
 // the rest of the limit is left for the file name and the note
@@ -13,35 +14,70 @@ const MAX_ALBUM_SIZE = 10;
 // a longer tree is sent as a file instead of a message (4096 limit)
 const MAX_TREE_MESSAGE = 3800;
 
+type Kind = "file" | "folder";
+const kindOf = (isFile: boolean): Kind => (isFile ? "file" : "folder");
+
+// texts come from ctx.t: parameters are escaped there,
+// strictly the HTML built here (file contents, trees) is escaped by hand
 export class DialogEngine {
   private factory: MessageFactory = new MessageFactory();
   private resolver: ReplyResolver = new ReplyResolver("HTML");
 
-  constructor(private texts: BotTexts) {}
+  constructor(
+    private locales: Locales,
+    private websiteName: string,
+  ) {}
+
+  hasLanguage(lang: string): boolean {
+    return this.locales.has(lang);
+  }
+
+  // a new message
+  async text(ctx: BotContext, text: string, rows: MenuButton[][] = []) {
+    await this.resolver.reply(ctx, this.factory.text(text, rows));
+  }
+
+  // the menu message: edited in place, see ReplyResolver
+  async menu(ctx: BotContext, text: string, rows: MenuButton[][] = []) {
+    await this.resolver.reply(ctx, this.factory.menu(text, rows));
+  }
 
   async sendMainMenu(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
-    const m = this.texts.menus[lang] ?? {};
-    const reply = this.factory.menu(
-      t.greetUser(
-        escapeHtml(ctx.chat?.first_name ?? t.anonName),
-        escapeHtml(ctx.session.websiteName),
-      ),
-      m.welcome,
+    const t = ctx.t;
+    const current = ctx.session.lang;
+    // the current language goes first
+    const languages = [...this.locales.languages].sort(
+      (a, b) => Number(b === current) - Number(a === current),
     );
-    await this.resolver.reply(ctx, reply);
+    const languageButtons = languages.map((lang) => ({
+      text: this.locales.get(lang).meta.name,
+      call: "lang=" + lang,
+    }));
+
+    await this.menu(
+      ctx,
+      t.common.greet({
+        name: ctx.chat?.first_name ?? t.common.anonName,
+        site: this.websiteName,
+      }),
+      [
+        ...chunk(languageButtons, 2),
+        [{ text: t.buttons.navigation, call: "navDir:root" }],
+      ],
+    );
   }
 
   async sendImg(image: Buffer, ctx: BotContext, caption?: string) {
-    const reply = this.factory.photo(image, caption);
+    const reply = this.factory.photo(
+      image,
+      caption && escapeHtml(caption),
+    );
     await this.resolver.reply(ctx, reply);
   }
 
   async sendImgs(images: Buffer[], ctx: BotContext) {
     if (images.length === 0) {
-      const t = this.texts.text[ctx.session.lang];
-      await this.resolver.reply(ctx, this.factory.text(t.noImages));
+      await this.text(ctx, ctx.t.files.noImages);
       return;
     }
 
@@ -56,21 +92,17 @@ export class DialogEngine {
   }
 
   async sendTextFile(path: string, text: string, ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
+    const t = ctx.t.files;
     const preview = text.slice(0, MAX_FILE_PREVIEW);
-    const note =
-      text.length > MAX_FILE_PREVIEW
-        ? t.fileTruncated(MAX_FILE_PREVIEW, text.length)
-        : "";
-    const reply = this.factory.text(
-      t.fileContent(escapeHtml(path)) +
-        "<pre>" +
-        escapeHtml(preview) +
-        "</pre>" +
-        note,
+    await this.text(
+      ctx,
+      lines(
+        t.content({ name: path }),
+        "<pre>" + escapeHtml(preview) + "</pre>",
+        text.length > MAX_FILE_PREVIEW &&
+          t.truncated({ shown: MAX_FILE_PREVIEW, total: text.length }),
+      ),
     );
-    await this.resolver.reply(ctx, reply);
   }
 
   async sendTree(
@@ -78,24 +110,27 @@ export class DialogEngine {
     limits: { depth: number; objects: number; truncated: boolean },
     ctx: BotContext,
   ) {
-    const t = this.texts.text[ctx.session.lang];
+    const t = ctx.t.tree;
     if (tree.dirs + tree.files === 0) {
-      await this.resolver.reply(ctx, this.factory.text(t.dirEmpty));
+      await this.text(ctx, ctx.t.nav.empty);
       return;
     }
 
-    const notes =
-      t.treeSummary(tree.dirs, tree.files) +
-      (tree.depthLimited ? t.treeDepthLimited(limits.depth) : "") +
-      (limits.truncated ? t.treeTruncated(limits.objects) : "");
+    const notes = lines(
+      t.summary({ dirs: tree.dirs, files: tree.files }),
+      tree.depthLimited && t.depthLimited({ depth: limits.depth }),
+      limits.truncated && t.truncated({ limit: limits.objects }),
+    );
 
     const reply =
       tree.text.length <= MAX_TREE_MESSAGE
-        ? this.factory.text("<pre>" + escapeHtml(tree.text) + "</pre>\n" + notes)
+        ? this.factory.text(
+            lines("<pre>" + escapeHtml(tree.text) + "</pre>", notes),
+          )
         : this.factory.document(
             Buffer.from(tree.text, "utf-8"),
             "tree.txt",
-            t.treeAsFile + "\n" + notes,
+            lines(t.asFile, notes),
           );
     await this.resolver.reply(ctx, reply);
   }
@@ -111,66 +146,58 @@ export class DialogEngine {
     }
   }
 
+  // the list of commands is built from the texts of the commands
   async sendHelp(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
-    const m = this.texts.menus[lang] ?? {};
-    const reply = this.factory.text(t.help, m.help);
-    await this.resolver.reply(ctx, reply);
-  }
-
-  async sendFileUploadSuccessful(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
-    const reply = this.factory.text(t.addFileSuccessful);
-    await this.resolver.reply(ctx, reply);
+    const t = ctx.t;
+    const commands = Object.entries(t.commands).map(
+      ([name, description]) => `/${name} ${escapeHtml(description)}`,
+    );
+    await this.text(
+      ctx,
+      lines(t.help.upload, "", t.help.commandsTitle, ...commands),
+    );
   }
 
   async sendAlbumResult(
     ctx: BotContext,
     result: { uploaded: string[]; failed: string[]; extraNames: string[] },
   ) {
-    const t = this.texts.text[ctx.session.lang];
-    const escape = (names: string[]) => names.map(escapeHtml);
-    const text =
-      t.albumUploaded(escape(result.uploaded)) +
-      (result.failed.length ? t.albumFailed(escape(result.failed)) : "") +
-      (result.extraNames.length
-        ? t.albumExtraNames(escape(result.extraNames))
-        : "");
-    await this.resolver.reply(ctx, this.factory.text(text));
-  }
-
-  async sendAwaitingImage(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
-    const reply = this.factory.text(t.awaitingImage);
-    await this.resolver.reply(ctx, reply);
-  }
-
-  async sendAwaitingDirectoryName(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
-    const reply = this.factory.text(t.awaitingDirectoryName);
-    await this.resolver.reply(ctx, reply);
+    const t = ctx.t.album;
+    await this.text(
+      ctx,
+      lines(
+        t.uploaded({ count: result.uploaded.length }),
+        ...result.uploaded.map(escapeHtml),
+        result.failed.length > 0 && t.failed({ names: list(result.failed) }),
+        result.extraNames.length > 0 &&
+          t.extraNames({ names: list(result.extraNames) }),
+      ),
+    );
   }
 
   async sendActionsMenu(isFile: boolean, ref: string, ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang].chooseAction;
-    const m = this.texts.menus[lang].actionsMenu(isFile, ref);
-
-    const reply = this.factory.menu(t, m);
-    await this.resolver.reply(ctx, reply);
+    const b = ctx.t.buttons;
+    const type = isFile ? "File" : "Dir";
+    await this.menu(ctx, ctx.t.nav.chooseAction, [
+      [
+        { text: b.open, call: (isFile ? "openFile:" : "navDir:") + ref },
+        { text: b.delete, call: `delete${type}Ask:${ref}` },
+      ],
+      [
+        { text: b.rename, call: `rename${type}Ask:${ref}` },
+        { text: b.back, call: "cancel" },
+      ],
+    ]);
   }
 
   async sendAsksMenu(isFile: boolean, ref: string, ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang].deleteAsk(isFile);
-    const m = this.texts.menus[lang].deleteAskMenu(isFile, ref);
-
-    const reply = this.factory.menu(t, m);
-    await this.resolver.reply(ctx, reply);
+    const b = ctx.t.buttons;
+    await this.menu(ctx, ctx.t.files.deleteAsk[kindOf(isFile)], [
+      [
+        { text: b.yes, call: `delete${isFile ? "File" : "Dir"}:${ref}` },
+        { text: b.no, call: "cancel" },
+      ],
+    ]);
   }
 
   async sendDeletedSuccessfully(
@@ -178,114 +205,59 @@ export class DialogEngine {
     isFile: boolean,
     path: string,
   ) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang].deletedSuccessfully(
-      isFile,
-      escapeHtml(this.leafInPath(path)),
+    await this.text(
+      ctx,
+      ctx.t.files.deleted[kindOf(isFile)]({ name: this.leafInPath(path) }),
     );
-
-    const reply = this.factory.text(t);
-    await this.resolver.reply(ctx, reply);
   }
 
   async sendNavigationMenu(content: NavigationInstance[], ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
+    const buttons = content.map((it, i) => ({
+      // a long name is replaced by its number in the list (the first two are UI)
+      text: it.btnText.length > 15 ? `${i - 1}` : it.btnText,
+      call: it.btnCallback,
+    }));
 
-    const buttons = content.map((it) => {
-      return { text: it.btnText, call: it.btnCallback };
-    });
+    const text =
+      content.length < 3
+        ? ctx.t.nav.empty
+        : content
+            .filter((c) => c.msgText)
+            .map((c) => `${c.type.symbol} ${c.index}) ${c.msgText}`)
+            .join("\n");
 
-    if (content.length < 3) {
-      const reply = this.factory.menu(t.dirEmpty, buttons);
-
-      await this.resolver.reply(ctx, reply);
-    } else {
-      const list = content
-        .map((c, i) => {
-          if (c.msgText) {
-            return `${c.type.symbol} ${c.index}) ${c.msgText}`;
-          }
-        })
-        .join("\n");
-
-      const reply = this.factory.menu(list, buttons);
-
-      await this.resolver.reply(ctx, reply);
-    }
+    await this.menu(ctx, text, chunk(buttons, 2));
   }
 
   async answerMenuOutdated(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    await ctx.answerCallbackQuery({ text: this.texts.text[lang].menuOutdated });
-  }
-
-  async sendError(description: string, ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const reply = this.factory.text(
-      `${this.texts.text[lang].error} ${escapeHtml(description)}`,
-    );
-    await this.resolver.reply(ctx, reply);
-  }
-
-  async sendUnexpectedError(ctx: BotContext) {
-    const t = this.texts.text[ctx.session.lang];
-    await this.resolver.reply(ctx, this.factory.text(t.unexpectedError));
-  }
-
-  async sendRenameError(ctx: BotContext) {
-    const t = this.texts.text[ctx.session.lang];
-    await this.resolver.reply(ctx, this.factory.text(t.renameError));
+    await ctx.answerCallbackQuery({ text: ctx.t.nav.outdated });
   }
 
   async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const reply = this.factory.text(
-      this.texts.text[lang].errorDeletion(isFile, escapeHtml(path)),
+    await this.text(
+      ctx,
+      ctx.t.files.deleteFailed[kindOf(isFile)]({ name: path }),
     );
-    await this.resolver.reply(ctx, reply);
-  }
-
-  // strangers have no session, so the language is passed explicitly
-  async sendAuthError(ctx: BotContext, lang: botLanguage) {
-    const reply = this.factory.text(this.texts.text[lang].notAdmin);
-    await this.resolver.reply(ctx, reply);
-  }
-
-  async sendNoFileNameProvidedError(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const reply = this.factory.text(this.texts.text[lang].noFilename);
-    await this.resolver.reply(ctx, reply);
-  }
-
-  async sendInvalidNameError(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const reply = this.factory.text(this.texts.text[lang].invalidName);
-    await this.resolver.reply(ctx, reply);
   }
 
   async sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const reply = this.factory.text(
-      this.texts.text[lang].nameAlreadyExists(isFile),
-    );
-    await this.resolver.reply(ctx, reply);
+    await this.text(ctx, ctx.t.files.nameExists[kindOf(isFile)]);
   }
 
   async addAskType(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
-    const m = this.texts.menus[lang];
-    const reply = this.factory.menu(t.addAskType, m.addAskType);
-    await this.resolver.reply(ctx, reply);
+    const b = ctx.t.buttons;
+    await this.menu(ctx, ctx.t.nav.addAskType, [
+      [
+        { text: b.file, call: "newFile" },
+        { text: b.folder, call: "newDirectory" },
+      ],
+    ]);
   }
 
   async askNewName(ctx: BotContext) {
-    const lang = ctx.session.lang;
-    const t = this.texts.text[lang];
-    const m = this.texts.menus[lang];
-    const reply = this.factory.menu(t.askNewName, m.askNewName);
-    await this.resolver.reply(ctx, reply);
+    await this.menu(ctx, ctx.t.files.askNewName, [
+      [{ text: ctx.t.buttons.back, call: "cancel" }],
+    ]);
   }
 
   shrinkPath(path: string): string {
@@ -306,4 +278,19 @@ export class DialogEngine {
       .slice(0, 200);
     return res.endsWith("/") ? res.slice(0, -1) : res;
   }
+}
+
+// the parts of a message line by line, false and undefined are skipped
+function lines(...parts: (string | false | undefined)[]): string {
+  return parts
+    .filter((part): part is string => typeof part === "string")
+    .join("\n");
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    rows.push(items.slice(i, i + size));
+  }
+  return rows;
 }

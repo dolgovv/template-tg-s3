@@ -22,7 +22,7 @@
 
 **🌍 Мультиязычность:**
 
-Все тексты вынесены в единый файл переводов (`strings.ts`). Поддерживаются `ru` и `en` из коробки. Для добавления нового языка нужно добавить новый объект перевода в textTranslates и menuTranslates
+Поддерживаются `ru` и `en` из коробки. Тексты — данные с параметрами (`"Файл {name} удалён"`): параметры экранируются сами, числа склоняются по правилам языка. Изменить текст или добавить язык — несколько строк в `src/app/texts/index.ts`, ядро при этом не правится
 
 **🌐 Прокси из коробки:**
 
@@ -96,9 +96,7 @@ git fetch upstream && git merge upstream/master
 | Список администраторов     | `.env`                            | [Управление администраторами](docs/managing-admins.md) |
 | Название вашего сайта      | `.env`                            | -                                                      |
 | Токен бота, прокси, S3     | `.env`                            | [Настройка .env](docs/env-configuration.md)            |
-| Тексты и переводы          | `src/core/dialog/messages/strings.ts` | [Добавление языка](docs/adding-languages.md)       |
-| Inline-кнопки              | `src/core/dialog/messages/strings.ts` | [Добавление кнопок](docs/adding-inline-buttons.md) |
-
-> Тексты пока живут в ядре. Следующим шагом они переедут в `app/` с типизированными переопределениями.
+| Тексты и переводы          | `src/app/texts/index.ts`          | [Тексты и языки](docs/adding-languages.md)             |
+| Inline-кнопки              | `src/core/texts/`, код модели     | [Добавление кнопок](docs/adding-inline-buttons.md)     |
 
 ---

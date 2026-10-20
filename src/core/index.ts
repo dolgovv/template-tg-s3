@@ -18,5 +18,11 @@ export {
   type S3StorageOptions,
 } from "./datasource/S3Client.js";
 export { configFromEnv, type EnvConfig } from "./config.js";
-export { defaultTexts, type BotTexts } from "./dialog/messages/strings.js";
-export type { BotContext, SessionData, botLanguage } from "./types.js";
+export { raw, list, type Raw, type Param } from "./texts/format.js";
+export type {
+  Texts,
+  TextsOverrides,
+  LocaleSource,
+  PluralSource,
+} from "./texts/schema.js";
+export type { BotContext, SessionData } from "./types.js";

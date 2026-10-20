@@ -1,5 +1,6 @@
 import Logger, { FileTransport } from "zario";
 import type { Context, SessionFlavor } from "grammy";
+import type { Texts } from "./texts/schema.js";
 
 export enum DialogStep {
   Idle = "idle",
@@ -27,9 +28,9 @@ export type ContentType =
   | { type: "Unknown"; symbol: "❓" };
 
 export type SessionData = {
-  lang: botLanguage;
+  // a language code from the texts, see Locales
+  lang: string;
   dialogStep: DialogStep;
-  websiteName: string;
   currentDir: string;
   chosenPath: string;
   lastMenuMessageId: number;
@@ -37,10 +38,11 @@ export type SessionData = {
   pathRefs: Record<string, string>;
 };
 
-export type BotContext = Context & SessionFlavor<SessionData>;
-
-export const SUPPORTED_LANGUAGES = ["ru", "en"] as const;
-export type botLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+export type BotContext = Context &
+  SessionFlavor<SessionData> & {
+    /** texts in the user's language, see src/core/texts */
+    readonly t: Texts;
+  };
 
 export class BotLogger {
   infoLogger: Logger;

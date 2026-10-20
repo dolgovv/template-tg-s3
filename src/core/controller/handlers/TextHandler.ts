@@ -45,7 +45,11 @@ export class TextHandler {
                 "",
               );
               if (result === "") {
-                await model.sendError("Error while creating directory", ctx);
+                await model.sendError(
+                  "Error while creating directory",
+                  ctx,
+                  ctx.t.errors.createFolderFailed,
+                );
               }
             } else {
               const sanitized = model.sanitizeName(raw);
@@ -57,7 +61,11 @@ export class TextHandler {
                   sanitized,
                 );
                 if (result === "") {
-                  await model.sendError("Error while creating directory", ctx);
+                  await model.sendError(
+                  "Error while creating directory",
+                  ctx,
+                  ctx.t.errors.createFolderFailed,
+                );
                 }
               }
             }
@@ -76,7 +84,11 @@ export class TextHandler {
               );
 
               if (result === "") {
-                await model.sendError("Error while creating directory", ctx);
+                await model.sendError(
+                  "Error while creating directory",
+                  ctx,
+                  ctx.t.errors.createFolderFailed,
+                );
               } else {
                 await model.navMenu(ctx);
               }

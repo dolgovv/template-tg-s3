@@ -10,15 +10,15 @@ import type {
 } from "../ReplyResolver.js";
 
 export class MessageFactory {
-  text(text: string, buttons: MenuButton[] = []): TextMessage {
-    const keyboard = this.buildKeyboard(buttons);
+  text(text: string, rows: MenuButton[][] = []): TextMessage {
+    const keyboard = this.buildKeyboard(rows);
     const msg: TextMessage = { type: "text", text: text };
     if (keyboard) msg.keyboard = keyboard;
     return msg;
   }
 
-  menu(text: string, buttons: MenuButton[] = []): MenuMessage {
-    const keyboard = this.buildKeyboard(buttons);
+  menu(text: string, rows: MenuButton[][] = []): MenuMessage {
+    const keyboard = this.buildKeyboard(rows);
     const msg: MenuMessage = { type: "menu", text: text };
     if (keyboard) msg.keyboard = keyboard;
     return msg;
@@ -27,9 +27,9 @@ export class MessageFactory {
   photo(
     buffer: Buffer,
     caption?: string,
-    buttons: MenuButton[] = [],
+    rows: MenuButton[][] = [],
   ): PhotoMessage {
-    const keyboard = this.buildKeyboard(buttons);
+    const keyboard = this.buildKeyboard(rows);
     const msg: PhotoMessage = { type: "photo", photo: new InputFile(buffer) };
     if (caption) msg.caption = caption;
     if (keyboard) msg.keyboard = keyboard;
@@ -54,14 +54,14 @@ export class MessageFactory {
     return msg;
   }
 
-  private buildKeyboard(buttons: MenuButton[]): InlineKeyboard | undefined {
-    if (!buttons || buttons.length === 0) return undefined;
-    const keyboard = new InlineKeyboard();
-    buttons.forEach((btn, i) => {
-      const fixedText = btn.text.length > 15 ? `${i - 1}` : btn.text;
-      keyboard.text(fixedText, btn.call);
-      if ((i + 1) % 2 === 0) keyboard.row();
-    });
-    return keyboard;
+  // one array is one row of buttons
+  private buildKeyboard(rows: MenuButton[][]): InlineKeyboard | undefined {
+    const filled = rows.filter((row) => row.length > 0);
+    if (filled.length === 0) return undefined;
+    return InlineKeyboard.from(
+      filled.map((row) =>
+        row.map((btn) => InlineKeyboard.text(btn.text, btn.call)),
+      ),
+    );
   }
 }

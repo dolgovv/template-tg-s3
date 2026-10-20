@@ -17,8 +17,14 @@ app.bot.callbackQuery("status_refresh", async (ctx) => {
 app.use(fileManager({ storage: s3Storage(config.s3), ...config.fileManager }));
 ```
 
-> Высокоуровневые функции ответа (меню, переводы) для кода из `app/` появятся следующим шагом.
-> Пока для полной интеграции в диалог бота (переводы, общее меню) используйте способ ниже.
+Внутри своих обработчиков доступны встроенные тексты на языке пользователя: `ctx.t` (см. [Тексты и языки](adding-languages.md)).
+
+```ts
+app.bot.command("empty", (ctx) => ctx.reply(ctx.t.nav.empty, { parse_mode: "HTML" }));
+```
+
+> Свои ключи текстов для кода из `app/` и высокоуровневые функции ответа (`ctx.ui`) появятся следующим шагом.
+> Пока для своего переводимого текста используйте способ ниже.
 
 ---
 
@@ -30,99 +36,60 @@ app.use(fileManager({ storage: s3Storage(config.s3), ...config.fileManager }));
 
 ## Файлы, с которыми предстоит работать
 
-| Файл                | Что в нём                                 |
-| ------------------- | ----------------------------------------- |
-| `strings.ts`        | Тексты и кнопки для каждого языка         |
-| `DialogEngine.ts`   | Методы отправки сообщений пользователю    |
-| `BotModelImpl.ts`   | Бизнес-логика: вызывает DialogEngine      |
-| `CommandHandler.ts` | Регистрация команды и вызов метода модели |
+| Файл                    | Что в нём                                 |
+| ----------------------- | ----------------------------------------- |
+| `texts/en.ts`, `ru.ts`  | Тексты для каждого языка                  |
+| `BotModelImpl.ts`       | Бизнес-логика: отправляет ответ           |
+| `IBotModel.ts`          | Интерфейс модели                          |
+| `CommandHandler.ts`     | Регистрация команды и вызов метода модели |
 
 ---
 
-## Шаг 1 — Добавить текст в `strings.ts`
+## Шаг 1 — Добавить текст
 
-Открой файл `src/core/dialog/messages/strings.ts`. Там два объекта: `textTranslates` (тексты) и `menusTranslates` (кнопки).
-
-### Добавить текст
-
-В `textTranslates` добавь новую строку в каждый язык (`ru`, `en` и другие, если есть).
-Ключ — это внутреннее название, по нему потом обращаются в коде.
+Открой `src/core/texts/en.ts` и добавь раздел или ключ. Английский файл — эталон: по нему проверяются остальные языки.
 
 ```ts
-// было
-ru: {
-  help: "Здесь будет /help текст.",
-  // ...
-}
-
-// стало — добавили ключ "status"
-ru: {
-  help: "Здесь будет /help текст.",
-  status: "Всё работает нормально ✅",
-  // ...
-}
+status: {
+  ok: "Everything is working fine ✅",
+  objects: "Objects in the bucket: {count}",   // {count} — параметр
+  refresh: "Refresh",                           // надпись на кнопке
+},
 ```
 
-Не забудь добавить тот же ключ в английский раздел:
+Затем тот же ключ в `src/core/texts/ru.ts` — без него TypeScript не соберёт проект:
 
 ```ts
-en: {
-  help: "Here will be /help text.",
-  status: "Everything is working fine ✅",
-  // ...
-}
+status: {
+  ok: "Всё работает нормально ✅",
+  objects: "Объектов в бакете: {count}",
+  refresh: "Обновить",
+},
 ```
 
-### Добавить кнопки (необязательно)
-
-Если под сообщением нужны кнопки — добавь их в `menusTranslates` с тем же ключом.
-Каждая кнопка — это объект с двумя полями:
-
-- `text` — надпись на кнопке, которую видит пользователь
-- `call` — внутренний идентификатор нажатия (латиница, без пробелов)
+Добавь команду в раздел `commands` обоих файлов — так она появится в `/help`:
 
 ```ts
-// в menusTranslates → ru
-ru: {
-  help: [],
-  status: [
-    { text: "Обновить", call: "status_refresh" },
-    { text: "Подробнее", call: "status_details" },
-  ],
+commands: {
   // ...
-}
+  status: "состояние бота",
+},
 ```
 
-Если кнопки не нужны — оставь пустой массив `[]`.
+Подробнее о параметрах, текстах по числу и HTML — в [Тексты и языки](adding-languages.md).
 
 ---
 
-## Шаг 2 — Добавить метод отправки в `DialogEngine.ts`
+## Шаг 2 — Добавить метод в `BotModelImpl.ts`
 
-Открой `src/core/dialog/DialogEngine.ts`. Там уже есть примеры — `sendHelp`, `sendMainMenu` и другие.
-Добавь новый async-метод по той же схеме. Методы принимают `ctx: BotContext` и сами выполняют отправку.
+Открой `src/core/domain/BotModelImpl.ts`. Тексты берутся из `ctx.t`, отправка — через `this.dialog.text` (новое сообщение) или `this.dialog.menu` (меню, которое редактируется на месте). Кнопки — массив рядов:
 
 ```ts
 async sendStatus(ctx: BotContext) {
-  const lang = ctx.session.lang;
-  const t = textTranslates[lang];
-  const m = menusTranslates[lang] ?? {};
-  const reply = this.factory.text(t.status, m.status);
-  await this.resolver.reply(ctx, reply);
-}
-```
-
----
-
-## Шаг 3 — Добавить метод в `BotModelImpl.ts`
-
-Открой `src/core/domain/BotModelImpl.ts` и добавь метод, который вызывает `DialogEngine`:
-
-```ts
-async sendStatus(ctx: BotContext) {
-  if (ctx.chat) {
-    await this.dialog.sendStatus(ctx);
-  }
+  const t = ctx.t.status;
+  await this.dialog.text(ctx, t.ok, [
+    [{ text: t.refresh, call: "status_refresh" }],
+  ]);
 }
 ```
 
@@ -134,13 +101,13 @@ sendStatus(ctx: BotContext): Promise<void>;
 
 ---
 
-## Шаг 4 — Зарегистрировать команду в `CommandHandler.ts`
+## Шаг 3 — Зарегистрировать команду в `CommandHandler.ts`
 
 Открой `src/core/controller/handlers/CommandHandler.ts`. В конструкторе зарегистрируй новую команду,
 вызвав нужный метод модели:
 
 ```ts
-this.bot.command("status", async (ctx) => await model.sendStatus(ctx));
+this.composer.command("status", async (ctx) => await model.sendStatus(ctx));
 ```
 
 Готово. После перезапуска бота команда `/status` будет работать.
@@ -149,24 +116,20 @@ this.bot.command("status", async (ctx) => await model.sendStatus(ctx));
 
 ## Итого — что нужно сделать для новой команды `/status`
 
-1. **`strings.ts`** — добавить ключ `status` с текстом в `textTranslates` (для каждого языка) и массив кнопок в `menusTranslates` (можно пустой `[]`)
-2. **`DialogEngine.ts`** — добавить async-метод `sendStatus(ctx: BotContext)`
-3. **`BotModelImpl.ts`** — добавить метод `sendStatus(ctx)`, делегирующий в `dialog.sendStatus`
-4. **`IBotModel.ts`** — добавить сигнатуру `sendStatus(ctx: BotContext): Promise<void>`
-5. **`CommandHandler.ts`** — зарегистрировать `bot.command("status", ...)`
+1. **`en.ts`, `ru.ts`** — добавить тексты и описание в `commands`
+2. **`BotModelImpl.ts`** — добавить метод `sendStatus(ctx)`
+3. **`IBotModel.ts`** — добавить сигнатуру `sendStatus(ctx: BotContext): Promise<void>`
+4. **`CommandHandler.ts`** — зарегистрировать `composer.command("status", ...)`
 
 ---
 
 ## Частые вопросы
 
-**Можно ли добавить кнопки позже, не меняя остальной код?**
-Да. Просто заполни пустой массив `[]` в `menusTranslates` — кнопки появятся автоматически без изменений в `DialogEngine` или `CommandHandler`.
-
 **Что будет, если забыть добавить ключ в один из языков?**
-TypeScript подсветит ошибку при сборке — все языки должны иметь одинаковый набор ключей.
+Для встроенных языков TypeScript подсветит ошибку при сборке. Для языков из `src/app/texts/` недостающий текст возьмётся из языка по умолчанию, а в лог при старте придёт предупреждение.
+
+**Нужно ли экранировать параметры?**
+Нет. Значения `{параметров}` экранируются сами. Готовый HTML передавай через `raw()`.
 
 **Как называть `call` у кнопок?**
-Любая строка без пробелов, латиницей. Рекомендуется формат `команда_действие`, например `status_refresh`. Это значение приходит в обработчик нажатия кнопки в `ButtonHandler.ts`.
-
-**Почему `DialogEngine` сам отправляет сообщение, не возвращая его?**
-Все методы `DialogEngine` — async и получают `ctx` напрямую. Это упрощает код в хендлерах и модели: не нужно передавать результат через несколько слоёв.
+Любая строка без пробелов, латиницей, до 64 байт. Рекомендуется формат `команда_действие`, например `status_refresh`. Это значение приходит в обработчик нажатия кнопки в `ButtonHandler.ts`.

@@ -1,8 +1,6 @@
 import { GrammyError, type InlineKeyboard, type InputFile } from "grammy";
 import type { BotContext } from "../types.js";
 
-export type MenuSection = Record<string, MenuButton[]>;
-
 export type MenuButton = {
   text: string;
   call: string;

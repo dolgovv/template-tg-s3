@@ -1,10 +1,5 @@
 import type { Composer } from "grammy";
-import {
-  DialogStep,
-  SUPPORTED_LANGUAGES,
-  type BotContext,
-  type botLanguage,
-} from "../../types.js";
+import { DialogStep, type BotContext } from "../../types.js";
 import type { IBotModel } from "../../IBotModel.js";
 
 export class ButtonHandler {
@@ -13,12 +8,7 @@ export class ButtonHandler {
     model: IBotModel,
   ) {
     this.composer.callbackQuery(/^lang=(.+)$/, async (ctx) => {
-      const candidate = ctx.match[1];
-      if (
-        candidate &&
-        (SUPPORTED_LANGUAGES as readonly string[]).includes(candidate)
-      ) {
-        await model.changeLang(ctx, candidate as botLanguage);
+      if (await model.changeLang(ctx, ctx.match[1]!)) {
         await model.mainMenu(ctx, false);
       } else {
         await model.errorCallback(ctx.match[0], ctx);
@@ -157,8 +147,11 @@ export class ButtonHandler {
 
           default:
             await model.sendError(
-              "Unsupported (yet) file extension: " + path,
+              "Unsupported file extension: " + path,
               ctx,
+              ctx.t.files.unsupported({
+                name: path.slice(path.lastIndexOf("/") + 1),
+              }),
             );
 
             break;

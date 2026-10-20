@@ -6,7 +6,6 @@ import {
   BotLogger,
   DialogStep,
   type BotContext,
-  type botLanguage,
   type ContentType,
   type NavigationInstance,
 } from "../types.js";
@@ -117,7 +116,7 @@ export class BotModelImpl implements IBotModel {
         await this.dialog.sendNavigationMenu([...uiInstances], ctx);
       }
     } catch (err) {
-      await this.dialog.sendError("get directories " + err, ctx);
+      await this.sendError("get directories " + err, ctx, ctx.t.errors.listFailed);
     }
   }
 
@@ -146,9 +145,9 @@ export class BotModelImpl implements IBotModel {
     }
   }
 
-  async sendError(message: string, ctx: BotContext) {
+  async sendError(message: string, ctx: BotContext, text?: string) {
     this.logger.error(message + this.logger.getDetails(ctx));
-    await this.dialog.sendError(message, ctx);
+    await this.dialog.text(ctx, text ?? ctx.t.errors.unexpected);
   }
 
   async errorCallback(callback: string, ctx: BotContext) {
@@ -251,11 +250,11 @@ export class BotModelImpl implements IBotModel {
     return path && this.isWithinRoot(path) ? path : undefined;
   }
 
-  async changeLang(ctx: BotContext, newLang: botLanguage) {
+  async changeLang(ctx: BotContext, newLang: string): Promise<boolean> {
+    if (!this.dialog.hasLanguage(newLang)) return false;
     await ctx.answerCallbackQuery();
-    if (newLang !== ctx.session.lang) {
-      ctx.session.lang = newLang;
-    }
+    ctx.session.lang = newLang;
+    return true;
   }
 
   sessionReset(ctx: BotContext): void {
@@ -273,21 +272,25 @@ export class BotModelImpl implements IBotModel {
     } else if (dir.endsWith("/") && this.isWithinRoot(dir)) {
       ctx.session.currentDir = dir;
     } else {
-      await this.sendError("callback nav error: no such location", ctx);
+      await this.sendError(
+        "callback nav error: no such location",
+        ctx,
+        ctx.t.nav.noSuchFolder,
+      );
     }
   }
 
   async sendAwaitingDocument(ctx: BotContext) {
     ctx.session.dialogStep = DialogStep.AwaitingPhoto;
-    await this.dialog.sendAwaitingImage(ctx);
+    await this.dialog.text(ctx, ctx.t.files.awaitingFile);
   }
 
   async sendAwaitingDirectoryName(ctx: BotContext) {
-    await this.dialog.sendAwaitingDirectoryName(ctx);
+    await this.dialog.text(ctx, ctx.t.files.awaitingFolderName);
   }
 
   async sendInvalidNameError(ctx: BotContext) {
-    await this.dialog.sendInvalidNameError(ctx);
+    await this.dialog.text(ctx, ctx.t.files.invalidName);
   }
 
   async sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext) {
@@ -341,7 +344,7 @@ export class BotModelImpl implements IBotModel {
     const fileName = await this.uploadFile(fileId, ctx, name);
     if (!fileName) return false;
 
-    await this.dialog.sendFileUploadSuccessful(ctx);
+    await this.dialog.text(ctx, ctx.t.files.uploaded);
     this.sessionReset(ctx);
     await this.navMenu(ctx);
     return true;
@@ -444,8 +447,9 @@ export class BotModelImpl implements IBotModel {
       await this.dialog.sendImg(result, ctx, imageName);
     } else {
       await this.sendError(
-        "Изображения '" + imageName + "' не существует",
+        "Image not found: " + path,
         ctx,
+        ctx.t.files.notFound({ name: imageName }),
       );
     }
   }
@@ -518,7 +522,7 @@ export class BotModelImpl implements IBotModel {
 
   private async renameFailed(path: string, ctx: BotContext) {
     this.logger.error("Rename error: " + path + this.logger.getDetails(ctx));
-    await this.dialog.sendRenameError(ctx);
+    await this.dialog.text(ctx, ctx.t.files.renameFailed);
   }
 
   // ======================================================
