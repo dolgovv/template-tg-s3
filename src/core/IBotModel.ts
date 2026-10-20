@@ -48,6 +48,8 @@ export interface IBotModel {
   deleteFile(path: string): Promise<boolean>;
   createDirectory(currentDir: string, name: string): Promise<string>;
   removeDirectory(path: string): Promise<unknown>;
+  // as a photo, page by page or as a document: see fileTypes.ts
+  openFile(ctx: BotContext, path: string): Promise<void>;
   sendImage(ctx: BotContext, path: string): Promise<void>;
   sendAllImagesHere(ctx: BotContext): Promise<void>;
   sendTree(ctx: BotContext): Promise<void>;

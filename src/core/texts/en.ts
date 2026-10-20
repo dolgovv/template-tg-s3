@@ -79,7 +79,6 @@ export const en = {
       folder: "Could not delete folder {name}.\nMake sure it exists",
     },
     notFound: "File {name} does not exist",
-    unsupported: "Files like {name} can't be opened yet",
     content: "{name} file content:",
     page: "<i>Page {page} of {pages}</i>",
     noImages: "There are no images in this folder",

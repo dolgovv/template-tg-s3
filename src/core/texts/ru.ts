@@ -76,7 +76,6 @@ export const ru: LocaleSource = {
         "Ошибка удаления папки {name}.\nУбедитесь, что такая папка существует",
     },
     notFound: "Файла {name} не существует",
-    unsupported: "Файлы вроде {name} пока нельзя открыть",
     content: "Содержание файла {name}:",
     page: "<i>Страница {page} из {pages}</i>",
     noImages: "В этой папке нет картинок",

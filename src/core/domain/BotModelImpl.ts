@@ -13,6 +13,7 @@ import { fetch, ProxyAgent } from "undici";
 import type { IBotModel } from "../IBotModel.js";
 import { buildPathRefs, pathRef } from "./pathRefs.js";
 import { drawTree } from "./tree.js";
+import { fileType, splitExtension } from "../fileTypes.js";
 import {
   assignAlbumNames,
   type AlbumCollector,
@@ -209,17 +210,14 @@ export class BotModelImpl implements IBotModel {
   }
 
   private pathToType(path: string): ContentType {
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"];
-    const textExtensions = [".txt", ".pdf", ".doc", ".docx"];
-
-    if (path.endsWith("/")) {
-      return { type: "Directory", symbol: "📁" };
-    } else if (imageExtensions.some((ext) => path.endsWith(ext))) {
-      return { type: "Image", symbol: "🖼️" };
-    } else if (textExtensions.some((ext) => path.endsWith(ext))) {
-      return { type: "Text", symbol: "📄" };
-    } else {
-      return { type: "Unknown", symbol: "❓" };
+    if (path.endsWith("/")) return { type: "Directory", symbol: "📁" };
+    switch (fileType(path).icon) {
+      case "image":
+        return { type: "Image", symbol: "🖼️" };
+      case "document":
+        return { type: "Document", symbol: "📄" };
+      case "other":
+        return { type: "Unknown", symbol: "❓" };
     }
   }
 
@@ -439,9 +437,41 @@ export class BotModelImpl implements IBotModel {
     return await this.repo.removeDirectory(path);
   }
 
+  // the way to open a file comes from fileTypes.ts, the navigation menu goes after it
+  async openFile(ctx: BotContext, path: string) {
+    switch (fileType(path).open) {
+      case "photo":
+        await this.sendImage(ctx, path);
+        break;
+      case "text":
+        await this.sendTextFile(ctx, path);
+        break;
+      case "file":
+        await this.sendFile(ctx, path);
+        break;
+    }
+    await this.navMenu(ctx);
+  }
+
+  // as a document with its own name
+  async sendFile(ctx: BotContext, path: string) {
+    const name = this.dialog.leafInPath(path);
+    const file = await this.repo.getFile(path);
+
+    if (file) {
+      await this.dialog.sendFile(ctx, file, name);
+    } else {
+      await this.sendError(
+        "File not found: " + path,
+        ctx,
+        ctx.t.files.notFound({ name }),
+      );
+    }
+  }
+
   async sendImage(ctx: BotContext, path: string) {
     const imageName = this.dialog.leafInPath(path);
-    const result = await this.repo.getImage(path);
+    const result = await this.repo.getFile(path);
 
     if (result) {
       await this.dialog.sendImg(result, ctx, imageName);
@@ -545,15 +575,4 @@ export class BotModelImpl implements IBotModel {
   }
 
   // ======================================================
-}
-
-// "photo.jpg" -> { name: "photo", extension: ".jpg" }, "README" -> no extension,
-// ".env" is a name, not an extension
-function splitExtension(fileName: string): { name: string; extension: string } {
-  const dotIndex = fileName.lastIndexOf(".");
-  if (dotIndex <= 0) return { name: fileName, extension: "" };
-  return {
-    name: fileName.slice(0, dotIndex),
-    extension: fileName.slice(dotIndex),
-  };
 }

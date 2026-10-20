@@ -24,7 +24,7 @@ export type ContentType =
   | { type: "UI"; symbol: "*" }
   | { type: "Directory"; symbol: "📁" }
   | { type: "Image"; symbol: "🖼️" }
-  | { type: "Text"; symbol: "📄" }
+  | { type: "Document"; symbol: "📄" }
   | { type: "Unknown"; symbol: "❓" };
 
 export type SessionData = {

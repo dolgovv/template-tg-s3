@@ -131,48 +131,12 @@ export class ButtonHandler {
     });
 
     this.composer.callbackQuery(/^openFile:(.+)$/, async (ctx) => {
-      if (ctx.match[1]) {
-        const path = model.resolvePath(ctx, ctx.match[1]);
-        if (!path) return await model.menuOutdated(ctx);
-        // answer right away: loading and sending a big file takes a while,
-        // and a late answer fails as "query is too old"
-        await ctx.answerCallbackQuery();
-
-        const extensionIndex: number = path.lastIndexOf(".");
-        const fileExtension = path.slice(extensionIndex);
-
-        switch (fileExtension) {
-          case ".jpg":
-          case ".png":
-            await model.sendImage(ctx, path);
-            await model.navMenu(ctx);
-            break;
-
-          case ".txt":
-          case ".md":
-          case ".sh":
-          case ".json":
-          case ".yml":
-          case ".yaml":
-          case ".toml":
-            await model.sendTextFile(ctx, path);
-            await model.navMenu(ctx);
-            break;
-
-          default:
-            await model.sendError(
-              "Unsupported file extension: " + path,
-              ctx,
-              ctx.t.files.unsupported({
-                name: path.slice(path.lastIndexOf("/") + 1),
-              }),
-            );
-
-            break;
-        }
-      } else {
-        await model.errorCallback(ctx.match[0], ctx);
-      }
+      const path = model.resolvePath(ctx, ctx.match[1]!);
+      if (!path) return await model.menuOutdated(ctx);
+      // answer right away: loading and sending a big file takes a while,
+      // and a late answer fails as "query is too old"
+      await ctx.answerCallbackQuery();
+      await model.openFile(ctx, path);
     });
   }
 }

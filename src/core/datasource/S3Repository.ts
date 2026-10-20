@@ -11,10 +11,7 @@ import {
 } from "@aws-sdk/client-s3";
 import type { _Object, S3Client } from "@aws-sdk/client-s3";
 import type { Readable } from "node:stream";
-import { contentTypeFor } from "./contentTypes.js";
-
-// telegram sends strictly these formats as photos, others break the whole album
-const PHOTO_EXTENSIONS = [".jpg", ".jpeg", ".png"];
+import { contentTypeFor, isPhoto } from "../fileTypes.js";
 
 export class BotRepository {
   private bucket: string;
@@ -26,7 +23,8 @@ export class BotRepository {
   }
 
   // FUNCTIONS TO WORK WITH FILES
-  async getImage(path: string): Promise<Buffer | undefined> {
+  // undefined if there is no such file
+  async getFile(path: string): Promise<Buffer | undefined> {
     try {
       const response = await this.s3Client.send(
         new GetObjectCommand({
@@ -77,7 +75,7 @@ export class BotRepository {
   async getImagesInDir(path: string): Promise<Buffer[]> {
     const imagesList = await this.listImagesInDir(path);
     const bufferPromises = imagesList.map(
-      async (imagePath) => await this.getImage(imagePath),
+      async (imagePath) => await this.getFile(imagePath),
     );
     const result = await Promise.all(bufferPromises);
     return result.filter((it) => it !== undefined);
@@ -307,10 +305,7 @@ export class BotRepository {
       return [];
     }
 
-    return response.Contents.map((obj) => obj.Key!).filter((key) => {
-      const lowerKey = key.toLowerCase();
-      return PHOTO_EXTENSIONS.some((ext) => lowerKey.endsWith(ext));
-    });
+    return response.Contents.map((obj) => obj.Key!).filter(isPhoto);
   }
 
   // !!! newPath must not exist yet: a failed copy is rolled back by removing it

@@ -81,6 +81,10 @@ export class DialogEngine {
     await this.resolver.reply(ctx, reply);
   }
 
+  async sendFile(ctx: BotContext, file: Buffer, name: string) {
+    await this.resolver.reply(ctx, this.factory.document(file, name));
+  }
+
   async sendImgs(images: Buffer[], ctx: BotContext) {
     if (images.length === 0) {
       await this.text(ctx, ctx.t.files.noImages);
