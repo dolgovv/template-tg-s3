@@ -131,13 +131,21 @@ export function createBot(options: BotOptions): BotApp {
     s.awaitingAnswer = undefined;
   };
 
-  // ctx.t follows ctx.session.lang, so a language change applies at once.
+  // the flavors of BotContext come to life here, see types.ts.
+  // !!! the first middleware: the access check and bot.catch use them too
+
+  // TextsFlavor: ctx.t follows ctx.session.lang, so a language change applies at once.
   // strangers and errors before the session get the default language
   bot.use((ctx, next) => {
     Object.defineProperty(ctx, "t", {
       get: () => locales.get(sessionLang(ctx)),
       configurable: true,
     });
+    return next();
+  });
+
+  // UiFlavor: one per update
+  bot.use((ctx, next) => {
     Object.defineProperty(ctx, "ui", {
       value: new ContextUi(ctx, (id) => answers.has(id)),
       configurable: true,

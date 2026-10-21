@@ -54,5 +54,7 @@ export type {
   MediaOptions,
   MediaSource,
   SessionData,
+  TextsFlavor,
   Ui,
+  UiFlavor,
 } from "./types.js";

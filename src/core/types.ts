@@ -96,13 +96,23 @@ export interface Ui {
   video(file: MediaSource, options?: FileOptions): Promise<void>;
 }
 
+// context flavors of grammY: each one describes what its middleware puts on ctx,
+// BotContext is all of them together. installed in createBot, strictly before any handler
+
+/** ctx.t: texts in the user's language, see src/core/texts */
+export interface TextsFlavor {
+  readonly t: Texts;
+}
+
+/** ctx.ui: replies to the user, see Ui */
+export interface UiFlavor {
+  readonly ui: Ui;
+}
+
 export type BotContext = Context &
-  SessionFlavor<SessionData> & {
-    /** texts in the user's language, see src/core/texts */
-    readonly t: Texts;
-    /** replies to the user, see Ui */
-    readonly ui: Ui;
-  };
+  SessionFlavor<SessionData> &
+  TextsFlavor &
+  UiFlavor;
 
 export class BotLogger {
   infoLogger: Logger;
