@@ -1,9 +1,18 @@
-import { Bot, session, type BotConfig, type Middleware } from "grammy";
+import {
+  Bot,
+  Composer,
+  session,
+  type BotConfig,
+  type CommandMiddleware,
+  type Middleware,
+} from "grammy";
 import { FileAdapter } from "@grammyjs/storage-file";
 import { HttpsProxyAgent } from "https-proxy-agent";
-import { DialogEngine } from "./dialog/DialogEngine.js";
+import { ContextUi } from "./dialog/Ui.js";
+import { MainMenu, type MainMenuLayout } from "./dialog/mainMenu.js";
+import { Commands, type CommandDescription } from "./controller/commands.js";
 import { Locales } from "./texts/locales.js";
-import type { TextsOverrides } from "./texts/schema.js";
+import type { CustomTextsOption, TextsOverrides } from "./texts/schema.js";
 import {
   BotLogger,
   DialogStep,
@@ -11,7 +20,8 @@ import {
   type SessionData,
 } from "./types.js";
 
-export interface BotOptions {
+/** everything but your own texts: configFromEnv() fills it from .env */
+export interface BotSettings {
   token: string;
   /** telegram ids allowed to use the bot */
   admins: number[];
@@ -27,27 +37,52 @@ export interface BotOptions {
   defaultLang?: string | undefined;
   /** strictly the texts that differ from the built-in ru/en, or a new language */
   texts?: TextsOverrides | undefined;
+  /** rows of the main menu, see MainMenuLayout. the languages, then the buttons of the features by default */
+  mainMenu?: MainMenuLayout | undefined;
 }
+
+/** customTexts: your texts in the default language, see src/app/texts/index.ts */
+export type BotOptions = BotSettings & CustomTextsOption;
+
+/** handles the reply to ctx.ui.ask(): the whole text of the next message */
+export type AnswerHandler = (ctx: BotContext, text: string) => unknown;
 
 /** shared services every feature gets from app.use() */
 export interface BotKit {
   readonly bot: Bot<BotContext>;
   readonly options: Readonly<BotOptions>;
-  readonly dialog: DialogEngine;
   readonly locales: Locales;
   readonly logger: BotLogger;
   /** here features can put their initial session values at install time */
   readonly sessionDefaults: Partial<SessionData>;
+  /** the commands of a feature go here too: /help and the hints of telegram are built from it */
+  readonly commands: Commands;
+  /** the buttons of the features, placed by the mainMenu option */
+  readonly mainMenu: MainMenu;
   resetSession(ctx: BotContext): void;
+  /** drops the steps, the question and the menu message. the language and the folder stay */
+  resetDialog(ctx: BotContext): void;
 }
 
 export type Feature = (kit: BotKit) => Middleware<BotContext>;
 
 export interface BotApp {
-  /** grammY bot itself: here you can register your own commands and middleware */
+  /** grammY bot itself: your own middleware and handlers, commands go to app.command() */
   readonly bot: Bot<BotContext>;
   use(feature: Feature): BotApp;
-  /** starts long polling, resolves when the bot stops */
+  /**
+   * a command shown in /help and in the hints of telegram, in the user's language.
+   * undefined description: the command works, but isn't shown
+   * ---  app.command("status", (t) => t.status.command, (ctx) => ctx.ui.text(ctx.t.status.ok))
+   */
+  command(
+    name: string,
+    description: CommandDescription | undefined,
+    handler: CommandMiddleware<BotContext>,
+  ): BotApp;
+  /** handles the replies to ctx.ui.ask(text, id) */
+  onAnswer(id: string, handler: AnswerHandler): BotApp;
+  /** sends the commands to telegram and starts long polling, resolves when the bot stops */
   start(): Promise<void>;
 }
 
@@ -59,9 +94,12 @@ export function createBot(options: BotOptions): BotApp {
   const locales = new Locales({
     fallback: defaultLang,
     overrides: options.texts,
+    custom: options.customTexts,
     warn: (message) => logger.warn(message),
   });
-  const dialog = new DialogEngine(locales, options.websiteName);
+  const commands = new Commands();
+  const mainMenu = new MainMenu(locales, options.websiteName, options.mainMenu);
+  const answers = new Map<string, AnswerHandler>();
   const bot = new Bot<BotContext>(
     options.token,
     buildBotProxyConfig(options.proxyUrl),
@@ -84,11 +122,24 @@ export function createBot(options: BotOptions): BotApp {
     Object.assign(ctx.session, initialSession());
   };
 
+  const resetDialog = (ctx: BotContext) => {
+    const s = ctx.session;
+    s.dialogStep = DialogStep.Idle;
+    s.lastMenuMessageId = 0;
+    s.chosenPath = "";
+    s.textFile = undefined;
+    s.awaitingAnswer = undefined;
+  };
+
   // ctx.t follows ctx.session.lang, so a language change applies at once.
   // strangers and errors before the session get the default language
   bot.use((ctx, next) => {
     Object.defineProperty(ctx, "t", {
       get: () => locales.get(sessionLang(ctx)),
+      configurable: true,
+    });
+    Object.defineProperty(ctx, "ui", {
+      value: new ContextUi(ctx, (id) => answers.has(id)),
       configurable: true,
     });
     return next();
@@ -126,7 +177,7 @@ export function createBot(options: BotOptions): BotApp {
 
     // the user, not the chat: it's the person who is checked
     if (!options.admins.includes(userId)) {
-      if (ctx.chat) await dialog.text(ctx, ctx.t.errors.accessDenied);
+      if (ctx.chat) await ctx.ui.text(ctx.t.errors.accessDenied);
       logger.error("Log in attempt failed" + logger.getDetails(ctx));
       return;
     }
@@ -155,18 +206,71 @@ export function createBot(options: BotOptions): BotApp {
     // so the user is notified strictly on a best-effort basis
     try {
       resetSession(err.ctx);
-      await dialog.text(err.ctx, err.ctx.t.errors.unexpected);
+      await err.ctx.ui.text(err.ctx.t.errors.unexpected);
     } catch {}
   });
+
+  // the reply to ctx.ui.ask(). a command or a button press means
+  // the user went elsewhere: the question is dropped
+  bot.use(async (ctx, next) => {
+    const answer = ctx.session.awaitingAnswer;
+    if (answer === undefined) return next();
+
+    const text = ctx.message?.text;
+    const isCommand = ctx.message?.entities?.some(
+      (e) => e.type === "bot_command" && e.offset === 0,
+    );
+    if (ctx.callbackQuery || isCommand) {
+      ctx.session.awaitingAnswer = undefined;
+      return next();
+    }
+    // a file or a sticker: still waiting for the text
+    if (text === undefined) return next();
+
+    // dropped before the handler: it may ask again
+    ctx.session.awaitingAnswer = undefined;
+    const handler = answers.get(answer);
+    // a session from a version that had this question
+    if (!handler) return next();
+    await handler(ctx, text);
+  });
+
+  bot.command("start", async (ctx) => {
+    resetDialog(ctx);
+    await mainMenu.show(ctx);
+  });
+  commands.add("start", (t) => t.commands.start);
+
+  bot.command("help", (ctx) => ctx.ui.text(commands.help(ctx.t)));
+  commands.add("help", (t) => t.commands.help);
+
+  bot.callbackQuery(/^lang=(.+)$/, async (ctx) => {
+    const lang = ctx.match[1]!;
+    // an old button of a language removed from the texts
+    if (!locales.has(lang)) {
+      logger.error("Unknown language: " + lang + logger.getDetails(ctx));
+      return;
+    }
+    await ctx.answerCallbackQuery();
+    ctx.session.lang = lang;
+    await mainMenu.show(ctx);
+  });
+
+  // the commands of app.command(): before the features,
+  // so a catch-all handler of a feature never takes them
+  const own = new Composer<BotContext>();
+  bot.use(own);
 
   const kit: BotKit = {
     bot,
     options,
-    dialog,
     locales,
     logger,
     sessionDefaults,
+    commands,
+    mainMenu,
     resetSession,
+    resetDialog,
   };
 
   const app: BotApp = {
@@ -175,11 +279,25 @@ export function createBot(options: BotOptions): BotApp {
       bot.use(feature(kit));
       return app;
     },
-    start() {
+    command(name, description, handler) {
+      commands.add(name, description);
+      own.command(name, handler);
+      return app;
+    },
+    onAnswer(id, handler) {
+      if (answers.has(id)) throw new Error(`Answer "${id}" is added twice`);
+      answers.set(id, handler);
+      return app;
+    },
+    async start() {
+      mainMenu.check();
+      await commands.publish(bot.api, locales, defaultLang, (message) =>
+        logger.warn(message),
+      );
       // lets `docker stop` shut the bot down gracefully instead of killing it
       process.once("SIGINT", () => bot.stop());
       process.once("SIGTERM", () => bot.stop());
-      return bot.start();
+      await bot.start();
     },
   };
 

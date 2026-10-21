@@ -16,6 +16,9 @@ export interface LocalesOptions {
   /** the language of missing texts. it must be one of the languages */
   fallback: string;
   overrides?: TextsOverrides | undefined;
+  /** the texts of app/ in the fallback language: their keys and placeholders are the reference.
+   * any value: the type of CustomTexts can't promise a tree, so it is checked here */
+  custom?: unknown;
   warn: (message: string) => void;
 }
 
@@ -38,13 +41,16 @@ export class Locales {
       );
     }
 
-    // the built-in text, then its override
+    const custom = checkCustom(options.custom ?? {});
+
+    // the built-in text, the own one, then its override
     const sources = (lang: string) => [
       BUILT_IN[lang],
+      lang === this.fallback ? custom : undefined,
       overrides[lang] as Tree | undefined,
     ];
-    // !!! strictly the built-in one: an override can't break the shape
-    const shape = BUILT_IN[REFERENCE]!;
+    // !!! strictly the built-in and the own texts: an override can't break the shape
+    const shape: Tree = { ...BUILT_IN[REFERENCE]!, ...custom };
 
     for (const lang of this.languages) {
       // every text is taken from the last tree that has a valid one,
@@ -153,7 +159,7 @@ function compileTree(
 }
 
 // how many trees at the end of the chain belong to the language itself
-const OWN_SOURCES = 2;
+const OWN_SOURCES = 3;
 
 // the last valid value of the chain. strictly the language's own values are reported:
 // the fallback ones are reported when their own language is compiled
@@ -179,6 +185,31 @@ function pick<T>(
 function fits(template: string, allowed: Set<string>): boolean {
   for (const p of placeholdersOf(template)) if (!allowed.has(p)) return false;
   return true;
+}
+
+// the own texts are the reference for their keys, so they must be valid.
+// !!! a mistake here is in the code, not in a translation: the bot doesn't start
+function checkCustom(custom: unknown): Tree {
+  if (!isObject(custom)) throw new Error("Custom texts must be an object");
+  for (const key of Object.keys(custom)) {
+    if (key in BUILT_IN[REFERENCE]!) {
+      throw new Error(
+        `Custom texts: "${key}" is a built-in section, choose another name`,
+      );
+    }
+  }
+  const walk = (tree: Tree, path: string) => {
+    for (const [key, value] of Object.entries(tree)) {
+      const here = path ? path + "." + key : key;
+      if (typeof value === "string") continue;
+      if (!isObject(value)) {
+        throw new Error(`Custom texts: ${here} must be a string or a section`);
+      }
+      walk(value, here);
+    }
+  };
+  walk(custom, "");
+  return custom;
 }
 
 function findUnknown(shape: Tree, tree: Tree, path: string, out: string[]) {

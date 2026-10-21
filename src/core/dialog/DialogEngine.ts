@@ -1,89 +1,29 @@
-import type { BotContext, NavigationInstance } from "../types.js";
+import type { BotContext, Button, NavigationInstance } from "../types.js";
 import type { DrawnTree } from "../domain/tree.js";
-import type { Locales } from "../texts/locales.js";
 import { list } from "../texts/format.js";
 import { escapeHtml } from "./html.js";
 import { splitPages } from "./pages.js";
-import { MessageFactory } from "./messages/MessageFactory.js";
+import { chunk, lines } from "./compose.js";
 import { GrammyError } from "grammy";
-import {
-  ReplyResolver,
-  type MenuButton,
-  type SendAs,
-} from "./ReplyResolver.js";
+
+// how a file is sent: a document, or with the player of telegram
+export type SendAs = "document" | "audio" | "video";
 
 // telegram limits a message strictly to 4096 characters (counted without HTML tags),
 // the rest of the limit is left for the file name and the page number
 const MAX_FILE_PAGE = 3500;
-// telegram accepts strictly 2-10 items in one album
-const MAX_ALBUM_SIZE = 10;
 // a longer tree is sent as a file instead of a message (4096 limit)
 const MAX_TREE_MESSAGE = 3800;
 
 type Kind = "file" | "folder";
 const kindOf = (isFile: boolean): Kind => (isFile ? "file" : "folder");
 
+// the screens of the file manager, sent through ctx.ui.
 // texts come from ctx.t: parameters are escaped there,
 // strictly the HTML built here (file contents, trees) is escaped by hand
 export class DialogEngine {
-  private factory: MessageFactory = new MessageFactory();
-  private resolver: ReplyResolver = new ReplyResolver("HTML");
-
-  constructor(
-    private locales: Locales,
-    private websiteName: string,
-  ) {}
-
-  hasLanguage(lang: string): boolean {
-    return this.locales.has(lang);
-  }
-
-  // a new message
-  async text(ctx: BotContext, text: string, rows: MenuButton[][] = []) {
-    await this.resolver.reply(ctx, this.factory.text(text, rows));
-  }
-
-  // replaces the message whose button was pressed
-  async edit(ctx: BotContext, text: string, rows: MenuButton[][] = []) {
-    await this.resolver.reply(ctx, this.factory.edit(text, rows));
-  }
-
-  // the menu message: edited in place, see ReplyResolver
-  async menu(ctx: BotContext, text: string, rows: MenuButton[][] = []) {
-    await this.resolver.reply(ctx, this.factory.menu(text, rows));
-  }
-
-  async sendMainMenu(ctx: BotContext) {
-    const t = ctx.t;
-    const current = ctx.session.lang;
-    // the current language goes first
-    const languages = [...this.locales.languages].sort(
-      (a, b) => Number(b === current) - Number(a === current),
-    );
-    const languageButtons = languages.map((lang) => ({
-      text: this.locales.get(lang).meta.name,
-      call: "lang=" + lang,
-    }));
-
-    await this.menu(
-      ctx,
-      t.common.greet({
-        name: ctx.chat?.first_name ?? t.common.anonName,
-        site: this.websiteName,
-      }),
-      [
-        ...chunk(languageButtons, 2),
-        [{ text: t.buttons.navigation, call: "navDir:root" }],
-      ],
-    );
-  }
-
   async sendImg(image: Buffer, ctx: BotContext, caption?: string) {
-    const reply = this.factory.photo(
-      image,
-      caption && escapeHtml(caption),
-    );
-    await this.resolver.reply(ctx, reply);
+    await ctx.ui.photo(image, { caption: caption && escapeHtml(caption) });
   }
 
   async sendFile(
@@ -93,29 +33,21 @@ export class DialogEngine {
     as: SendAs = "document",
   ) {
     try {
-      await this.resolver.reply(ctx, this.factory.file(as, file, name));
+      await ctx.ui[as](file, { name });
     } catch (error) {
       // telegram may refuse to play it (a broken file, an odd codec):
       // then it goes as a document, which telegram always accepts
       if (as === "document" || !(error instanceof GrammyError)) throw error;
-      await this.resolver.reply(ctx, this.factory.document(file, name));
+      await ctx.ui.document(file, { name });
     }
   }
 
   async sendImgs(images: Buffer[], ctx: BotContext) {
     if (images.length === 0) {
-      await this.text(ctx, ctx.t.files.noImages);
+      await ctx.ui.text(ctx.t.files.noImages);
       return;
     }
-
-    for (let i = 0; i < images.length; i += MAX_ALBUM_SIZE) {
-      const chunk = images.slice(i, i + MAX_ALBUM_SIZE);
-      const reply =
-        chunk.length === 1
-          ? this.factory.photo(chunk[0]!)
-          : this.factory.mediaGroup(chunk);
-      await this.resolver.reply(ctx, reply);
-    }
+    await ctx.ui.album(images);
   }
 
   // a long file is shown page by page: ◀️ ▶️ edit the same message
@@ -135,7 +67,7 @@ export class DialogEngine {
     );
 
     const b = ctx.t.buttons;
-    const turn: MenuButton[] = [];
+    const turn: Button[] = [];
     if (page > 1) {
       turn.push({ text: b.prevPage, call: `filePage:${file.ref}:${page - 1}` });
     }
@@ -143,8 +75,8 @@ export class DialogEngine {
       turn.push({ text: b.nextPage, call: `filePage:${file.ref}:${page + 1}` });
     }
 
-    if (file.edit) await this.edit(ctx, text, [turn]);
-    else await this.text(ctx, text, [turn]);
+    if (file.edit) await ctx.ui.edit(text, [turn]);
+    else await ctx.ui.text(text, [turn]);
   }
 
   async sendTree(
@@ -154,7 +86,7 @@ export class DialogEngine {
   ) {
     const t = ctx.t.tree;
     if (tree.dirs + tree.files === 0) {
-      await this.text(ctx, ctx.t.nav.empty);
+      await ctx.ui.text(ctx.t.nav.empty);
       return;
     }
 
@@ -164,17 +96,14 @@ export class DialogEngine {
       limits.truncated && t.truncated({ limit: limits.objects }),
     );
 
-    const reply =
-      tree.text.length <= MAX_TREE_MESSAGE
-        ? this.factory.text(
-            lines("<pre>" + escapeHtml(tree.text) + "</pre>", notes),
-          )
-        : this.factory.document(
-            Buffer.from(tree.text, "utf-8"),
-            "tree.txt",
-            lines(t.asFile, notes),
-          );
-    await this.resolver.reply(ctx, reply);
+    if (tree.text.length <= MAX_TREE_MESSAGE) {
+      await ctx.ui.text(lines("<pre>" + escapeHtml(tree.text) + "</pre>", notes));
+    } else {
+      await ctx.ui.document(Buffer.from(tree.text, "utf-8"), {
+        name: "tree.txt",
+        caption: lines(t.asFile, notes),
+      });
+    }
   }
 
   leafInPath(path: string) {
@@ -188,25 +117,12 @@ export class DialogEngine {
     }
   }
 
-  // the list of commands is built from the texts of the commands
-  async sendHelp(ctx: BotContext) {
-    const t = ctx.t;
-    const commands = Object.entries(t.commands).map(
-      ([name, description]) => `/${name} ${escapeHtml(description)}`,
-    );
-    await this.text(
-      ctx,
-      lines(t.help.upload, "", t.help.commandsTitle, ...commands),
-    );
-  }
-
   async sendAlbumResult(
     ctx: BotContext,
     result: { uploaded: string[]; failed: string[]; extraNames: string[] },
   ) {
     const t = ctx.t.album;
-    await this.text(
-      ctx,
+    await ctx.ui.text(
       lines(
         t.uploaded({ count: result.uploaded.length }),
         ...result.uploaded.map(escapeHtml),
@@ -220,7 +136,7 @@ export class DialogEngine {
   async sendActionsMenu(isFile: boolean, ref: string, ctx: BotContext) {
     const b = ctx.t.buttons;
     const type = isFile ? "File" : "Dir";
-    await this.menu(ctx, ctx.t.nav.chooseAction, [
+    await ctx.ui.menu(ctx.t.nav.chooseAction, [
       [
         { text: b.open, call: (isFile ? "openFile:" : "navDir:") + ref },
         { text: b.delete, call: `delete${type}Ask:${ref}` },
@@ -234,23 +150,12 @@ export class DialogEngine {
 
   async sendAsksMenu(isFile: boolean, ref: string, ctx: BotContext) {
     const b = ctx.t.buttons;
-    await this.menu(ctx, ctx.t.files.deleteAsk[kindOf(isFile)], [
+    await ctx.ui.menu(ctx.t.files.deleteAsk[kindOf(isFile)], [
       [
         { text: b.yes, call: `delete${isFile ? "File" : "Dir"}:${ref}` },
         { text: b.no, call: "cancel" },
       ],
     ]);
-  }
-
-  async sendDeletedSuccessfully(
-    ctx: BotContext,
-    isFile: boolean,
-    path: string,
-  ) {
-    await this.text(
-      ctx,
-      ctx.t.files.deleted[kindOf(isFile)]({ name: this.leafInPath(path) }),
-    );
   }
 
   async sendNavigationMenu(content: NavigationInstance[], ctx: BotContext) {
@@ -268,33 +173,18 @@ export class DialogEngine {
             .map((c) => `${c.type.symbol} ${c.index}) ${c.msgText}`)
             .join("\n");
 
-    await this.menu(ctx, text, chunk(buttons, 2));
-  }
-
-  async answerMenuOutdated(ctx: BotContext) {
-    await ctx.answerCallbackQuery({ text: ctx.t.nav.outdated });
-  }
-
-  async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
-    await this.text(
-      ctx,
-      ctx.t.files.deleteFailed[kindOf(isFile)]({ name: path }),
-    );
-  }
-
-  async sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext) {
-    await this.text(ctx, ctx.t.files.nameExists[kindOf(isFile)]);
+    await ctx.ui.menu(text, chunk(buttons, 2));
   }
 
   async sendAwaitingFile(ctx: BotContext) {
-    await this.text(ctx, ctx.t.files.awaitingFile, [
+    await ctx.ui.text(ctx.t.files.awaitingFile, [
       [{ text: ctx.t.buttons.createFile, call: "createTextFile" }],
     ]);
   }
 
   // the steps of "Create file" replace the message with the pressed button
   async askTextFileType(ctx: BotContext, extensions: string[]) {
-    await this.edit(ctx, ctx.t.files.chooseExtension, [
+    await ctx.ui.edit(ctx.t.files.chooseExtension, [
       extensions.map((ext) => ({
         text: ext,
         call: "createTextFile:" + ext.slice(1),
@@ -305,7 +195,7 @@ export class DialogEngine {
 
   async askTextFileName(ctx: BotContext, extension: string) {
     const b = ctx.t.buttons;
-    await this.edit(ctx, ctx.t.files.askFileName({ extension }), [
+    await ctx.ui.edit(ctx.t.files.askFileName({ extension }), [
       [{ text: b.skip, call: "skipTextFileName" }],
       [{ text: b.back, call: "cancel" }],
     ]);
@@ -314,13 +204,13 @@ export class DialogEngine {
   async askTextFileContent(ctx: BotContext, extension: string, edit: boolean) {
     const text = ctx.t.files.askContent({ extension });
     const rows = [[{ text: ctx.t.buttons.back, call: "cancel" }]];
-    if (edit) await this.edit(ctx, text, rows);
-    else await this.text(ctx, text, rows);
+    if (edit) await ctx.ui.edit(text, rows);
+    else await ctx.ui.text(text, rows);
   }
 
   async addAskType(ctx: BotContext) {
     const b = ctx.t.buttons;
-    await this.menu(ctx, ctx.t.nav.addAskType, [
+    await ctx.ui.menu(ctx.t.nav.addAskType, [
       [
         { text: b.file, call: "newFile" },
         { text: b.folder, call: "newDirectory" },
@@ -329,7 +219,7 @@ export class DialogEngine {
   }
 
   async askNewName(ctx: BotContext) {
-    await this.menu(ctx, ctx.t.files.askNewName, [
+    await ctx.ui.menu(ctx.t.files.askNewName, [
       [{ text: ctx.t.buttons.back, call: "cancel" }],
     ]);
   }
@@ -352,19 +242,4 @@ export class DialogEngine {
       .slice(0, 200);
     return res.endsWith("/") ? res.slice(0, -1) : res;
   }
-}
-
-// the parts of a message line by line, false and undefined are skipped
-function lines(...parts: (string | false | undefined)[]): string {
-  return parts
-    .filter((part): part is string => typeof part === "string")
-    .join("\n");
-}
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    rows.push(items.slice(i, i + size));
-  }
-  return rows;
 }

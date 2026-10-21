@@ -7,14 +7,6 @@ export class ButtonHandler {
     private composer: Composer<BotContext>,
     model: IBotModel,
   ) {
-    this.composer.callbackQuery(/^lang=(.+)$/, async (ctx) => {
-      if (await model.changeLang(ctx, ctx.match[1]!)) {
-        await model.mainMenu(ctx, false);
-      } else {
-        await model.errorCallback(ctx.match[0], ctx);
-      }
-    });
-
     // navDir:.. | navDir:root | navDir:<ref>
     this.composer.callbackQuery(/^navDir:(.+)$/, async (ctx) => {
       const target = ctx.match[1]!;
@@ -35,31 +27,13 @@ export class ButtonHandler {
       await model.navMenu(ctx);
     });
 
-    this.composer.callbackQuery(/^delete(File|Dir):(.+)$/, async (ctx) => {
-      if (ctx.match[1]) {
-        const type = ctx.match[1];
-        const isFile = type === "File";
-        const path = model.resolvePath(ctx, ctx.match[2]!);
-        if (!path) return await model.menuOutdated(ctx);
-
-        if (type === "File") {
-          const result = await model.deleteFile(ctx, path);
-
-          result
-            ? await model.sendDeletedSuccessfully(ctx, isFile, path)
-            : await model.sendDeletionError(isFile, path, ctx);
-        } else if (type === "Dir") {
-          const result = await model.removeDirectory(ctx, path);
-
-          result
-            ? await model.sendDeletedSuccessfully(ctx, isFile, path)
-            : await model.sendDeletionError(isFile, path, ctx);
-        }
-        await ctx.answerCallbackQuery();
-        await model.navMenu(ctx);
-      } else {
-        await model.errorCallback(ctx.match[0], ctx);
-      }
+    // a file or a folder: the path itself tells, a folder ends with "/"
+    this.composer.callbackQuery(/^delete(?:File|Dir):(.+)$/, async (ctx) => {
+      const path = model.resolvePath(ctx, ctx.match[1]!);
+      if (!path) return await model.menuOutdated(ctx);
+      await model.delete(ctx, path);
+      await ctx.answerCallbackQuery();
+      await model.navMenu(ctx);
     });
 
     this.composer.callbackQuery(/^delete(?:File|Dir)Ask:(.+)$/, async (ctx) => {
@@ -88,7 +62,7 @@ export class ButtonHandler {
         } else {
           ctx.session.dialogStep = DialogStep.AwaitingDirectoryName;
           await ctx.answerCallbackQuery();
-          await model.sendAwaitingDirectoryName(ctx);
+          await ctx.ui.text(ctx.t.files.awaitingFolderName);
         }
       } else {
         await model.errorCallback(ctx.match[0], ctx);

@@ -3,11 +3,23 @@
 
 export {
   createBot,
+  type AnswerHandler,
   type BotApp,
   type BotKit,
   type BotOptions,
+  type BotSettings,
   type Feature,
 } from "./createBot.js";
+export type {
+  Commands,
+  CommandDescription,
+  HelpSection,
+} from "./controller/commands.js";
+export type {
+  MainMenu,
+  MainMenuEntry,
+  MainMenuLayout,
+} from "./dialog/mainMenu.js";
 export {
   fileManager,
   type FileManagerOptions,
@@ -25,10 +37,22 @@ export {
   type StorageChange,
 } from "./features/cacheInvalidation.js";
 export { raw, list, type Raw, type Param } from "./texts/format.js";
-export type {
-  Texts,
-  TextsOverrides,
-  LocaleSource,
-  PluralSource,
+export {
+  defineTexts,
+  type CustomTexts,
+  type Texts,
+  type TextsOverrides,
+  type TextTree,
+  type LocaleSource,
+  type PluralSource,
 } from "./texts/schema.js";
-export type { BotContext, SessionData } from "./types.js";
+export type {
+  BotContext,
+  Button,
+  Buttons,
+  FileOptions,
+  MediaOptions,
+  MediaSource,
+  SessionData,
+  Ui,
+} from "./types.js";

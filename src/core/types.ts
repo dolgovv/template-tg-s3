@@ -1,5 +1,5 @@
 import Logger, { FileTransport } from "zario";
-import type { Context, SessionFlavor } from "grammy";
+import type { Context, InputFile, SessionFlavor } from "grammy";
 import type { Texts } from "./texts/schema.js";
 
 export enum DialogStep {
@@ -50,12 +50,58 @@ export type SessionData = {
   lastMenuMessageId: number;
   // short button refs -> full S3 paths of the current menu (see pathRefs.ts)
   pathRefs: Record<string, string>;
+  // the id of the question of ctx.ui.ask: the next text goes to its handler
+  awaitingAnswer?: string | undefined;
 };
+
+/** a button under a message: `call` comes to bot.callbackQuery(), `url` opens a link */
+export type Button = { text: string; call: string } | { text: string; url: string };
+/** one array is one row of buttons */
+export type Buttons = Button[][];
+
+/** a photo or a file: its content, an InputFile of grammY, a file_id or a URL */
+export type MediaSource = Buffer | InputFile | string;
+
+export interface MediaOptions {
+  /** HTML, just like the texts */
+  caption?: string | undefined;
+  buttons?: Buttons | undefined;
+}
+
+export interface FileOptions extends MediaOptions {
+  /** the name telegram shows, for a Buffer */
+  name?: string | undefined;
+}
+
+/**
+ * replies to the user. every text is HTML: take it from ctx.t,
+ * where the {parameters} are escaped, see docs/adding-commands.md
+ */
+export interface Ui {
+  /** a new message */
+  text(text: string, buttons?: Buttons): Promise<void>;
+  /** the menu message: edited in place, a new one if it's gone */
+  menu(text: string, buttons?: Buttons): Promise<void>;
+  /** replaces the message whose button was pressed */
+  edit(text: string, buttons?: Buttons): Promise<void>;
+  /** a question: the next text of the user goes to app.onAnswer(answer, ...).
+   * a command or a button press drops it */
+  ask(text: string, answer: string, buttons?: Buttons): Promise<void>;
+  photo(photo: MediaSource, options?: MediaOptions): Promise<void>;
+  /** photos in albums of 10, the caption goes under the first one. nothing for [] */
+  album(photos: MediaSource[], options?: { caption?: string | undefined }): Promise<void>;
+  document(file: MediaSource, options?: FileOptions): Promise<void>;
+  /** with the player of telegram */
+  audio(file: MediaSource, options?: FileOptions): Promise<void>;
+  video(file: MediaSource, options?: FileOptions): Promise<void>;
+}
 
 export type BotContext = Context &
   SessionFlavor<SessionData> & {
     /** texts in the user's language, see src/core/texts */
     readonly t: Texts;
+    /** replies to the user, see Ui */
+    readonly ui: Ui;
   };
 
 export class BotLogger {

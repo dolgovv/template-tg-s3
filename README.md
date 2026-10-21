@@ -21,7 +21,7 @@
 
 **🌍 Мультиязычность:**
 
-Поддерживаются `ru` и `en` из коробки. Тексты — данные с параметрами (`"Файл {name} удалён"`): параметры экранируются сами, числа склоняются по правилам языка. Изменить текст или добавить язык — несколько строк в `src/app/texts/index.ts`, ядро при этом не правится
+Поддерживаются `ru` и `en` из коробки. Тексты — данные с параметрами (`"Файл {name} удалён"`): параметры экранируются сами, числа склоняются по правилам языка. Изменить текст, добавить свой текст или язык — несколько строк в `src/app/texts/index.ts`, ядро при этом не правится
 
 **🌐 Прокси из коробки:**
 
@@ -220,9 +220,10 @@ src/
 ```ts
 const config = configFromEnv(); // всё из .env
 
-const app = createBot({ ...config.bot, defaultLang: "ru" }); // любой параметр можно переопределить
+const app = createBot({ ...config.bot, defaultLang: "ru", texts, customTexts }); // любой параметр можно переопределить
 
-app.bot.command("ping", (ctx) => ctx.reply("pong")); // свои команды — до fileManager
+// своя команда: попадёт в /help и в подсказки Telegram, текст — из src/app/texts
+app.command("status", (t) => t.status.command, (ctx) => ctx.ui.text(ctx.t.status.ok));
 
 app.use(fileManager({ storage: s3Storage(config.s3), ...config.fileManager }));
 
@@ -253,6 +254,7 @@ git fetch upstream && git merge upstream/master
 | Токен бота, прокси, S3     | `.env`                            | [Настройка .env](docs/env-configuration.md)            |
 | Сброс кэша сайта           | `.env`: `CACHE_INVALIDATE_URL`    | [Сброс кэша сайта](docs/env-configuration.md#сброс-кэша-сайта) |
 | Тексты и переводы          | `src/app/texts/index.ts`          | [Тексты и языки](docs/adding-languages.md)             |
-| Inline-кнопки              | `src/core/texts/`, код модели     | [Добавление кнопок](docs/adding-inline-buttons.md)     |
+| Inline-кнопки              | `src/app/`                        | [Добавление кнопок](docs/adding-inline-buttons.md)     |
+| Главное меню               | `src/app/main.ts`: `mainMenu`     | [Главное меню](docs/adding-inline-buttons.md#главное-меню) |
 
 ---

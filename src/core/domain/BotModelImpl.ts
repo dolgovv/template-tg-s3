@@ -1,7 +1,6 @@
 import { nanoid } from "nanoid";
 import { BotRepository } from "../datasource/S3Repository.js";
-import type { DialogEngine } from "../dialog/DialogEngine.js";
-import type { SendAs } from "../dialog/ReplyResolver.js";
+import type { DialogEngine, SendAs } from "../dialog/DialogEngine.js";
 import { escapeHtml } from "../dialog/html.js";
 import {
   BotLogger,
@@ -43,16 +42,11 @@ export class BotModelImpl implements IBotModel {
     private albums: AlbumCollector,
     // every write to the storage is recorded here, see fileManager
     private changes: ChangeLog,
+    // see BotKit.resetDialog
+    private resetDialog: (ctx: BotContext) => void,
   ) {}
 
   // MENUS ================================================
-
-  async mainMenu(ctx: BotContext, shouldReset: boolean = true) {
-    if (ctx.chat) {
-      if (shouldReset) this.sessionReset(ctx);
-      await this.dialog.sendMainMenu(ctx);
-    }
-  }
 
   async navMenu(ctx: BotContext): Promise<void> {
     if (!ctx.chat) return;
@@ -141,7 +135,7 @@ export class BotModelImpl implements IBotModel {
   }
 
   async menuOutdated(ctx: BotContext) {
-    await this.dialog.answerMenuOutdated(ctx);
+    await ctx.answerCallbackQuery({ text: ctx.t.nav.outdated });
     await this.navMenu(ctx);
   }
 
@@ -149,26 +143,15 @@ export class BotModelImpl implements IBotModel {
 
   // REPLIES ==============================================
 
-  async sendHelp(ctx: BotContext) {
-    if (ctx.chat) {
-      await this.dialog.sendHelp(ctx);
-    }
-  }
-
   async sendError(message: string, ctx: BotContext, text?: string) {
     this.logger.error(message + this.logger.getDetails(ctx));
-    await this.dialog.text(ctx, text ?? ctx.t.errors.unexpected);
+    await ctx.ui.text(text ?? ctx.t.errors.unexpected);
   }
 
   async errorCallback(callback: string, ctx: BotContext) {
     this.logger.error(
       "Callback error '" + callback + "'" + this.logger.getDetails(ctx),
     );
-  }
-
-  async sendDeletionError(isFile: boolean, path: string, ctx: BotContext) {
-    this.logger.error("Deletion error: " + path + this.logger.getDetails(ctx));
-    await this.dialog.sendDeletionError(isFile, path, ctx);
   }
 
   async askForDocumentType(ctx: BotContext) {
@@ -180,19 +163,6 @@ export class BotModelImpl implements IBotModel {
     ctx.session.chosenPath = path ? path : "";
     ctx.session.dialogStep = DialogStep.AwaitingNewName;
     await this.dialog.askNewName(ctx);
-  }
-
-  async sendDeletedSuccessfully(
-    ctx: BotContext,
-    isFile: boolean,
-    path: string,
-  ) {
-    this.logger.info(
-      (isFile ? "File " : "Folder") +
-        " was deleted" +
-        this.logger.getDetails(ctx),
-    );
-    await this.dialog.sendDeletedSuccessfully(ctx, isFile, path);
   }
 
   // ======================================================
@@ -265,18 +235,8 @@ export class BotModelImpl implements IBotModel {
     return path && this.isWithinRoot(path) ? path : undefined;
   }
 
-  async changeLang(ctx: BotContext, newLang: string): Promise<boolean> {
-    if (!this.dialog.hasLanguage(newLang)) return false;
-    await ctx.answerCallbackQuery();
-    ctx.session.lang = newLang;
-    return true;
-  }
-
   sessionReset(ctx: BotContext): void {
-    ctx.session.dialogStep = DialogStep.Idle;
-    ctx.session.lastMenuMessageId = 0;
-    ctx.session.chosenPath = "";
-    ctx.session.textFile = undefined;
+    this.resetDialog(ctx);
   }
 
   // dir: "..", "root" or a directory path within the root
@@ -327,7 +287,7 @@ export class BotModelImpl implements IBotModel {
   async setTextFileName(ctx: BotContext, raw: string) {
     const name = this.sanitizeName(raw);
     // the step stays: the user just sends another name
-    if (!name) return await this.sendInvalidNameError(ctx);
+    if (!name) return await ctx.ui.text(ctx.t.files.invalidName);
     await this.askTextFileContent(ctx, name);
   }
 
@@ -340,8 +300,7 @@ export class BotModelImpl implements IBotModel {
         JSON.parse(content);
       } catch (err) {
         // the step stays: the user sends the fixed content
-        return await this.dialog.text(
-          ctx,
+        return await ctx.ui.text(
           ctx.t.files.invalidJson({ error: (err as Error).message }),
         );
       }
@@ -356,21 +315,9 @@ export class BotModelImpl implements IBotModel {
     if (!fileName) {
       return await this.sendError("Text file was not stored", ctx);
     }
-    await this.dialog.text(ctx, ctx.t.files.created({ name: fileName }));
+    await ctx.ui.text(ctx.t.files.created({ name: fileName }));
     this.sessionReset(ctx);
     await this.navMenu(ctx);
-  }
-
-  async sendAwaitingDirectoryName(ctx: BotContext) {
-    await this.dialog.text(ctx, ctx.t.files.awaitingFolderName);
-  }
-
-  async sendInvalidNameError(ctx: BotContext) {
-    await this.dialog.text(ctx, ctx.t.files.invalidName);
-  }
-
-  async sendNameAlreadyExistsError(isFile: boolean, ctx: BotContext) {
-    await this.dialog.sendNameAlreadyExistsError(isFile, ctx);
   }
 
   sanitizeName(raw: string): string | null {
@@ -413,14 +360,14 @@ export class BotModelImpl implements IBotModel {
     name?: string,
   ): Promise<boolean> {
     if (name !== undefined && name.trim() !== "" && !this.sanitizeName(name)) {
-      await this.sendInvalidNameError(ctx);
+      await ctx.ui.text(ctx.t.files.invalidName);
       return false;
     }
 
     const fileName = await this.uploadFile(file, ctx, name);
     if (!fileName) return false;
 
-    await this.dialog.text(ctx, ctx.t.files.uploaded({ name: fileName }));
+    await ctx.ui.text(ctx.t.files.uploaded({ name: fileName }));
     this.sessionReset(ctx);
     await this.navMenu(ctx);
     return true;
@@ -528,10 +475,26 @@ export class BotModelImpl implements IBotModel {
     throw new Error("Could not generate a free name in 3 attempts");
   }
 
-  async deleteFile(ctx: BotContext, path: string): Promise<boolean> {
-    if (!this.isWithinRoot(path)) return false;
-    this.changes.add(ctx, { keys: [path] });
-    return await this.repo.deleteFile(path);
+  async delete(ctx: BotContext, path: string) {
+    const isFile = !path.endsWith("/");
+    const kind = isFile ? "file" : "folder";
+    let deleted = false;
+    if (this.isWithinRoot(path)) {
+      this.changes.add(ctx, isFile ? { keys: [path] } : { prefixes: [path] });
+      deleted = isFile
+        ? await this.repo.deleteFile(path)
+        : await this.repo.removeDirectory(path);
+    }
+
+    const details = this.logger.getDetails(ctx);
+    if (deleted) {
+      this.logger.info(`${isFile ? "File" : "Folder"} ${path} was deleted` + details);
+      const name = this.dialog.leafInPath(path);
+      await ctx.ui.text(ctx.t.files.deleted[kind]({ name }));
+    } else {
+      this.logger.error("Deletion error: " + path + details);
+      await ctx.ui.text(ctx.t.files.deleteFailed[kind]({ name: path }));
+    }
   }
 
   async createDirectory(
@@ -547,12 +510,6 @@ export class BotModelImpl implements IBotModel {
     if (!finalName) return "";
     this.changes.add(ctx, { prefixes: [currentDir + finalName + "/"] });
     return await this.repo.createDirectory(currentDir, finalName);
-  }
-
-  async removeDirectory(ctx: BotContext, path: string) {
-    if (!this.isWithinRoot(path)) return false;
-    this.changes.add(ctx, { prefixes: [path] });
-    return await this.repo.removeDirectory(path);
   }
 
   // the way to open a file comes from fileTypes.ts, the navigation menu goes after it
@@ -669,7 +626,7 @@ export class BotModelImpl implements IBotModel {
 
       const alreadyExists = await this.repo.isDirectoryExists(newPath);
       if (alreadyExists) {
-        await this.sendNameAlreadyExistsError(isFile, ctx);
+        await ctx.ui.text(ctx.t.files.nameExists.folder);
         return false;
       }
       this.changes.add(ctx, { prefixes: [oldPath, newPath] });
@@ -685,7 +642,7 @@ export class BotModelImpl implements IBotModel {
 
       const alreadyExists = await this.repo.isFileExists(newKey);
       if (alreadyExists) {
-        await this.sendNameAlreadyExistsError(isFile, ctx);
+        await ctx.ui.text(ctx.t.files.nameExists.file);
         return false;
       }
       this.changes.add(ctx, { keys: [oldPath, newKey] });
@@ -697,7 +654,7 @@ export class BotModelImpl implements IBotModel {
 
   private async renameFailed(path: string, ctx: BotContext) {
     this.logger.error("Rename error: " + path + this.logger.getDetails(ctx));
-    await this.dialog.text(ctx, ctx.t.files.renameFailed);
+    await ctx.ui.text(ctx.t.files.renameFailed);
   }
 
   // ======================================================

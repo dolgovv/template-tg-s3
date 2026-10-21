@@ -37,7 +37,8 @@ export const en = {
     commandsTitle: "All available commands:",
   },
 
-  // shown in /help next to each command, plain text without HTML
+  // the descriptions of the commands in /help and in the hints of telegram,
+  // plain text without HTML. which commands exist is decided by the code, see Commands
   commands: {
     start: "to get main menu",
     nav: "to get navigation menu",

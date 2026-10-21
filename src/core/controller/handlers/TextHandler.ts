@@ -7,6 +7,8 @@ export class TextHandler {
   constructor(
     private composer: Composer<BotContext>,
     model: IBotModel,
+    // /help of the bot: an unrecognized text gets it
+    help: (ctx: BotContext) => Promise<void>,
   ) {
     this.composer.on("message:text", async (ctx) => {
       const step = ctx.session.dialogStep;
@@ -21,7 +23,7 @@ export class TextHandler {
           if (ctx.message.text) {
             const sanitized = model.sanitizeName(ctx.message.text);
             if (!sanitized) {
-              await model.sendInvalidNameError(ctx);
+              await ctx.ui.text(ctx.t.files.invalidName);
             } else {
               await model.rename(ctx.session.chosenPath, sanitized, ctx);
               await model.navMenu(ctx);
@@ -64,7 +66,7 @@ export class TextHandler {
             } else {
               const sanitized = model.sanitizeName(raw);
               if (!sanitized) {
-                await model.sendInvalidNameError(ctx);
+                await ctx.ui.text(ctx.t.files.invalidName);
               } else {
                 const result = await model.createDirectory(
                   ctx,
@@ -105,7 +107,7 @@ export class TextHandler {
                 await model.navMenu(ctx);
               }
             } else {
-              await model.sendHelp(ctx);
+              await help(ctx);
             }
           }
           break;

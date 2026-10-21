@@ -1,10 +1,11 @@
-import type { BotOptions } from "./createBot.js";
+import type { BotSettings } from "./createBot.js";
 import type { S3StorageOptions } from "./datasource/S3Client.js";
 import type { FileManagerOptions } from "./features/fileManager.js";
 import { cacheWebhook } from "./features/cacheInvalidation.js";
 
 export interface EnvConfig {
-  bot: BotOptions;
+  // your own texts are not in .env: createBot({ ...config.bot, customTexts })
+  bot: BotSettings;
   s3: S3StorageOptions;
   fileManager: Omit<FileManagerOptions, "storage">;
 }

@@ -6,75 +6,93 @@
 
 ## Шаг 1 — Добавить надписи
 
-В `src/core/texts/en.ts` и `ru.ts`, например, в раздел `buttons`:
+В свои тексты, `src/app/texts/index.ts`:
 
 ```ts
-// en.ts
-buttons: {
-  // ...
-  status: "📋 Status",
-  settings: "⚙️ Settings",
-},
+export const customTexts = defineTexts({
+  status: {
+    show: "📋 Статус",
+    settings: "⚙️ Настройки",
+  },
+});
 
-// ru.ts
-buttons: {
-  // ...
-  status: "📋 Статус",
-  settings: "⚙️ Настройки",
-},
+export const texts: TextsOverrides = {
+  en: { status: { show: "📋 Status", settings: "⚙️ Settings" } },
+};
 ```
 
 ---
 
 ## Шаг 2 — Показать кнопки
 
-Кнопки передаются в `this.dialog.text` или `this.dialog.menu` массивом рядов: каждый вложенный массив — один ряд.
+Кнопки передаются в `ctx.ui.text`, `ctx.ui.menu`, `ctx.ui.edit` и другие методы `ctx.ui` массивом рядов: каждый вложенный массив — один ряд.
 
 ```ts
-async sendSettings(ctx: BotContext) {
-  const b = ctx.t.buttons;
-  await this.dialog.menu(ctx, ctx.t.settings.title, [
-    [
-      { text: b.status, call: "status_show" },     // два в одном ряду
-      { text: b.settings, call: "settings_open" },
-    ],
-    [{ text: b.back, call: "cancel" }],            // одна во втором ряду
-  ]);
-}
+const t = ctx.t.status;
+await ctx.ui.menu(t.title, [
+  [
+    { text: t.show, call: "status_show" },          // две в одном ряду
+    { text: t.settings, call: "status_settings" },
+  ],
+  [{ text: t.site, url: "https://example.com" }],  // ссылка во втором ряду
+]);
 ```
 
-Каждая кнопка — объект с двумя полями:
+Кнопка — объект с надписью `text` из `ctx.t` и одним из полей:
 
-- `text` — надпись из `ctx.t`
-- `call` — идентификатор нажатия (латиница, без пробелов, до 64 байт)
+- `call` — идентификатор нажатия: латиница, без пробелов, до 64 байт. Рекомендуется формат `раздел_действие`, например `status_show`;
+- `url` — ссылка, нажатие открывает её и боту не приходит.
 
-`dialog.menu` редактирует сообщение с меню на месте, `dialog.text` отправляет новое.
-
-Чтобы добавить кнопку в главное меню, правится `sendMainMenu` в `src/core/dialog/DialogEngine.ts`.
+`ctx.ui.menu` редактирует сообщение с меню на месте, `ctx.ui.text` отправляет новое, `ctx.ui.edit` заменяет сообщение с нажатой кнопкой.
 
 ---
 
-## Шаг 3 — Обработать нажатие в `ButtonHandler.ts`
+## Шаг 3 — Обработать нажатие
 
-Открой `src/core/controller/handlers/ButtonHandler.ts`. В конструкторе зарегистрируй обработчик по значению `call`:
+В `src/app/main.ts`, место не важно: нажатия чужих кнопок файловый менеджер пропускает дальше.
 
 ```ts
-this.composer.callbackQuery("status_show", async (ctx) => {
+app.bot.callbackQuery("status_show", async (ctx) => {
   await ctx.answerCallbackQuery(); // убирает индикатор загрузки на кнопке
-  await model.onStatusShow(ctx);
+  await ctx.ui.edit(ctx.t.status.ok);
 });
 ```
 
 `ctx.answerCallbackQuery()` можно вызвать с текстом — он покажется как всплывающее уведомление (простой текст, без HTML):
 
 ```ts
-await ctx.answerCallbackQuery(ctx.t.nav.outdated);
+await ctx.answerCallbackQuery({ text: ctx.t.status.saved });
 ```
 
 Если обработчик забудет ответить, ядро ответит за него, но лучше отвечать сразу.
 
-Сигнатуру нового метода модели добавь в `src/core/IBotModel.ts`:
+---
+
+## Главное меню
+
+Главное меню (`/start`) собирается из кнопок модулей. Без настроек это кнопки языков по две в ряд, а под ними кнопки модулей по одной в ряд: у файлового менеджера это «Навигация».
+
+Раскладка задаётся в `createBot` параметром `mainMenu` — ряды сверху вниз:
 
 ```ts
-onStatusShow(ctx: BotContext): Promise<void>;
+const app = createBot({
+  ...config.bot,
+  texts,
+  customTexts,
+  mainMenu: [
+    ["navigation", (t) => ({ text: t.status.show, call: "status_show" })], // два в одном ряду
+    ["languages"],                                                          // языки по два в ряд
+  ],
+});
 ```
+
+| Элемент ряда                         | Что это                                                        |
+| ------------------------------------ | -------------------------------------------------------------- |
+| `"languages"`                        | Кнопки всех языков. Один в ряду — по два в ряд, иначе в этот ряд |
+| `"navigation"`                       | Кнопка файлового менеджера                                     |
+| `(t) => ({ text, call })`            | Своя кнопка, надпись из текстов                                |
+
+- Кнопка модуля, не указанная в раскладке, не показывается.
+- Неизвестное имя, например `"navigaton"`, — ошибка при запуске со списком известных.
+
+Модуль добавляет свою кнопку при подключении, в `kit.mainMenu.add(id, (t) => button)` — так это делает `fileManager`.

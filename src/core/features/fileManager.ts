@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 import type { Feature } from "../createBot.js";
 import type { S3Storage } from "../datasource/S3Client.js";
 import { BotModelImpl } from "../domain/BotModelImpl.js";
+import { DialogEngine } from "../dialog/DialogEngine.js";
 import { BotRouter } from "../controller/BotRouter.js";
 import type { BotContext } from "../types.js";
 import type { Update } from "grammy/types";
@@ -23,7 +24,8 @@ export interface FileManagerOptions {
   onChange?: OnStorageChange | undefined;
 }
 
-// main menu, language switch and S3 browser: navigation, upload, rename and delete
+// S3 browser: navigation, upload, rename and delete.
+// adds the "navigation" button to the main menu and the upload help to /help
 // !!! it answers any unrecognized text with help, so add your own handlers strictly before it
 export function fileManager(options: FileManagerOptions): Feature {
   return (kit) => {
@@ -44,14 +46,20 @@ export function fileManager(options: FileManagerOptions): Feature {
     const changes = new ChangeLog();
     const model = new BotModelImpl(
       options.storage,
-      kit.dialog,
+      new DialogEngine(),
       kit.logger,
       kit.options.token,
       kit.options.proxyUrl,
       root,
       albums,
       changes,
+      kit.resetDialog,
     );
+    kit.mainMenu.add("navigation", (t) => ({
+      text: t.buttons.navigation,
+      call: "navDir:root",
+    }));
+    kit.commands.addHelp((t) => t.help.upload);
     const composer = new Composer<BotContext>();
 
     // !!! the first one: it sees every write of the update, albums included.
@@ -108,7 +116,7 @@ export function fileManager(options: FileManagerOptions): Feature {
       await model.addAlbum(ctx, items);
     });
 
-    new BotRouter(composer, model);
+    new BotRouter(composer, model, kit.commands);
     return composer;
   };
 }
